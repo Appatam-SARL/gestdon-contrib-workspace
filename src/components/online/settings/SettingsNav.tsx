@@ -1,0 +1,113 @@
+import { cn } from '@/lib/utils';
+import { CreditCard, NotebookPen, Settings2 } from 'lucide-react';
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+interface NavLinkProps {
+  href: string;
+  label: string | React.ReactNode;
+  isActive?: boolean;
+  badge?: 'NEW' | 'Alpha';
+}
+
+const NavLink: React.FC<NavLinkProps> = ({ href, label, isActive, badge }) => (
+  <Link
+    to={href}
+    className={cn(
+      'flex items-center px-3 py-2 rounded-md text-sm font-medium',
+      isActive
+        ? 'bg-gray-100 text-gray-900'
+        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+    )}
+    aria-current={isActive ? 'page' : undefined}
+  >
+    {label}
+    {badge && (
+      <span
+        className={cn(
+          'ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold',
+          badge === 'NEW'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-yellow-100 text-yellow-800'
+        )}
+      >
+        {badge}
+      </span>
+    )}
+  </Link>
+);
+
+const SettingsNav = () => {
+  return (
+    <nav className='space-y-1 border-r border-t border-border'>
+      <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2.5'>
+        Paramètres du compte
+      </h3>
+      <NavLink
+        href='/settings'
+        label={
+          <>
+            <Settings2 className='mr-2 h-4 w-4' />
+            General
+          </>
+        }
+        isActive={true}
+      />
+      {/* <NavLink href='#' label='API Keys' badge='NEW' />
+      <NavLink href='#' label='Add Ons' />
+      <NavLink href='#' label='Vault' badge='Alpha' /> */}
+
+      <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
+        Configuration
+      </h3>
+      <NavLink href='activity' label="Type d'activités" />
+      <NavLink href='beneficiary' label='Type Bénéficiaires' />
+
+      <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
+        Personnalisations des formulaires
+      </h3>
+      <NavLink
+        href='activity-customizable-form'
+        label={
+          <>
+            <NotebookPen className='mr-2 h-4 w-4' />
+            Activités
+          </>
+        }
+      />
+      <NavLink
+        href='beneficiary-customizable-form'
+        label={
+          <>
+            <NotebookPen className='mr-2 h-4 w-4' />
+            Bénéficiaires
+          </>
+        }
+      />
+      <NavLink
+        href='#'
+        label={
+          <>
+            <NotebookPen className='mr-2 h-4 w-4' />
+            Rapports
+          </>
+        }
+      />
+
+      <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
+        Facturation
+      </h3>
+      <NavLink
+        href='#'
+        label={
+          <>
+            <CreditCard className='mr-2 h-4 w-4' />
+            Abonnement
+          </>
+        }
+      />
+    </nav>
+  );
+};
+
+export default SettingsNav;
