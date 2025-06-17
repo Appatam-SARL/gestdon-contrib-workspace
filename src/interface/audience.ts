@@ -1,17 +1,46 @@
-// TODO: Define the actual IAudience interface based on your audience data structure
 export interface IAudience {
   _id: string;
-  name: string;
-  email: string;
-  // Add other audience properties here
+  title: string;
+  description: string;
+  startDate?: string;
+  endDate?: string;
+  type: 'normal' | 'representative';
+  representative?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
+  status?: tStatusAudience;
+  beneficiaryId: string;
+  contributorId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// TODO: Define the actual IAudienceFilterForm interface based on your filtering needs
+export interface IAudienceForm {
+  beneficiaryId: string;
+  title: string;
+  description: string;
+  startDate?: string;
+  endDate?: string;
+  type: 'normal' | 'representative';
+  representative?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+  };
+  contributorId: string;
+}
+
 export interface IAudienceFilterForm {
   search?: string;
   period?: { from: string; to: string };
-  // Add other filter properties here
   page?: number;
   limit?: number;
   contributorId?: string;
+  type?: 'normal' | 'representative';
 }
+
+export type tStatusAudience = 'PENDING' | 'VALIDATED' | 'REFUSED' | 'ARCHIVED';

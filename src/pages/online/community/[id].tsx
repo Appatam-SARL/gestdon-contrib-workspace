@@ -133,7 +133,9 @@ const DetailCommunity = withDashboard(() => {
               <Button
                 variant='ghost'
                 size='icon'
-                onClick={() => setIsOpenUpdateBeneficiary(true)}
+                onClick={() =>
+                  setIsOpenUpdateBeneficiary(isOpenUpdateBeneficiary)
+                }
                 className='h-8 w-8'
               >
                 <PenIcon className='h-4 w-4' />

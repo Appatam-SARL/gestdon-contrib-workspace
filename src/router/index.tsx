@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
-import ProtectedLayout from '@/ProtectedRoute';
 import LayoutMinimal from '@/components/layout/LayoutMinimal';
 import EmailVerificationPage from '@/pages/auth/EmailVerificationPage';
 import LoginPage from '@/pages/auth/LoginPage';
@@ -11,8 +10,14 @@ import MFA from '@/pages/auth/mfa';
 import RegisterInvited from '@/pages/auth/register-user-by-invitation';
 import ResetPassword from '@/pages/auth/reset-password';
 import HomePage from '@/pages/home/HomePage';
+import ActivityPage from '@/pages/online/activity';
+import AddActivity from '@/pages/online/activity/AddActivity';
+import EditActivity from '@/pages/online/activity/EditActivity';
 import AgendaPage from '@/pages/online/agenda';
 import AudiencePage from '@/pages/online/audience';
+import { AudienceDetailsPage } from '@/pages/online/audience/[id]';
+import { EditAudiencePage } from '@/pages/online/audience/edit';
+import AddAudiencePage from '@/pages/online/audience/form-add';
 import CommunityPage from '@/pages/online/community';
 import DetailCommunity from '@/pages/online/community/[id]';
 import AddDonForm from '@/pages/online/community/form-add';
@@ -20,6 +25,7 @@ import Dashboard from '@/pages/online/dashboard';
 import { DonPage } from '@/pages/online/don';
 import { PromisesPage } from '@/pages/online/promise';
 import RepportsPage from '@/pages/online/rapports';
+import ReportDetailsPage from '@/pages/online/rapports/[id]';
 import Settings from '@/pages/online/settings';
 import SettingsLayout from '@/pages/online/settings/layout';
 import SettingActivity from '@/pages/online/settings/setting-activity';
@@ -62,14 +68,6 @@ const AppRouter = () => {
             </LayoutMinimal>
           }
         />
-        {/* <Route
-          path='/forgot-password'
-          element={
-            <LayoutMinimal>
-              <ForgotPasswordPage />
-            </LayoutMinimal>
-          }
-        /> */}
         <Route
           path='/verification-email'
           element={
@@ -78,14 +76,6 @@ const AppRouter = () => {
             </LayoutMinimal>
           }
         />
-        {/* <Route
-          path='/reset-password'
-          element={
-            <LayoutMinimal>
-              <ResetPasswordPage />
-            </LayoutMinimal>
-          }
-        /> */}
         <Route
           path='/welcome'
           element={
@@ -127,13 +117,24 @@ const AppRouter = () => {
           }
         />
 
-        <Route path='/' element={<ProtectedLayout />}>
+        <Route path='/'>
           <Route path='/dashboard' element={<Dashboard />} />
+          <Route path='audiences'>
+            <Route index element={<AudiencePage />} />
+            <Route path='create' element={<AddAudiencePage />} />
+            <Route path=':id' element={<AudienceDetailsPage />} />
+            <Route path=':id/edit' element={<EditAudiencePage />} />
+          </Route>
           <Route path='/don'>
             <Route index element={<DonPage />} />
             <Route path=':id' element={<HomePage />} />
             <Route path=':id/edit' element={<HomePage />} />
             <Route path='create' element={<HomePage />} />
+          </Route>
+          <Route path='/activity'>
+            <Route index element={<ActivityPage />} />
+            <Route path='create' element={<AddActivity />} />
+            <Route path=':id/edit' element={<EditActivity />} />
           </Route>
           <Route path='/audiences'>
             <Route index element={<AudiencePage />} />
@@ -152,7 +153,7 @@ const AppRouter = () => {
           </Route>
           <Route path='/repport'>
             <Route index element={<RepportsPage />} />
-            <Route path=':id' element={<HomePage />} />
+            <Route path=':id' element={<ReportDetailsPage />} />
             <Route path=':id/edit' element={<HomePage />} />
             <Route path='create' element={<HomePage />} />
           </Route>

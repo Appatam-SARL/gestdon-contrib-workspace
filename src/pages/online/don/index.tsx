@@ -1,3 +1,4 @@
+import { DON_FILTER_FORM_INITIAL_STATE } from '@/assets/constants/don';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import {
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
+  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
@@ -45,14 +47,14 @@ import { useBeneficiaries } from '@/hook/beneficiaire.hook';
 import { useCreateDon, useDons } from '@/hook/don.hook';
 import { IDon, IDonFilterForm } from '@/interface/don';
 import { createDonSchema, FormCreateDonSchema } from '@/schema/don.schema';
+import useContributorStore from '@/store/contributor.store';
 import { useDonStore } from '@/store/don.store';
-import useUserStore from '@/store/user.store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addDays } from 'date-fns';
 import fr from 'date-fns/locale/fr';
 import { Eye, Filter, Loader2, RefreshCcw, UserPlus } from 'lucide-react';
 import { useState } from 'react';
-import { Calendar, DateRangePicker } from 'react-date-range';
+import { DateRangePicker } from 'react-date-range';
 import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router-dom';
@@ -110,7 +112,7 @@ const FilterModal = ({
 
 export const DonPage = withDashboard(() => {
   const navigate = useNavigate();
-  const contributorId = useUserStore((s) => s.user?.contributorId);
+  const contributorId = useContributorStore((s) => s.contributor?._id);
   const { donFilterForm, setDonStore } = useDonStore((s) => s);
   const [isCreateDonOpen, setIsCreateDonOpen] = useState<boolean>(false);
   const [dateSelected, setDateSelected] = useState<Date | null>(null);
@@ -145,20 +147,28 @@ export const DonPage = withDashboard(() => {
     defaultValues: {
       beneficiaire: '',
       montant: '0',
+      title: '',
       devise: 'FCFA',
-      dateDon: new Date(),
+      startDate: '',
+      endDate: '',
     },
   });
 
-  const activeFiltersCount = Object.values(filters).filter(Boolean).length;
+  const activeFiltersCount = Object.values(
+    donFilterForm as IDonFilterForm
+  ).filter(Boolean).length;
 
   const handleRowClick = (donationId: string) => {
     navigate(`/don/${donationId}`);
   };
 
-  const onSubmit = (data: FormCreateDonSchema) => {
+  const onSubmit = async (data: FormCreateDonSchema) => {
     console.log('Don:', data);
-    mutation.mutate(data);
+    const payload = {
+      ...data,
+      contributorId: contributorId as string,
+    };
+    mutation.mutateAsync(payload as unknown as Partial<IDon>);
   };
 
   return (
@@ -175,7 +185,7 @@ export const DonPage = withDashboard(() => {
           </Button>
           {/* Dialog create don */}
           <Dialog open={isCreateDonOpen} onOpenChange={setIsCreateDonOpen}>
-            <DialogContent className='sm:max-w-[500px] overflow-auto h-full'>
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Créer un don</DialogTitle>
                 <DialogDescription>
@@ -194,7 +204,7 @@ export const DonPage = withDashboard(() => {
                       render={({ field }) => (
                         <FormItem>
                           <label className='block text-sm font-medium'>
-                            Donateur
+                            Bénéficiaire
                           </label>
                           <FormControl>
                             <Select
@@ -216,6 +226,21 @@ export const DonPage = withDashboard(() => {
                                 ))}
                               </SelectContent>
                             </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={formAddDon.control}
+                      name='title'
+                      render={({ field }) => (
+                        <FormItem>
+                          <label className='block text-sm font-medium'>
+                            Titre
+                          </label>
+                          <FormControl>
+                            <Input placeholder='Titre' {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -269,14 +294,43 @@ export const DonPage = withDashboard(() => {
                         </FormItem>
                       )}
                     />
-                    <Calendar
-                      className='w-full h-full'
-                      locale={fr}
-                      date={formAddDon.getValues().dateDon}
-                      onChange={(item) => {
-                        setDateSelected(item);
-                        formAddDon.setValue('dateDon', item);
-                      }}
+                    <FormField
+                      control={formAddDon.control}
+                      name='startDate'
+                      render={({ field }) => (
+                        <FormItem>
+                          <label className='block text-sm font-medium'>
+                            Date de début
+                          </label>
+                          <FormControl>
+                            <Input
+                              type='datetime-local'
+                              placeholder='Date de début'
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={formAddDon.control}
+                      name='endDate'
+                      render={({ field }) => (
+                        <FormItem>
+                          <label className='block text-sm font-medium'>
+                            Date de fin
+                          </label>
+                          <FormControl>
+                            <Input
+                              type='datetime-local'
+                              placeholder='Date de fin'
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                     <DialogFooter>
                       <Button
@@ -341,10 +395,12 @@ export const DonPage = withDashboard(() => {
           <Button
             variant='outline'
             onClick={() => {
-              //   setDonationStore('donationFilter', INIT_DONATION_FILTER);
-              //   refetch();
-              //   setSearchQuery('');
-              //   setFilters(INIT_DONATION_FILTER);
+              setDonStore('donFilterForm', {
+                ...DON_FILTER_FORM_INITIAL_STATE,
+                contributorId: contributorId as string,
+              });
+              refetch();
+              setSearchQuery('');
             }}
             className='relative'
           >
@@ -357,13 +413,12 @@ export const DonPage = withDashboard(() => {
       <FilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
-        filters={filters as IDonFilterForm}
+        filters={donFilterForm as IDonFilterForm}
         onFilterChange={(key: string, value: {}) => {
-          //   setDonationStore(
-          //     key as keyof DonationStore,
-          //     value as DonationStore[keyof DonationStore]
-          //   );
-          //   setFilters(value as DonationFilter);
+          setDonStore('donFilterForm', {
+            ...donFilterForm,
+            [key]: value,
+          });
         }}
       />
 
@@ -371,7 +426,7 @@ export const DonPage = withDashboard(() => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Donateur</TableHead>
+              <TableHead>Bénéficiaire</TableHead>
               <TableHead>Montant</TableHead>
               <TableHead>Devise</TableHead>
               <TableHead>Date du don</TableHead>
@@ -450,29 +505,21 @@ export const DonPage = withDashboard(() => {
                 <PaginationItem>
                   <PaginationPrevious
                     href='#'
-                    // ajoute une classe pour disactivé le boutton si la page est à 1 ou si le nombre de pages est inférieur à 2
+                    disabled={currentPage === 1}
                     className={
                       currentPage === 1 ? 'pointer-events-none opacity-50' : ''
                     }
-                    onClick={
-                      () => {}
-                      // handleFilterChange(
-                      //   'page',
-                      //   data?.metadata?.page
-                      //     ? Number(data.metadata.page) - 1
-                      //     : 1
-                      // )
-                    }
+                    onClick={() => {
+                      setCurrentPage(currentPage - 1);
+                    }}
                     size='sm'
                   />
                 </PaginationItem>
-                {/* {isLoading
-                  ? [...Array(2)].map((_, i) => (
-                      <Skeleton className='h-4 w-4' key={i + 1} />
-                    ))
-                  : [
-                      ...Array(Math.min(Number(data?.metadata?.totalPages))),
-                    ].map((_, i) => (
+                {isLoading ? (
+                  <Skeleton className='h-4 w-4' count={1} />
+                ) : (
+                  [...Array(Math.min(Number(data?.metadata?.totalPages)))].map(
+                    (_, i) => (
                       <PaginationItem key={i + 1}>
                         <PaginationLink
                           onClick={() => setCurrentPage(i + 1)}
@@ -482,7 +529,9 @@ export const DonPage = withDashboard(() => {
                           {i + 1}
                         </PaginationLink>
                       </PaginationItem>
-                    ))} */}
+                    )
+                  )
+                )}
                 <PaginationItem>
                   <PaginationEllipsis />
                 </PaginationItem>
@@ -491,10 +540,8 @@ export const DonPage = withDashboard(() => {
                     href='#'
                     size={'sm'}
                     onClick={() =>
-                      setCurrentPage(
-                        (p) =>
-                          p === Number(data?.metadata?.totalPages) ? p : p + 1
-                        // Math.min(Number(partners?.pagination?.pages), p + 1)
+                      setCurrentPage((p) =>
+                        p === Number(data?.metadata?.totalPages) ? p : p + 1
                       )
                     }
                     className={

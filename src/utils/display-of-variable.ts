@@ -1,21 +1,3 @@
-import { tStatusDriver } from '@/types/driver';
-import { PartnerStatus } from '@/types/partner.types';
-
-export const displayPartnerStatus = (status: PartnerStatus) => {
-  switch (status) {
-    case 'PENDING':
-      return 'En attente';
-    case 'APPROVED':
-      return 'Validé';
-    case 'BLOCKED':
-      return 'Bloqué';
-    case 'ALL':
-      return 'Tous';
-    default:
-      return 'Tous';
-  }
-};
-
 export const displayTypeDocumentPartner = (type: string) => {
   switch (type) {
     case 'DRIVER_LICENSE':
@@ -75,21 +57,6 @@ export const displayStatusRelayPoint = (status: string) => {
   }
 };
 
-export const displayStatusDriver = (status: tStatusDriver) => {
-  switch (status) {
-    case 'PENDING':
-      return 'En attente';
-    case 'APPROVED':
-      return 'Validé';
-    case 'SUSPENDED':
-      return 'Suspendu';
-    case 'BLOCKED':
-      return 'Bloqué';
-    default:
-      return 'Non défini';
-  }
-};
-
 export const getRoleLayout = (role: string) => {
   switch (role) {
     case 'MANAGER':
@@ -119,6 +86,21 @@ export const displayStatus = (status: string) => {
       return 'Expiré';
     case 'ALL':
       return 'Tous';
+    default:
+      return '';
+  }
+};
+
+export const displayStatusAudience = (status: string) => {
+  switch (status) {
+    case 'PENDING':
+      return 'En attente';
+    case 'VALIDATED':
+      return 'Validé';
+    case 'REFUSED':
+      return 'Refusé';
+    case 'ARCHIVED':
+      return 'Archivé';
     default:
       return '';
   }

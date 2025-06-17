@@ -135,11 +135,12 @@ const AddDonForm = withDashboard(() => {
         <CardContent>
           <Form {...formAddBeneficiary}>
             <form
-              onSubmit={formAddBeneficiary.handleSubmit((data) => {
+              onSubmit={(e) => {
+                e.preventDefault();
                 if (currentStep === 3) {
-                  handleSubmit(data);
+                  formAddBeneficiary.handleSubmit(handleSubmit)(e);
                 }
-              })}
+              }}
               className='space-y-4'
             >
               {currentStep === 1 && (
@@ -331,7 +332,27 @@ const AddDonForm = withDashboard(() => {
                   <Button
                     type='button'
                     className='ml-auto'
-                    onClick={() => setCurrentStep((prev) => prev + 1)}
+                    onClick={async () => {
+                      const isValid = await formAddBeneficiary.trigger(
+                        currentStep === 1
+                          ? ['fullName', 'description']
+                          : currentStep === 2
+                          ? [
+                              'representant.firstName',
+                              'representant.lastName',
+                              'representant.phone',
+                            ]
+                          : [
+                              'representant.address.city',
+                              'representant.address.country',
+                              'representant.address.postalCode',
+                              'representant.address.street',
+                            ]
+                      );
+                      if (isValid) {
+                        setCurrentStep((prev) => prev + 1);
+                      }
+                    }}
                   >
                     Suivant
                   </Button>

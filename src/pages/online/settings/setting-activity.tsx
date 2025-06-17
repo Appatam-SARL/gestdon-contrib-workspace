@@ -113,10 +113,17 @@ const SettingActivity = () => {
     isRefetching,
     refetch: refetchActivityTypes,
   } = useGetActivityType(); // Added refetch
-  const mutationCreateActivityType = useCreateActivityType();
+  const mutationCreateActivityType = useCreateActivityType(
+    setIsAddDialogOpen,
+    refetchActivityTypes
+  );
   // Supposons que vous avez des hooks de mutation pour la mise à jour et la suppression
   // Vous devrez implémenter useUpdateActivityType et useDeleteActivityType dans activity-type.hook.ts
-  const mutationUpdateActivityType = useUpdateActivityType();
+  const mutationUpdateActivityType = useUpdateActivityType(
+    setIsEditDialogOpen,
+    setEditingActivityId,
+    refetchActivityTypes
+  );
   const mutationDeleteActivityType = useDeleteActivityType();
 
   // React Hook Form setup for Add Dialog
@@ -176,13 +183,7 @@ const SettingActivity = () => {
       ...values,
       contributorId: contributorId as string,
     };
-    console.log('🚀 ~ handleSaveNewActivity ~ payload:', payload);
-    mutationCreateActivityType.mutate(payload, {
-      onSuccess: () => {
-        setIsAddDialogOpen(false); // Close the dialog on success
-        refetchActivityTypes(); // Refetch data after successful creation
-      },
-    });
+    mutationCreateActivityType.mutate(payload);
   };
 
   const handleEditClick = (activity: IActivityType) => {
@@ -191,16 +192,10 @@ const SettingActivity = () => {
 
   const handleSaveEditedActivity = (values: ActivityFormValues) => {
     if (editingActivityId !== null) {
-      mutationUpdateActivityType.mutate(
-        { id: editingActivityId, label: values.label },
-        {
-          onSuccess: () => {
-            setIsEditDialogOpen(false);
-            setEditingActivityId(null);
-            refetchActivityTypes(); // Refetch data after successful update
-          },
-        }
-      );
+      mutationUpdateActivityType.mutate({
+        id: editingActivityId,
+        label: values.label,
+      });
     }
   };
 

@@ -1,46 +1,25 @@
+import { CustomFieldForm } from '@/components/custom-field/CustomFieldForm';
+import { CustomFieldTable } from '@/components/custom-field/CustomFieldTable';
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod'; // Import Zod
-
-// Import Shadcn UI components (adjust paths based on your project structure)
-// These imports are illustrative and might need adjustment based on your shadcn setup
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
+  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea'; // For options
 import { useGetActivityType } from '@/hook/activity-type.hook';
 import {
   useCreateCustomField,
@@ -48,125 +27,208 @@ import {
   useGetCustomFieldsFromForm,
   useUpdateCustomField,
 } from '@/hook/custom-field.hook';
+import { ICustomFieldOption } from '@/interface/custom-field';
 import useContributorStore from '@/store/contributor.store';
-import Skeleton from 'react-loading-skeleton';
+import { CustomFieldFormData } from '@/types/custom-field.types';
+import { useQueryClient } from '@tanstack/react-query';
+import { RefreshCw, Search, Trash } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-// Define the structure of a custom field, similar to your mongoose model snippet
-interface CustomField {
-  _id?: string; // Optional, as it will be assigned by the backend
-  name: string;
-  label: string;
-  type: string;
-  required: boolean;
-  options?: string[]; // Used for select, radio, checkbox types
-  activityTypeId?: string; // Add activityTypeId to the interface
-}
-
-const customFieldSchema = z.object({
-  _id: z.string().optional(),
-  name: z.string().min(1, { message: 'Name is required.' }),
-  label: z.string().min(1, { message: 'Label is required.' }),
-  type: z.string().min(1, { message: 'Type is required.' }),
-  required: z.boolean(),
-  options: z.array(z.string()).optional(),
-  activityTypeId: z.string().optional(), // Add activityTypeId to the schema
-});
+const FORM_NAME = 'activity';
+const ITEMS_PER_PAGE = 5;
 
 const SettingsActivityCustomizableForm = () => {
+  const queryClient = useQueryClient();
   const contributorId = useContributorStore((state) => state.contributor?._id);
-  // State to hold the list of existing custom fields
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
-  // State for the form to add/edit a custom field
-  const form = useForm<z.infer<typeof customFieldSchema>>({
-    resolver: zodResolver(customFieldSchema),
-    defaultValues: {
-      name: '',
-      label: '',
-      type: 'text',
-      required: false,
-      options: [],
-    },
-  });
-  const formData = form.watch(); // Get current form data for conditional rendering
-  // State to track if we are editing an existing field
+  const [customFields, setCustomFields] = useState<ICustomFieldOption[]>([]);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
-  // State to manage the activity type/form name - will assume 'activity' for now
-  const formName = 'activity';
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [fieldToDelete, setFieldToDelete] = useState<ICustomFieldOption | null>(
+    null
+  );
+
   const { data: activityTypes, isLoading: isLoadingActivityTypes } =
     useGetActivityType();
-  const { data: customFieldsData, isLoading: isLoadingCustomFields } =
-    useGetCustomFieldsFromForm(formName);
+  const {
+    data: customFieldsData,
+    isLoading: isLoadingCustomFields,
+    isRefetching: isRefetchingCustomFields,
+    refetch,
+  } = useGetCustomFieldsFromForm(
+    FORM_NAME,
+    contributorId as string,
+    searchTerm,
+    currentPage,
+    ITEMS_PER_PAGE
+  );
+
   const mutationCreateCustomField = useCreateCustomField();
   const mutationUpdateCustomField = useUpdateCustomField();
   const mutationDeleteCustomField = useDeleteCustomField();
 
-  // Fetch custom fields on component mount
   useEffect(() => {
-    setCustomFields(customFieldsData?.data || []);
-  }, [customFieldsData]); // Ensure component reacts to customFieldsData changes
+    if (customFieldsData?.data) {
+      setCustomFields(customFieldsData.data);
+    }
+  }, [customFieldsData]);
 
-  // Handle form submission (Add or Update)
-  const onSubmit = async (values: z.infer<typeof customFieldSchema>) => {
-    // Validate contributorId
+  const handleSubmit = async (values: CustomFieldFormData) => {
     if (!contributorId) {
-      console.error('Contributor ID is missing.');
-      // Consider a toast or more user-friendly error display
+      toast.error('ID du contributeur manquant.');
       return;
     }
 
-    // Prepare the inner field data for the 'fields' array in the Mongoose schema
+    if (!values.activityTypeId) {
+      toast.error("Veuillez sélectionner un type d'activité.");
+      return;
+    }
+
     const innerFieldData = {
       name: values.name,
       label: values.label,
       type: values.type,
       required: values.required,
-      options: values.options || [], // Ensure options is an array
+      options: values.options || [],
+      activityTypeId: values.activityTypeId,
     };
 
     try {
       if (editingFieldId) {
-        // For updating an existing field: assumes `editingFieldId` is the _id of the specific field within the `fields` array.
-        mutationUpdateCustomField.mutate({
+        const payload = {
           id: editingFieldId,
-          data: innerFieldData, // Send only the inner field data
-        });
-        setEditingFieldId(null); // Exit editing mode
+          data: {
+            entityId: values.activityTypeId,
+            entityType: 'ACTIVITY',
+            form: FORM_NAME,
+            ownerId: contributorId,
+            fields: [innerFieldData],
+          },
+        };
+        await mutationUpdateCustomField.mutateAsync(payload);
+        toast.success('Champ mis à jour avec succès.');
+        setEditingFieldId(null);
       } else {
-        // For creating a new custom field: Construct the payload to match the Mongoose CustomFieldSchema
         const createPayload = {
           ownerId: contributorId,
-          form: formName,
-          entityType: 'ACTIVITY', // As per the context of this form
-          entityId: values.activityTypeId, // Optional, can be undefined
-          fields: [innerFieldData], // Wrap the new field in an array
+          form: FORM_NAME,
+          entityType: 'ACTIVITY',
+          entityId: values.activityTypeId,
+          fields: [innerFieldData],
         };
-        mutationCreateCustomField.mutate(createPayload); // Pass the full document payload
+        await mutationCreateCustomField.mutateAsync(createPayload);
+        toast.success('Champ ajouté avec succès.');
       }
-      form.reset(); // Clear the form
+      // Invalider le cache pour forcer un rechargement des données
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'custom-fields',
+          FORM_NAME,
+          searchTerm,
+          currentPage,
+          ITEMS_PER_PAGE,
+        ],
+      });
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Une erreur est survenue';
+      toast.error(`Erreur lors de la sauvegarde du champ: ${errorMessage}`);
       console.error('Error saving custom field:', error);
     }
   };
 
-  // Handle editing a field
-  const handleEdit = (field: CustomField) => {
-    form.reset(field);
-    setEditingFieldId(field._id || null);
+  const handleEdit = (field: ICustomFieldOption) => {
+    setEditingFieldId(field._id);
   };
 
-  // Handle removing a field
   const handleRemove = async (fieldId: string | undefined) => {
-    if (!fieldId) return;
-    if (window.confirm('Are you sure you want to remove this field?')) {
-      mutationDeleteCustomField.mutate(fieldId);
+    if (!fieldId || !contributorId) return;
+
+    const fieldToDelete = customFields.find((f) => f._id === fieldId);
+    if (!fieldToDelete) {
+      toast.error('Impossible de trouver les informations du champ.');
+      return;
+    }
+
+    setFieldToDelete(fieldToDelete);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!fieldToDelete || !contributorId) return;
+
+    try {
+      const deletePayload = {
+        form: FORM_NAME,
+        fieldId: fieldToDelete._id,
+        data: {
+          entityType: 'ACTIVITY',
+          ownerId: contributorId,
+        },
+      };
+      await mutationDeleteCustomField.mutateAsync(deletePayload);
+      setFieldToDelete(null);
+      // Invalider le cache pour forcer un rechargement des données
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'custom-fields',
+          FORM_NAME,
+          searchTerm,
+          currentPage,
+          ITEMS_PER_PAGE,
+        ],
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Une erreur est survenue';
+      toast.error(`Erreur lors de la suppression du champ: ${errorMessage}`);
+      console.error('Error deleting custom field:', error);
     }
   };
 
-  // Cancel editing
+  const handleCancelDelete = () => {
+    setFieldToDelete(null);
+  };
+
   const handleCancelEdit = () => {
-    form.reset();
     setEditingFieldId(null);
   };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({
+      queryKey: [
+        'custom-fields',
+        FORM_NAME,
+        searchTerm,
+        currentPage,
+        ITEMS_PER_PAGE,
+      ],
+    });
+  };
+
+  const totalPages = Number(customFieldsData?.metadata?.totalPages) || 1;
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  if (!contributorId) {
+    return (
+      <div className='p-6'>
+        <p className='text-red-500'>
+          Vous devez être connecté pour accéder à cette page.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className='p-6 space-y-6'>
@@ -174,289 +236,118 @@ const SettingsActivityCustomizableForm = () => {
         Gérer les champs personnalisés d'activité
       </h2>
 
-      {/* Form to Add/Edit Custom Fields */}
+      <AlertDialog
+        open={!!fieldToDelete}
+        onOpenChange={() => setFieldToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Êtes-vous sûr de vouloir supprimer ce champ ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le champ sera définitivement
+              supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDelete}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white'
+            >
+              <Trash className='h-4 w-4' />
+              <span>Supprimer</span>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className='border rounded-md p-4'>
         <h3 className='text-xl font-semibold mb-4'>
           {editingFieldId
-            ? 'Edit Custom Field'
+            ? 'Modifier le champ personnalisé'
             : 'Ajouter un nouveau champ personnalisé'}
         </h3>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='grid grid-cols-1 md:grid-cols-2 gap-4'
-          >
-            <FormField
-              control={form.control}
-              name='name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} required />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='label'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Label</FormLabel>
-                  <FormControl>
-                    <Input {...field} required />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='type'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className='w-full'>
-                        <SelectValue placeholder='Select field type' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value='text'>Text</SelectItem>
-                      <SelectItem value='number'>Number</SelectItem>
-                      <SelectItem value='textarea'>Textarea</SelectItem>
-                      <SelectItem value='date'>Date</SelectItem>
-                      <SelectItem value='select'>Select (Dropdown)</SelectItem>
-                      <SelectItem value='radio'>Radio Buttons</SelectItem>
-                      <SelectItem value='checkbox'>Checkbox</SelectItem>
-                      {/* Add other types as needed */}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='required'
-              render={({ field }) => (
-                <FormItem className='flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4'>
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className='space-y-1 leading-none'>
-                    <FormLabel>Required</FormLabel>
-                    <FormDescription>
-                      Check if this field is required.
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            {(formData.type === 'select' ||
-              formData.type === 'radio' ||
-              formData.type === 'checkbox') && (
-              <FormField
-                control={form.control}
-                name='options'
-                render={({ field }) => (
-                  <FormItem className='col-span-1 md:col-span-2'>
-                    <FormLabel>Options (comma-separated)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder='Option 1, Option 2, Option 3'
-                        value={field.value ? field.value.join(', ') : ''}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value.split(',').map((opt) => opt.trim())
-                          )
-                        }
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Enter options separated by commas for select, radio, or
-                      checkbox types.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            {isLoadingActivityTypes ? (
-              <div className='col-span-1 md:col-span-2'>
-                <Skeleton className='h-4 w-4' />
-              </div>
-            ) : (
-              <FormField
-                control={form.control}
-                name='activityTypeId'
-                render={({ field }) => (
-                  <FormItem className='col-span-1 md:col-span-2'>
-                    <FormLabel>Type d'activité</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger className='w-full'>
-                          <SelectValue placeholder='Selectionnez une activité' />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {activityTypes?.data?.map((activityType) => (
-                          <SelectItem
-                            key={activityType._id}
-                            value={activityType._id}
-                          >
-                            {activityType.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            <div className='col-span-1 md:col-span-2 flex justify-end space-x-2'>
-              <Button type='submit'>
-                {editingFieldId ? 'Mettre à jour le champ' : 'Ajouter un champ'}
-              </Button>
-              {editingFieldId && (
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={handleCancelEdit}
-                >
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </form>
-        </Form>
+        <CustomFieldForm
+          onSubmit={handleSubmit}
+          activityTypes={activityTypes?.data}
+          isLoadingActivityTypes={isLoadingActivityTypes}
+          isEditing={!!editingFieldId}
+          onCancel={handleCancelEdit}
+          initialValues={
+            editingFieldId
+              ? customFields.find((f) => f._id === editingFieldId)
+              : undefined
+          }
+        />
       </div>
 
-      {/* Table to List Custom Fields */}
       <div className='border rounded-md'>
-        <h3 className='text-xl font-semibold mb-4 p-4'>
-          Champs personnalisés existants
-        </h3>
-        {isLoadingCustomFields ? (
-          <div className='flex justify-center items-center h-32'>
-            <Skeleton className='h-full w-full' />
+        <div className='flex items-center justify-between p-4 mb-4'>
+          <h3 className='text-xl font-semibold'>
+            Champs personnalisés existants
+          </h3>
+          <div className='flex items-center space-x-2'>
+            <div className='relative'>
+              <Input
+                type='text'
+                placeholder='Rechercher un champ...'
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className='pl-8'
+              />
+              <Search className='absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500' />
+            </div>
+            <Button onClick={handleRefresh} variant='outline' size='icon'>
+              <RefreshCw className='h-4 w-4' />
+            </Button>
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Label</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Required</TableHead>
-                {customFields.some(
-                  (field) => field.options && field.options.length > 0
-                ) && <TableHead>Options</TableHead>}
-                <TableHead className='text-right'>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customFields.length > 0 ? (
-                customFields.map((field) => (
-                  <TableRow key={field._id || field.name}>
-                    {' '}
-                    {/* Use _id if available, fallback to name */}
-                    <TableCell className='font-medium'>{field.name}</TableCell>
-                    <TableCell>{field.label}</TableCell>
-                    <TableCell>{field.type}</TableCell>
-                    <TableCell>{field.required ? 'Yes' : 'No'}</TableCell>
-                    {customFields.some(
-                      (f) => f.options && f.options.length > 0
-                    ) && (
-                      <TableCell>
-                        {field.options ? field.options.join(', ') : '-'}
-                      </TableCell>
-                    )}
-                    <TableCell className='text-right'>
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => handleEdit(field)}
-                        className='mr-2'
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant='destructive'
-                        size='sm'
-                        onClick={() => handleRemove(field._id)}
-                      >
-                        Remove
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={editingFieldId ? 6 : 5}
-                    className='text-center'
+        </div>
+        <CustomFieldTable
+          customFields={customFields}
+          isLoading={isLoadingCustomFields}
+          isRefetchingCustomFields={isRefetchingCustomFields}
+          onEdit={handleEdit}
+          onRemove={handleRemove}
+        />
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination className='p-4'>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href='#'
+                  size={'sm'}
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                />
+              </PaginationItem>
+              {Array.from({ length: totalPages }).map((_, index) => (
+                <PaginationItem key={index}>
+                  <PaginationLink
+                    href='#'
+                    isActive={index + 1 === currentPage}
+                    onClick={() => handlePageChange(index + 1)}
+                    size={'sm'}
                   >
-                    Aucun champ personnalisé n'a encore été ajouté.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    {index + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  href='#'
+                  size={'sm'}
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         )}
-
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href='#'
-                size={'sm'}
-                onClick={() => {
-                  // setCurrentPage(
-                  //   Math.max(Number(data?.metadata?.page), currentPage - 1)
-                  // )
-                }}
-              />
-            </PaginationItem>
-            {/* {isPending ? (
-                          <Skeleton className='h-4 w-4' />
-                      ) : (
-                          // INSERT_YOUR_REWRITE_HERE
-                          <></>
-                      )} */}
-            {/* {Number(data?.metadata?.total) > 3 && ( */}
-            <PaginationItem>
-              <PaginationEllipsis />
-            </PaginationItem>
-            {/* )} */}
-            <PaginationItem>
-              <PaginationNext
-                href='#'
-                size={'sm'}
-                onClick={() => {
-                  // setCurrentPage(
-                  //   Math.min(Number(data?.metadata?.page), currentPage + 1)
-                  // )
-                }}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
       </div>
     </div>
   );

@@ -1,10 +1,17 @@
 import CustomFieldApi from '@/api/custom-field.api';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
-export function useGetCustomFieldsFromForm(form: string) {
+export function useGetCustomFieldsFromForm(
+  form: string,
+  ownerId: string,
+  searchQuery?: string,
+  page?: number,
+  limit?: number
+) {
   return useQuery({
-    queryKey: ['custom-fields', form],
-    queryFn: () => CustomFieldApi.getCustomFields(form),
+    queryKey: ['custom-fields', form, searchQuery, page, limit],
+    queryFn: () =>
+      CustomFieldApi.getCustomFields(form, ownerId, searchQuery, page, limit),
   });
 }
 
@@ -22,6 +29,14 @@ export function useUpdateCustomField() {
 
 export function useDeleteCustomField() {
   return useMutation({
-    mutationFn: (id: string) => CustomFieldApi.deleteCustomField(id),
+    mutationFn: ({
+      form,
+      fieldId,
+      data,
+    }: {
+      form: string;
+      fieldId: string;
+      data: { entityType: string; ownerId: string };
+    }) => CustomFieldApi.deleteCustomField(form, fieldId, data),
   });
 }

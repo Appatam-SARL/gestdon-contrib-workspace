@@ -4,7 +4,9 @@ export const createDonSchema = z.object({
   beneficiaire: z.string(),
   montant: z.string(),
   devise: z.string(),
-  dateDon: z.date(),
+  title: z.string(),
+  startDate: z.string(),
+  endDate: z.string(),
 });
 
 export const donSchema = z.object({

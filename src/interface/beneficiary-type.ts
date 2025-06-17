@@ -8,6 +8,7 @@ export interface IBeneficiaryType {
 }
 
 export interface IBeneficiaryTypeForm {
+  id?: string;
   label: string;
 }
 

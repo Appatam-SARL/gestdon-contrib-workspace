@@ -19,20 +19,20 @@ import {
 } from '@/api/admin.api';
 import { getLogs } from '@/api/logs.api';
 import { toast, useToast } from '@/components/ui/use-toast';
+import { IContributor } from '@/interface/contributor';
 import {
   FormInviteRegisterUserValues,
   FormInviteValues,
 } from '@/schema/admins.schema';
+import useContributorStore from '@/store/contributor.store';
 import { useMfaStore } from '@/store/mfa.store';
 import useUserStore from '@/store/user.store';
-// import useUserStore from '@/store/staff.store';
-// import { useMfaStore } from '@/stores/mfa.store';
-// import useUserStore from '@/stores/staff.store';
 import { IlogFilter, ILogsResponse } from '@/types/log.type';
 import { StaffMemberForm } from '@/types/staff';
 import { IUser, IUserFilterForm } from '@/types/user';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function useLogin() {
@@ -576,12 +576,45 @@ export function useResetPassword() {
 }
 
 export function useFindByToken() {
-  return useQuery({
-    queryKey: ['user', 'findByToken'],
-    queryFn: findByToken,
-    enabled: true,
-    refetchInterval: 1000 * 60 * 5, // 5mins
-  });
+  const navigate = useNavigate();
+  const setUserStore = useUserStore((s) => s.setUserStore);
+  const setContributorStore = useContributorStore((s) => s.setContributorStore);
+  const handleCheckToken = React.useCallback(() => {
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/');
+          localStorage.clear();
+          // toast.error('Token inexistant, veuillez vous reconnecter.');
+          return;
+        }
+        const response = await findByToken();
+        if (!response.success) {
+          navigate('/');
+          localStorage.clear();
+          // toast.error('Token invalide, veuillez vous reconnecter.');
+        }
+        setUserStore('user', response.user as IUser);
+        setContributorStore(
+          'contributor',
+          response.contributor as IContributor
+        );
+      } catch (error) {
+        navigate('/');
+        localStorage.clear();
+        alert(error as string);
+      }
+    })();
+  }, [navigate]);
+
+  React.useEffect(() => {
+    handleCheckToken();
+  }, []);
+}
+
+export function useAuthentificate() {
+  const navigate = useNavigate();
 }
 
 export function useInviteUser(id: string) {

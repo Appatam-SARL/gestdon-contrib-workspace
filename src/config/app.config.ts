@@ -14,6 +14,7 @@ export const env = {
 };
 
 export const API_ROOT = {
+  agendas: 'agendas',
   documents: 'documents',
   files: 'files',
   logs: 'logs',
@@ -24,7 +25,11 @@ export const API_ROOT = {
   dons: 'dons',
   beneficiaire: 'beneficiaires',
   promesses: 'promesses',
+  activities: 'activities',
   activityTypes: 'activity-types',
   beneficiaryTypes: 'beneficiaire-types',
   customFields: 'custom-fields',
+  audiences: 'audiences',
+  reports: 'reports',
+  dashboard: 'dashboard',
 };

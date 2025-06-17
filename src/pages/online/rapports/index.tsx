@@ -10,6 +10,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -25,60 +33,24 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { withDashboard } from '@/hoc/withDashboard';
-// import { useGetReports } from '@/hook/report.hook'; // Assuming a similar hook exists
-// import useReportStore, { INIT_REPORT_FILTER } from '@/store/report.store'; // Assuming a similar store exists
-// import { Report, ReportFilter, ReportStore } from '@/types/report'; // Assuming similar types exist
-import { Filter, RefreshCcw } from 'lucide-react';
+import { useReports } from '@/hook/report.hook';
+import { IReport, IReportFilterForm, tReportStatus } from '@/interface/report';
+import useContributorStore from '@/store/contributor.store';
+import useReportStore from '@/store/report.store';
+import { Eye, Filter, RefreshCcw } from 'lucide-react';
 import { useState } from 'react';
+import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router-dom';
 
-// Mock data for reports - replace with actual data fetching logic
-const mockReportData = [
-  {
-    _id: 'r1',
-    title: 'Monthly Performance Report',
-    status: 'generated',
-    generationDate: '2023-11-01T10:00:00Z',
-  },
-  {
-    _id: 'r2',
-    title: 'Quarterly Financial Report',
-    status: 'pending',
-    generationDate: '2023-10-15T12:30:00Z',
-  },
-  {
-    _id: 'r3',
-    title: 'Annual Summary Report',
-    status: 'failed',
-    generationDate: '2023-09-20T15:45:00Z',
-  },
-];
-
-// Helper function for status badge variant - adapt as needed for report statuses
-const getReportStatusBadgeVariant = (status: string) => {
-  switch (status) {
-    case 'generated':
-      return 'success';
-    case 'pending':
-      return 'secondary';
-    case 'failed':
-      return 'destructive';
-    default:
-      return 'default';
-  }
-};
-
 // Helper function for status display layout - adapt as needed for report statuses
-const getReportStatusLayout = (status: string) => {
+export const getReportStatusLayout = (status: tReportStatus) => {
   switch (status) {
-    case 'generated':
-      return 'Généré';
-    case 'pending':
+    case 'PENDING':
       return 'En attente';
-    case 'failed':
-      return 'Échoué';
-    default:
-      return 'Inconnu';
+    case 'VALIDATED':
+      return 'Validé';
+    case 'REFUSED':
+      return 'Refusé';
   }
 };
 
@@ -120,9 +92,9 @@ const FilterModal = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value='all'>Tous les statuts</SelectItem>
-                <SelectItem value='generated'>Généré</SelectItem>
-                <SelectItem value='pending'>En attente</SelectItem>
-                <SelectItem value='failed'>Échoué</SelectItem>
+                <SelectItem value='PENDING'>En attente</SelectItem>
+                <SelectItem value='VALIDATED'>Validé</SelectItem>
+                <SelectItem value='REFUSED'>Refusé</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -135,30 +107,48 @@ const FilterModal = ({
 
 export const RepportsPage = withDashboard(() => {
   const navigate = useNavigate();
-  //   const { reportFilter, setReportStore } = useReportStore((s) => s); // Use report store
-  //   const { data, isPending, isError, error, refetch, isRefetching } = useGetReports(reportFilter); // Use report hook
+
+  const contributorId = useContributorStore((s) => s.contributor?._id);
+  const { reportFilterForm, setReportStore } = useReportStore((s) => s);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    status: '',
-    // Add more filter states as needed
+
+  // HOOK de récupération des rapports
+  const {
+    data: reportsResponse,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useReports({
+    ...reportFilterForm,
+    contributorId,
   });
 
-  // const handleFilterChange = (key: keyof ReportFilter, value: any) => {
-  //   setFilters((prev) => ({
-  //     ...prev.reportFilter, // Adjust according to your store structure
-  //     [key]: value,
-  //   }));
-  //   // setReportStore('reportFilter', filters); // Update the store
-  // };
+  const handleFilterChange = (key: keyof IReportFilterForm, value: any) => {
+    setReportStore('reportFilterForm', {
+      [key]: value,
+      page: 1, // Reset to first page on filter change
+    });
+  };
 
-  const activeFiltersCount = Object.values(filters).filter(Boolean).length;
+  const handleClearFilters = () => {
+    setReportStore('reportFilterForm', {
+      page: 1,
+      limit: 10,
+      search: '',
+      contributorId: contributorId as string,
+    });
+    refetch();
+  };
+
+  const activeFiltersCount =
+    Object.values(reportFilterForm).filter(Boolean).length;
 
   const handleRowClick = (reportId: string) => {
     // Navigate to report details page - adjust the route as needed
-    navigate(`/rapports/${reportId}`);
+    navigate(`/repport/${reportId}`);
   };
 
   return (
@@ -168,25 +158,19 @@ export const RepportsPage = withDashboard(() => {
           <h1 className='text-3xl font-bold'>Rapports</h1>
           <p className='text-muted-foreground'>Gestion des rapports</p>
         </div>
-        {/* Add button for adding new report if needed */}
-        {/* <Button>Générer un rapport</Button> */}
       </div>
 
       <Card className='p-4'>
         <div className='flex gap-4'>
           <Input
             className='flex-1'
-            placeholder='Rechercher un rapport par titre...' // Adjust placeholder
+            placeholder='Rechercher un rapport par titre...'
             value={searchQuery}
             onChange={(e) => {
               const searchValue = e.target.value;
               setSearchQuery(searchValue);
               if (searchValue.length >= 3 || searchValue.length === 0) {
-                // Update report filter in store
-                // setReportStore('reportFilter', {
-                //   ...filters,
-                //   search: searchValue,
-                // });
+                handleFilterChange('search', searchValue);
               }
             }}
           />
@@ -208,13 +192,7 @@ export const RepportsPage = withDashboard(() => {
           </Button>
           <Button
             variant='outline'
-            onClick={() => {
-              // Reset report filter and refetch data
-              // setReportStore('reportFilter', INIT_REPORT_FILTER);
-              // refetch();
-              // setSearchQuery('');
-              // setFilters(INIT_REPORT_FILTER);
-            }}
+            onClick={handleClearFilters}
             className='relative'
           >
             <RefreshCcw className='h-4 w-4 mr-2' />
@@ -226,15 +204,10 @@ export const RepportsPage = withDashboard(() => {
       <FilterModal
         isOpen={isFilterModalOpen}
         onClose={() => setIsFilterModalOpen(false)}
-        filters={filters}
-        onFilterChange={(key: string, value: {}) => {
-          // Update report store with filter changes
-          // setReportStore(
-          //   key as keyof ReportStore,
-          //   value as ReportStore[keyof ReportStore]
-          // );
-          // setFilters(value as ReportFilter);
-        }}
+        filters={reportFilterForm}
+        onFilterChange={(key, value) =>
+          handleFilterChange(key as keyof IReportFilterForm, value)
+        }
       />
 
       <Card>
@@ -243,15 +216,16 @@ export const RepportsPage = withDashboard(() => {
             <TableRow>
               <TableHead>Titre du rapport</TableHead>
               <TableHead>Statut</TableHead>
+              <TableHead>Initier par</TableHead>
+              <TableHead>Valider par</TableHead>
               <TableHead>Date de génération</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* Loading state */}
-            {/* {isPending || isRefetching ? ( */}
-            {/* <TableRow className='p-8'>
-                <TableCell colSpan={4}>
+            {isLoading || isRefetching ? (
+              <TableRow className='p-8'>
+                <TableCell colSpan={6}>
                   <Skeleton
                     count={1}
                     width='100%'
@@ -259,53 +233,131 @@ export const RepportsPage = withDashboard(() => {
                     style={{ width: '100%' }}
                   />
                 </TableCell>
-              </TableRow> */}
-            {/* ) : ( */}
-            {
-              mockReportData.map((report) => (
+              </TableRow>
+            ) : (
+              reportsResponse?.data.map((report: IReport) => (
                 <TableRow
                   key={report._id}
-                  onClick={() => handleRowClick(report._id)}
+                  onClick={() => handleRowClick(String(report._id))}
                   className='cursor-pointer hover:bg-gray-100'
                 >
-                  <TableCell className='font-medium'>{report.title}</TableCell>
+                  <TableCell className='font-medium'>{report.name}</TableCell>
                   <TableCell>
-                    <Badge variant={getReportStatusBadgeVariant(report.status)}>
-                      {getReportStatusLayout(report.status)}
+                    <Badge
+                      variant={
+                        report.status === 'PENDING'
+                          ? 'secondary'
+                          : report.status === 'VALIDATED'
+                          ? 'success'
+                          : 'destructive'
+                      }
+                    >
+                      {getReportStatusLayout(report.status as tReportStatus)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(report.generationDate).toLocaleDateString(
-                      'fr-FR'
-                    )}
+                    {report.createdBy?.firstName +
+                      ' ' +
+                      report.createdBy?.lastName}
                   </TableCell>
                   <TableCell>
-                    {/* Add action buttons here if needed, e.g., view details, download, delete */}
+                    {typeof report.validateBy === 'object'
+                      ? report.validateBy?.firstName +
+                        ' ' +
+                        report.validateBy?.lastName
+                      : report.validateBy}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(report.createdAt).toLocaleDateString('fr-FR')}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      onClick={() => navigate(`/repport/${report._id}`)}
+                    >
+                      <Eye className='h-4 w-4' />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
-              /* )} */
-            }
+            )}
 
             {/* Empty state */}
-            {/* {!isPending &&
+            {!isLoading &&
               !isRefetching &&
-              (data?.reports?.length === 0 || !data?.reports) && ( */}
-            {/* <TableRow>
+              (reportsResponse?.data?.length === 0 ||
+                !reportsResponse?.data) && (
+                <TableRow>
                   <TableCell colSpan={4} className='text-center py-8'>
                     Aucun rapport trouvé.
                   </TableCell>
-                </TableRow> */}
-            {/* )} */}
+                </TableRow>
+              )}
           </TableBody>
         </Table>
 
         {/* Pagination */}
         <div className='p-4 border-t'>
-          <p className='text-sm text-muted-foreground'>
-            La pagination sera implémentée ici en fonction de la structure des
-            données des rapports.
-          </p>
+          {isLoading || isRefetching ? (
+            <Skeleton
+              count={1}
+              width='100%'
+              height={50}
+              style={{ width: '100%' }}
+            />
+          ) : (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href='#'
+                    size={'sm'}
+                    onClick={() =>
+                      setCurrentPage(
+                        Math.max(
+                          Number(reportsResponse?.metadata?.page),
+                          currentPage - 1
+                        )
+                      )
+                    }
+                  />
+                </PaginationItem>
+                {[...Array(reportsResponse?.metadata?.totalPages)].map(
+                  (_, i) => (
+                    <PaginationItem key={i + 1}>
+                      <Button
+                        variant={currentPage === i + 1 ? 'default' : 'outline'}
+                        onClick={() => setCurrentPage(i + 1)}
+                        size='sm'
+                      >
+                        {i + 1}
+                      </Button>
+                    </PaginationItem>
+                  )
+                )}
+                {Number(reportsResponse?.metadata?.totalPages) > 3 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    href='#'
+                    size={'sm'}
+                    onClick={() =>
+                      setCurrentPage(
+                        Math.min(
+                          Number(reportsResponse?.metadata?.page),
+                          currentPage + 1
+                        )
+                      )
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       </Card>
     </div>

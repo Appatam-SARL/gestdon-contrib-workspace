@@ -21,13 +21,18 @@ const sidebarLinks: SidebarLink[] = [
   },
   {
     icon: <Users className='h-5 w-5' />,
-    label: 'Audience',
-    href: '/audience',
+    label: 'Activités',
+    href: '/activity',
   },
   {
     icon: <Building2 className='h-5 w-5' />,
     label: 'Agenda',
     href: '/agenda',
+  },
+  {
+    icon: <Users className='h-5 w-5' />,
+    label: 'Audiences',
+    href: '/audiences',
   },
   {
     icon: <Package className='h-5 w-5' />,

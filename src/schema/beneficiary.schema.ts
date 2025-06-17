@@ -34,12 +34,18 @@ export const formBeneficiarySchema = z.object({
       .string()
       .min(10, 'Le numéro de téléphone doit contenir au moins 10 caractères'),
     address: z.object({
-      country: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
-      street: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+      country: z
+        .string()
+        .min(2, 'Le nom du pays doit contenir au moins 2 caractères'),
+      street: z
+        .string()
+        .min(2, 'Le nom de la rue doit contenir au moins 2 caractères'),
       postalCode: z
         .string()
-        .min(2, 'Le nom doit contenir au moins 2 caractères'),
-      city: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+        .min(2, 'Le code postal doit contenir au moins 2 caractères'),
+      city: z
+        .string()
+        .min(2, 'Le nom de la ville doit contenir au moins 2 caractères'),
     }),
   }),
   contributorId: z.string(),
@@ -59,10 +65,18 @@ export const formUpdateRepresentantBeneficiarySchema = z.object({
     .string()
     .min(10, 'Le numéro de téléphone doit contenir au moins 10 caractères'),
   address: z.object({
-    country: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
-    street: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
-    postalCode: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
-    city: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+    country: z
+      .string()
+      .min(2, 'Le nom du pays doit contenir au moins 2 caractères'),
+    street: z
+      .string()
+      .min(2, 'Le nom de la rue doit contenir au moins 2 caractères'),
+    postalCode: z
+      .string()
+      .min(2, 'Le code postal doit contenir au moins 2 caractères'),
+    city: z
+      .string()
+      .min(2, 'Le nom de la ville doit contenir au moins 2 caractères'),
   }),
 });
 

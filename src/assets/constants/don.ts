@@ -15,8 +15,8 @@ const INIT_DON_FILTER_FORM: IDonFilterForm = {
   page: 1,
   search: '',
   period: {
-    from: new Date().toISOString(),
-    to: new Date().toISOString(),
+    from: '',
+    to: '',
   },
   beneficiaire: '',
   contributorId: '',

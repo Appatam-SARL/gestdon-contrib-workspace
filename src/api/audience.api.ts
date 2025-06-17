@@ -1,31 +1,133 @@
 // TODO: Import your API client (e.g., axios, fetch wrapper)
 // import api from './api';
 
-import { IAudience, IAudienceFilterForm } from '@/interface/audience'; // TODO: Verify this import path
+import { API_ROOT } from '@/config/app.config';
+import { Axios } from '@/config/axiosInstance';
+import {
+  IAudience,
+  IAudienceFilterForm,
+  IAudienceForm,
+} from '@/interface/audience';
+import { APIResponse } from '@/types/generic.type';
+import { AxiosError } from 'axios';
 
-// TODO: Implement the actual API call to get audiences
-export const getAudiences = async (
-  filters: IAudienceFilterForm
-): Promise<{ data: IAudience[]; metadata: any }> => {
-  console.log('Fetching audiences with filters:', filters);
-  // Replace with your actual API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: [], // TODO: Return actual audience data
-        metadata: { totalPages: 1, page: 1, totalItems: 0 }, // TODO: Return actual pagination metadata
+class AudienceApi {
+  static BASE_URL = API_ROOT.audiences;
+
+  static async getAudiences(
+    filter: IAudienceFilterForm
+  ): APIResponse<IAudience[]> {
+    try {
+      const response = await Axios.get(`${this.BASE_URL}`, {
+        params: filter,
       });
-    }, 1000);
-  });
-};
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
 
-// TODO: Implement the actual API call to create an audience
-export const createAudience = async (audienceData: any): Promise<IAudience> => {
-  console.log('Creating audience:', audienceData);
-  // Replace with your actual API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({} as IAudience); // TODO: Return the created audience object
-    }, 1000);
-  });
-};
+  static async getAudience(id: string): APIResponse<IAudience> {
+    try {
+      const response = await Axios.get(`${this.BASE_URL}/${id}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async createAudience(audience: IAudienceForm): APIResponse<IAudience> {
+    try {
+      const response = await Axios.post(`${this.BASE_URL}`, audience);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async updateAudience(
+    id: string,
+    audience: Partial<IAudienceForm>
+  ): APIResponse<IAudience> {
+    try {
+      const response = await Axios.patch(`${this.BASE_URL}/${id}`, audience);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async deleteAudience(id: string): Promise<any> {
+    try {
+      const response = await Axios.delete(`${this.BASE_URL}/${id}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async validateAudience(id: string): APIResponse<IAudience> {
+    try {
+      const response = await Axios.patch(`${this.BASE_URL}/${id}`, {
+        status: 'VALIDATED',
+      });
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async archiveAudience(id: string): APIResponse<IAudience> {
+    try {
+      const response = await Axios.patch(`${this.BASE_URL}/${id}`, {
+        status: 'ARCHIVED',
+      });
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async reportAudience(audience: IAudienceForm): APIResponse<IAudience> {
+    try {
+      const response = await Axios.patch(`${this.BASE_URL}/report`, audience);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+}
+
+export default AudienceApi;

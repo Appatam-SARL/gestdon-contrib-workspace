@@ -84,7 +84,7 @@ const SettingsNav = () => {
           </>
         }
       />
-      <NavLink
+      {/* <NavLink
         href='#'
         label={
           <>
@@ -92,7 +92,7 @@ const SettingsNav = () => {
             Rapports
           </>
         }
-      />
+      /> */}
 
       <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
         Facturation

@@ -1,6 +1,6 @@
 // import { useLogout } from '@/hook/admin.hook';
 import sidebarLinks from '@/assets/constants/sidebars';
-import { useLogout } from '@/hook/admin.hook';
+import { useFindByToken, useLogout } from '@/hook/admin.hook';
 import { cn } from '@/lib/utils';
 import {
   ChevronLeft,
@@ -12,8 +12,10 @@ import {
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-// import sidebarLinks from '@/assets/constants/sidebars';
 import LogoImgPurple from '@/assets/logo_icon.png';
+import { HelpButton } from '@/components/commons/HelpButton';
+import { NotificationButton } from '@/components/commons/NotificationButton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function withDashboard<P extends object>(
   WrappedComponent: React.ComponentType<P>
@@ -22,6 +24,8 @@ export function withDashboard<P extends object>(
     const [isCollapsed, setIsCollapsed] = useState(false);
     const location = useLocation();
     const mutation = useLogout();
+
+    useFindByToken();
 
     return (
       <div className='min-h-screen bg-background flex'>
@@ -127,6 +131,14 @@ export function withDashboard<P extends object>(
 
         {/* Main Content */}
         <main className='flex-1 p-8'>
+          <div className='flex justify-end items-center mb-4 gap-2'>
+            <HelpButton />
+            <NotificationButton />
+            <Avatar>
+              <AvatarImage src='https://github.com/shadcn.png' />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+          </div>
           <WrappedComponent {...props} />
         </main>
       </div>
