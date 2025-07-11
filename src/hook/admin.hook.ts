@@ -55,7 +55,7 @@ export function useLogin() {
       console.log('🚀 ~ useLogin ~ data:', data.user);
       // onSuccess
       if (data?.requireMfa) {
-        localStorage.setItem('adminId', data?.adminId as string);
+        localStorage.setItem('userId', data?.userId as string);
         navigate('/mfa');
       } else {
         localStorage.setItem('token', data?.token as string);
@@ -412,7 +412,7 @@ export function useVerifyMfa(id: string) {
   return useMutation({
     mutationFn: async (data: { mfaToken: string }) => {
       const payload = {
-        adminId: id,
+        userId: id,
         mfaToken: data.mfaToken,
       };
       const response = await verifyMfa(payload);
@@ -427,7 +427,7 @@ export function useVerifyMfa(id: string) {
     },
     onSuccess: (data) => {
       // onSuccess
-      sessionStorage.setItem('token', data.token);
+      localStorage.setItem('token', data.token);
       queryClient.invalidateQueries({ queryKey: ['staff', 'member', id] });
       toast({
         title: 'Authentification réussie',
@@ -446,38 +446,6 @@ export function useVerifyMfa(id: string) {
     },
   });
 }
-
-// delete a staff member
-// export function useDeleteStaffMember(id: string) {
-//   const { toast } = useToast();
-//   const queryClient = useQueryClient();
-//   return useMutation({
-//     mutationFn: async () => {
-//       const response = await Axios.delete(`${BASE_URL}/${id}`, {
-//         headers: {
-//           Authorization: `Bearer ${localStorage.getItem('token')}`,
-//         },
-//       });
-//       return response.data;
-//     },
-//     onSuccess: () => {
-//       // onSuccess
-//       queryClient.invalidateQueries({ queryKey: ['staff', 'members'] });
-//       toast({
-//         title: 'Succès',
-//         description: 'Votre compte a été supprimé avec succès.',
-//       });
-//     },
-//     onError: (error) => {
-//       // onError
-//       toast({
-//         title: error.message,
-//         description: 'Une erreur est survenue lors de la suppression.',
-//         variant: 'destructive',
-//       });
-//     },
-//   });
-// }
 
 // verify account with token
 export function useVerifyAccount(
@@ -498,13 +466,14 @@ export function useVerifyAccount(
       });
     },
     onSuccess: (data) => {
-      // onSuccess
-      setMessageConfirmation(data.message);
-      setIsConfirmed(true);
-      toast({
-        title: 'Compte validé',
-        description: data.message,
-      });
+      if (data.emailVerified === true) {
+        setMessageConfirmation(data.message);
+        setIsConfirmed(true);
+        toast({
+          title: 'Compte validé',
+          description: data.message,
+        });
+      }
     },
     onError: (error) => {
       // onError
@@ -611,10 +580,6 @@ export function useFindByToken() {
   React.useEffect(() => {
     handleCheckToken();
   }, []);
-}
-
-export function useAuthentificate() {
-  const navigate = useNavigate();
 }
 
 export function useInviteUser(id: string) {

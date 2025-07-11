@@ -1,12 +1,17 @@
 import { API_ROOT } from '@/config/app.config';
 import { Axios } from '@/config/axiosInstance';
+import { IBeneficiaryTypeFilters } from '@/interface/beneficiary-type';
 import { AxiosError } from 'axios';
 
 class BeneficiaryTypeApi {
   private static baseUrl: string = API_ROOT.beneficiaryTypes;
-  static async getBeneficiaryTypes(): Promise<any> {
+  static async getBeneficiaryTypes(
+    filter: IBeneficiaryTypeFilters
+  ): Promise<any> {
     try {
-      const response = await Axios.get(`${this.baseUrl}`);
+      const response = await Axios.get(`${this.baseUrl}`, {
+        params: filter,
+      });
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

@@ -1,8 +1,12 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { ContributorsAPI } from '@/api/contributors.api';
+import { uploadFile } from '@/api/file.api';
 import { useToast } from '@/components/ui/use-toast';
-import { Contributor } from '@/interface/contributor';
+import { IContributor } from '@/interface/contributor';
+import { ContributorFormValues } from '@/pages/auth/register';
+import { useNavigate } from 'react-router';
+// import { Contributor } from '@/interface/contributor';
 
 const contributorKeys = {
   all: ['contributors'] as const,
@@ -11,14 +15,52 @@ const contributorKeys = {
 };
 
 export const useCreateContributor = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
   return useMutation({
-    mutationFn: (data: Contributor) => ContributorsAPI.createContributor(data),
-    onSuccess: (data) => {
-      console.log('Contributor created successfully:', data);
-      // TODO: Invalidate relevant queries or update cache
+    mutationFn: async ({
+      data,
+      files,
+    }: {
+      data: ContributorFormValues;
+      files: Array<File>;
+    }) => {
+      try {
+        const formData = new FormData();
+        formData.append('file', files[0]);
+        const response = await uploadFile(formData, 'logo');
+        if (response.success) {
+          data.logo = {
+            fileId: response.filesData[0].fileId,
+            fileUrl: response.filesData[0].fileUrl,
+          };
+          await ContributorsAPI.createContributor(data);
+        }
+      } catch (error) {
+        console.error('Error creating contributor:', error);
+      }
+    },
+    onMutate: () => {
+      toast({
+        title: 'Création en cours',
+        description: 'Merci de patienter...',
+        duration: 5000,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Création réussie',
+        description: 'Merci de patienter...',
+        duration: 5000,
+      });
+      navigate('/register-successfull');
     },
     onError: (error) => {
-      console.error('Error creating contributor:', error);
+      toast({
+        title: 'Erreur lors de la création',
+        description: error.message,
+        duration: 5000,
+      });
     },
   });
 };
@@ -45,7 +87,7 @@ export const useUpdateContributor = () => {
       contributor,
     }: {
       id: string;
-      contributor: Partial<Contributor>;
+      contributor: Partial<IContributor>;
     }) => ContributorsAPI.updateContributor(id, contributor),
     onSuccess: (data) => {
       console.log('Contributor updated successfully:', data);

@@ -1,16 +1,17 @@
 import { API_ROOT } from '@/config/app.config';
-import { Axios } from '@/config/axiosInstance';
+import { Axios, AxiosOffline } from '@/config/axiosInstance';
 import { IContributor } from '@/interface/contributor';
+import { ContributorFormValues } from '@/pages/auth/register';
 import { APIResponse } from '@/types/generic.type';
 import { AxiosError } from 'axios';
 
 export class ContributorsAPI {
   static BASE_URL = `${API_ROOT.contributors}`;
   static async createContributor(
-    contributor: IContributor
+    contributor: ContributorFormValues
   ): APIResponse<IContributor> {
     try {
-      const response = await Axios.post(`${this.BASE_URL}/create`, contributor);
+      const response = await AxiosOffline.post(`${this.BASE_URL}`, contributor);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

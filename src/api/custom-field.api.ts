@@ -1,6 +1,9 @@
 import { API_ROOT } from '@/config/app.config';
 import { Axios } from '@/config/axiosInstance';
-import { ICustomFieldOption } from '@/interface/custom-field';
+import {
+  ICustomFieldFilterForm,
+  ICustomFieldOption,
+} from '@/interface/custom-field';
 import { APIResponse } from '@/types/generic.type';
 import { AxiosError } from 'axios';
 
@@ -27,6 +30,37 @@ class CustomFieldApi {
       const response = await Axios.get(`${this.baseUrl}/${form}/${ownerId}`, {
         params,
       });
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      }
+      throw new Error(error as string);
+    }
+  }
+  static async getCustomFieldsByActivityType(
+    filter: ICustomFieldFilterForm
+  ): APIResponse<ICustomFieldOption[]> {
+    try {
+      const params = new URLSearchParams();
+      if (filter.entityId) {
+        params.append('entityId', filter.entityId);
+      }
+      if (filter.entityType) {
+        params.append('entityType', filter.entityType);
+      }
+      if (filter.form) {
+        params.append('form', filter.form);
+      }
+      if (filter.ownerId) {
+        params.append('ownerId', filter.ownerId);
+      }
+      const response = await Axios.get(
+        `${this.baseUrl}/custom-field-by-type/${filter.form}/${filter.ownerId}`,
+        {
+          params,
+        }
+      );
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

@@ -22,6 +22,21 @@ export class DonApi {
     }
   }
 
+  static async getStatsDon(filter: { contributorId: string }) {
+    try {
+      const response = await Axios.get(`${this.BASE_URL}/stats`, {
+        params: filter,
+      });
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
   static async getDon(id: string): APIResponse<IDon> {
     try {
       const response = await Axios.get(`${this.BASE_URL}/${id}`);
@@ -64,6 +79,19 @@ export class DonApi {
   static async deleteDon(id: string) {
     try {
       const response = await Axios.delete(`${this.BASE_URL}/${id}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async confirmDon(token: string) {
+    try {
+      const response = await Axios.put(`${this.BASE_URL}/confirm-don/${token}`);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

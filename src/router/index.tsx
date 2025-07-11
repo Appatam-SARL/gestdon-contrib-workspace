@@ -1,18 +1,20 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import LayoutMinimal from '@/components/layout/LayoutMinimal';
-import EmailVerificationPage from '@/pages/auth/EmailVerificationPage';
-import LoginPage from '@/pages/auth/LoginPage';
-import SignUpPage from '@/pages/auth/SignUpPage';
+import { ErrorBoundary } from '@/pages/auth/ErrorBoundary';
+import { Welcome } from '@/pages/auth/Welcome';
 import AccountValidation from '@/pages/auth/account-validation';
+import ConfirmDon from '@/pages/auth/confirm-don';
 import ForgotPassword from '@/pages/auth/forgot-password';
 import MFA from '@/pages/auth/mfa';
+import RapportActivityOrAudience from '@/pages/auth/rapport-activity-or-audience';
 import RegisterInvited from '@/pages/auth/register-user-by-invitation';
 import ResetPassword from '@/pages/auth/reset-password';
 import HomePage from '@/pages/home/HomePage';
 import ActivityPage from '@/pages/online/activity';
 import AddActivity from '@/pages/online/activity/AddActivity';
 import EditActivity from '@/pages/online/activity/EditActivity';
+import ActivityDetailsPage from '@/pages/online/activity/[id]';
 import AgendaPage from '@/pages/online/agenda';
 import AudiencePage from '@/pages/online/audience';
 import { AudienceDetailsPage } from '@/pages/online/audience/[id]';
@@ -21,7 +23,10 @@ import AddAudiencePage from '@/pages/online/audience/form-add';
 import CommunityPage from '@/pages/online/community';
 import DetailCommunity from '@/pages/online/community/[id]';
 import AddDonForm from '@/pages/online/community/form-add';
-import Dashboard from '@/pages/online/dashboard';
+
+import Conversation from '@/pages/auth/conversation';
+import Register from '@/pages/auth/register';
+import RegisterSuccessfull from '@/pages/auth/register-successfull';
 import { DonPage } from '@/pages/online/don';
 import { PromisesPage } from '@/pages/online/promise';
 import RepportsPage from '@/pages/online/rapports';
@@ -35,11 +40,15 @@ import SettingsBeneficiaryCustomizableForm from '@/pages/online/settings/setting
 import { StaffPage } from '@/pages/online/staff';
 import { StaffDetailsPage } from '@/pages/online/staff/[id]';
 import AddStaffForm from '@/pages/online/staff/form-add';
-import Welcome from '@/pages/welcome/Welcome';
 import ChoixPlan from '@/pages/welcome/contributeur/ChoixPlan';
 import OrganisationForm from '@/pages/welcome/contributeur/OrganisationForm';
 import PaiementPage from '@/pages/welcome/contributeur/PaiementPage';
 import PaiementSuccessPage from '@/pages/welcome/contributeur/PaiementSuccessPage';
+import React from 'react';
+
+const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
+const Dashboard = React.lazy(() => import('@/pages/online/dashboard'));
+const NotFoundPage = React.lazy(() => import('@/pages/auth/ErrorNotFound'));
 
 const AppRouter = () => {
   return (
@@ -51,29 +60,22 @@ const AppRouter = () => {
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password/:token' element={<ResetPassword />} />
         <Route path='/register-invited' element={<RegisterInvited />} />
+        <Route path='/confirm-don' element={<ConfirmDon />} />
+        <Route path='/report-offline' element={<RapportActivityOrAudience />} />
+        <Route path='/conversation/:id' element={<Conversation />} />
+        <Route path='/register' element={<Register />} />
+        <Route path='/register-successfull' element={<RegisterSuccessfull />} />
 
         <Route
           path='/'
           element={
-            <LayoutMinimal>
-              <LoginPage />
-            </LayoutMinimal>
-          }
-        />
-        <Route
-          path='/sign-up'
-          element={
-            <LayoutMinimal>
-              <SignUpPage />
-            </LayoutMinimal>
-          }
-        />
-        <Route
-          path='/verification-email'
-          element={
-            <LayoutMinimal>
-              <EmailVerificationPage />
-            </LayoutMinimal>
+            <React.Suspense fallback={<Welcome />}>
+              <ErrorBoundary>
+                <LayoutMinimal>
+                  <LoginPage />
+                </LayoutMinimal>
+              </ErrorBoundary>
+            </React.Suspense>
           }
         />
         <Route
@@ -118,7 +120,16 @@ const AppRouter = () => {
         />
 
         <Route path='/'>
-          <Route path='/dashboard' element={<Dashboard />} />
+          <Route
+            path='/dashboard'
+            element={
+              <React.Suspense fallback={<Welcome />}>
+                <ErrorBoundary>
+                  <Dashboard />
+                </ErrorBoundary>
+              </React.Suspense>
+            }
+          />
           <Route path='audiences'>
             <Route index element={<AudiencePage />} />
             <Route path='create' element={<AddAudiencePage />} />
@@ -134,6 +145,7 @@ const AppRouter = () => {
           <Route path='/activity'>
             <Route index element={<ActivityPage />} />
             <Route path='create' element={<AddActivity />} />
+            <Route path=':id' element={<ActivityDetailsPage />} />
             <Route path=':id/edit' element={<EditActivity />} />
           </Route>
           <Route path='/audiences'>
@@ -185,7 +197,18 @@ const AppRouter = () => {
         </Route>
         {/* Add other routes here */}
 
-        {/* <Route path='*' element={<p>Page Not Found</p>} /> */}
+        <Route
+          path='*'
+          element={
+            <React.Suspense fallback={<Welcome />}>
+              <ErrorBoundary>
+                <LayoutMinimal>
+                  <NotFoundPage />
+                </LayoutMinimal>
+              </ErrorBoundary>
+            </React.Suspense>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

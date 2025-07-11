@@ -1,3 +1,5 @@
+import Stats from '@/components/online/Activity/Stats';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,30 +20,57 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { withDashboard } from '@/hoc/withDashboard';
-import { useGetActivities } from '@/hook/activity.hook';
+import { useGetActivities, useGetActivityStats } from '@/hook/activity.hook';
 import { IActivity, IActivityFilterForm } from '@/interface/activity';
-import { Filter, Grid, List, RefreshCcw } from 'lucide-react';
+import useContributorStore from '@/store/contributor.store';
+import useUserStore from '@/store/user.store';
+import { displayStatusActivity } from '@/utils/display-of-variable';
+import {
+  Activity,
+  Edit,
+  EyeIcon,
+  Filter,
+  Grid,
+  List,
+  PencilIcon,
+  RefreshCcw,
+  Search,
+  Trash,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
+import Skeleton from 'react-loading-skeleton';
 import { Link } from 'react-router-dom';
 import FilterActivityModal from './FilterActivityModal';
 
 const ActivityPage = withDashboard(() => {
+  const contributorId = useContributorStore((s) => s.contributor?._id);
+  const { user } = useUserStore((s) => s);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   const [filters, setFilters] = useState<IActivityFilterForm>({
-    page: currentPage,
-    limit: 10,
     search: '',
-    status: undefined,
-    entity_id: undefined,
-    created_by: undefined,
-    activity_type_id: undefined,
+    status: '',
+    contributorId: '',
+    activityTypeId: '',
+    page: 1,
+    limit: 10,
+    period: {
+      from: '',
+      to: '',
+    },
   });
 
-  const { data, isLoading, isError, refetch } = useGetActivities(filters);
+  const { data, isLoading, isRefetching, isError, refetch } =
+    useGetActivities(filters);
+  const {
+    data: stats,
+    isLoading: isLoadingStats,
+    isRefetching: isRefetchingStats,
+  } = useGetActivityStats(contributorId as string);
 
   const activities = data?.data || [];
   const totalPages = data?.metadata?.totalPages || 1;
@@ -50,8 +79,9 @@ const ActivityPage = withDashboard(() => {
     setFilters((prevFilters) => ({
       ...prevFilters,
       page: currentPage,
+      contributorId,
     }));
-  }, [currentPage]);
+  }, [currentPage, contributorId]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -77,9 +107,8 @@ const ActivityPage = withDashboard(() => {
       limit: 10,
       search: '',
       status: undefined,
-      entity_id: undefined,
-      created_by: undefined,
-      activity_type_id: undefined,
+      contributorId,
+      activityTypeId: undefined,
     });
     setSearchQuery('');
     setCurrentPage(1);
@@ -98,41 +127,48 @@ const ActivityPage = withDashboard(() => {
     setCurrentPage(page);
   };
 
-  if (isLoading) {
-    return <div>Loading activities...</div>;
-  }
-
   if (isError) {
     return <div>Error loading activities.</div>;
   }
 
   return (
-    <div className='p-4'>
+    <div className=''>
       {/* En-tête */}
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold'>Activités</h1>
+          <h4 className='text-3xl font-bold'>Activités</h4>
           <p className='text-muted-foreground'>
             Gestion des activités de l'espace administrateur
           </p>
         </div>
         <div className='flex gap-2'>
-          <Link to='/activity/create'>
-            <Button>Ajouter une activité</Button>
-          </Link>
+          {(user?.role === 'MANAGER' || user?.role === 'EDITOR') && (
+            <Link to='/activity/create'>
+              <Button>
+                <Activity />
+                <span>Ajouter une activité</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
-      <div className='flex justify-between items-center mb-4'>
-        <div className='flex items-center space-x-2'></div>
-      </div>
+
+      <Stats
+        data={stats?.data}
+        isLoadingStats={isLoadingStats}
+        handleFilterChange={handleFilterChange}
+      />
 
       <div className='flex gap-4 mb-4'>
-        <Input
-          className='flex-1'
-          placeholder='Rechercher une activité par titre ou description...'
-          value={searchQuery}
-          onChange={handleSearchChange}
-        />
+        <div className='relative flex-1'>
+          <Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
+          <Input
+            className='flex-1 pl-10'
+            placeholder='Rechercher une activité par titre ou description...'
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
+        </div>
         <Button
           variant='outline'
           onClick={() => setIsFilterModalOpen(true)}
@@ -164,31 +200,93 @@ const ActivityPage = withDashboard(() => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead>Titre</TableHead>
+              <TableHead>Type d'activité</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created Date</TableHead>
+              <TableHead>Date de debut</TableHead>
+              <TableHead>Date de fin</TableHead>
               <TableHead className='text-right'>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {activities.length > 0 ? (
-              activities.map((activity: IActivity) => (
-                <TableRow key={activity.id}>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <Skeleton
+                    width='100%'
+                    style={{
+                      height: '300px',
+                    }}
+                  />
+                </TableCell>
+              </TableRow>
+            ) : Number(data?.data?.length) > 0 ? (
+              data?.data?.map((activity: IActivity) => (
+                <TableRow key={activity._id}>
                   <TableCell className='font-medium'>
-                    {activity.Title}
+                    {activity.title}
                   </TableCell>
-                  <TableCell>{activity.description}</TableCell>
-                  <TableCell>{activity.status}</TableCell>
                   <TableCell>
-                    {new Date(activity.CreatedDate).toLocaleDateString()}
+                    {typeof activity.activityTypeId === 'object' ? (
+                      <span className='text-sm font-medium bg-destructive text-white px-2 rounded-md'>
+                        {activity.activityTypeId.label}
+                      </span>
+                    ) : (
+                      activity.activityTypeId
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        displayStatusActivity(activity.status) === 'Validé'
+                          ? 'success'
+                          : displayStatusActivity(activity.status) === 'Archivé'
+                          ? 'warning'
+                          : displayStatusActivity(activity.status) ===
+                            'Brouillon'
+                          ? 'default'
+                          : displayStatusActivity(activity.status) === 'Rejeté'
+                          ? 'destructive'
+                          : 'secondary'
+                      }
+                    >
+                      {displayStatusActivity(activity.status) === 'Validé'
+                        ? '✅ Validé'
+                        : displayStatusActivity(activity.status) === 'Archivé'
+                        ? '📦 Archivé'
+                        : displayStatusActivity(activity.status) === 'Brouillon'
+                        ? '📝 Brouillon'
+                        : displayStatusActivity(activity.status) === 'Rejeté'
+                        ? '❌ Rejeté'
+                        : '🕐 En attente'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {activity.startDate
+                      ? new Date(activity.startDate).toLocaleDateString()
+                      : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    {activity.endDate
+                      ? new Date(activity.endDate).toLocaleDateString()
+                      : 'N/A'}
                   </TableCell>
                   <TableCell className='text-right'>
-                    <Link to={`/activity/${activity.id}/edit`}>
-                      <Button variant='outline' size='sm'>
-                        Edit
+                    <Link to={`/activity/${activity._id}`}>
+                      <Button variant='secondary' size='sm' className='mr-2'>
+                        <EyeIcon color='white' />
                       </Button>
                     </Link>
+                    {(user?.role === 'MANAGER' || user?.role === 'EDITOR') && (
+                      <Link to={`/activity/${activity._id}/edit`}>
+                        <Button variant='default' size='sm'>
+                          <Edit />
+                        </Button>
+                      </Link>
+                    )}
+                    <Button variant='destructive' size='sm' className='ml-2'>
+                      <Trash />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -205,19 +303,45 @@ const ActivityPage = withDashboard(() => {
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {activities.length > 0 ? (
             activities.map((activity: IActivity) => (
-              <div key={activity.id} className='border p-4 mb-2 rounded-md'>
-                <h2 className='text-xl font-semibold'>{activity.Title}</h2>
+              <div
+                key={activity._id}
+                className='border p-4 mb-2 rounded-md bg-white'
+              >
+                <h2 className='text-xl font-semibold'>{activity.title}</h2>
                 <p>{activity.description}</p>
-                <p>Status: {activity.status}</p>
                 <p>
-                  Created Date:{' '}
-                  {new Date(activity.CreatedDate).toLocaleDateString()}
+                  Status:{' '}
+                  <Badge
+                    variant={
+                      displayStatusActivity(activity.status) === 'Validé'
+                        ? 'success'
+                        : displayStatusActivity(activity.status) === 'Rejeté'
+                        ? 'destructive'
+                        : 'secondary'
+                    }
+                  >
+                    {displayStatusActivity(activity.status)}
+                  </Badge>
                 </p>
-                <Link to={`/activity/${activity.id}/edit`}>
-                  <Button variant='outline' className='mt-2'>
-                    Edit
+                <p>
+                  Crée le: {new Date(activity.createdAt).toLocaleDateString()}
+                </p>
+                <Link to={`/activity/${activity._id}`}>
+                  <Button variant='default' className='mt-2'>
+                    <EyeIcon />
+                    <span>Détail</span>
                   </Button>
                 </Link>
+                <Link to={`/activity/${activity._id}/edit`}>
+                  <Button variant='secondary' className='ml-2 mt-2 text-white'>
+                    <PencilIcon />
+                    <span>Modifier</span>
+                  </Button>
+                </Link>
+                <Button variant='destructive' className='ml-2 mt-2'>
+                  <Trash />
+                  <span>Supprimer</span>
+                </Button>
               </div>
             ))
           ) : (

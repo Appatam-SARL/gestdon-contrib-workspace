@@ -13,7 +13,8 @@ export interface IBeneficiaryTypeForm {
 }
 
 export interface IBeneficiaryTypeFilters {
-  search: string;
-  page: number;
-  limit: number;
+  search?: string;
+  page?: number;
+  limit?: number;
+  contributorId?: string;
 }

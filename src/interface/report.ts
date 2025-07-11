@@ -1,7 +1,7 @@
 import { IUser } from '@/types/user';
 
 // Types d'entités supportés
-type tEntityType = 'AUDIENCE' | 'DON' | 'PROMESSE';
+type tEntityType = 'AUDIENCE' | 'DON' | 'PROMESSE' | 'ACTIVITY';
 export type tReportStatus = 'PENDING' | 'VALIDATED' | 'REFUSED' | 'ARCHIVED';
 type tStatusFollowUp = 'PENDING' | 'DO' | 'REFUSED';
 
@@ -18,9 +18,17 @@ export interface IReport {
   documents?: IDocument[]; // documents
   createdBy?: ICreatedBy; // ID du créateur
   validateBy?: string | IUser; // ID du validateur
+  motif?: string; // motif de rejet
   validateDate?: Date; // date de validation
   createdAt: Date | String;
   updatedAt: Date | String;
+}
+
+export interface IReportState {
+  PENDING: number;
+  VALIDATED: number;
+  REFUSED: number;
+  ARCHIVED: number;
 }
 
 // Interface pour les engagements
@@ -59,6 +67,9 @@ export interface IReportFilterForm {
   page?: number;
   limit?: number;
   contributorId?: string;
+  entityType?: tEntityType;
+  entityId?: string;
+  status?: tReportStatus;
 }
 
 export type tReportForm = Partial<IReport>;

@@ -112,7 +112,9 @@ const SettingActivity = () => {
     isLoading,
     isRefetching,
     refetch: refetchActivityTypes,
-  } = useGetActivityType(); // Added refetch
+  } = useGetActivityType({
+    contributorId: contributorId,
+  });
   const mutationCreateActivityType = useCreateActivityType(
     setIsAddDialogOpen,
     refetchActivityTypes
@@ -315,7 +317,7 @@ const SettingActivity = () => {
                   <DialogClose asChild>
                     <Button
                       type='button'
-                      variant='secondary'
+                      variant='outline'
                       disabled={mutationCreateActivityType.isPending}
                     >
                       Annuler
@@ -404,9 +406,9 @@ const SettingActivity = () => {
       </div>
 
       {/* Filtres */}
-      <Card className='p-4'>
+      <Card className='p-4 bg-white'>
         <Form {...filterForm}>
-          <form className='flex gap-4'>
+          <form className='flex gap-4 bg-white'>
             <FormField
               control={filterForm.control}
               name='search'

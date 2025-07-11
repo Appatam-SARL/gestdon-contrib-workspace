@@ -26,6 +26,8 @@ Axios.interceptors.response.use(
   }
 );
 
+Axios.defaults.withCredentials = true;
+
 // Document and file upload
 export const AxiosDoc = axios.create({
   baseURL: `${env.BASE_URL}${env.VERSION}`,
@@ -51,6 +53,7 @@ AxiosDoc.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+AxiosDoc.defaults.withCredentials = true;
 
 export const AxiosOffline = axios.create({
   baseURL: `${env.BASE_URL}${env.VERSION}`,
@@ -59,18 +62,20 @@ export const AxiosOffline = axios.create({
   },
 });
 
-// AxiosOffline.interceptors.request.use(
-//   async (config) => {
-//     return config;
-//   },
-//   (error) => {
-//     return Promise.reject(error);
-//   }
-// );
+AxiosOffline.interceptors.request.use(
+  async (config) => {
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
-// AxiosOffline.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     return Promise.reject(error);
-//   }
-// );
+AxiosOffline.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+AxiosOffline.defaults.withCredentials = true;

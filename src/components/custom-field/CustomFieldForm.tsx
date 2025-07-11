@@ -34,7 +34,7 @@ import Skeleton from 'react-loading-skeleton';
 interface CustomFieldFormProps {
   onSubmit: (values: CustomFieldFormData) => Promise<void>;
   beneficiaryTypes?: IBeneficiaryType[];
-  isLoadingBeneficiaryTypes: boolean;
+  isLoadingBeneficiaryTypes?: boolean;
   isEditing?: boolean;
   onCancel?: () => void;
   initialValues?: CustomFieldFormData;

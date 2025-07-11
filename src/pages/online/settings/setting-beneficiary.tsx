@@ -30,7 +30,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'; // Assuming the table component path
-import { ArrowUpDown, Loader2, Pencil, RefreshCcw, Trash } from 'lucide-react';
+import {
+  ArrowUpDown,
+  CirclePlus,
+  Loader2,
+  Pencil,
+  RefreshCcw,
+  Save,
+  Trash,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -110,7 +118,7 @@ const SettingBeneficiary = () => {
     isLoading,
     isRefetching,
     refetch: refetchBeneficiaryTypes,
-  } = useGetBeneficiaryType(); // Added refetch
+  } = useGetBeneficiaryType({ contributorId }); // Added refetch
   const mutationCreateBeneficiaryType = useCreateBeneficiaryType();
   const mutationUpdateBeneficiaryType = useUpdateBeneficiaryType();
   const mutationDeleteBeneficiaryType = useDeleteBeneficiaryType();
@@ -278,14 +286,15 @@ const SettingBeneficiary = () => {
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={handleAddBeneficiaryClick}>
-              Ajouter un bénéficiaire
+              <CirclePlus />
+              <span>Ajouter un type de bénéficiaire</span>
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Ajouter une nouvelle bénéficiaire</DialogTitle>
+              <DialogTitle>Ajouter un nouveau type bénéficiaire</DialogTitle>
               <DialogDescription>
-                Entrez les détails de la nouvelle bénéficiaire.
+                Entrez les détails du type bénéficiaire.
               </DialogDescription>
             </DialogHeader>
             <Form {...addForm}>
@@ -298,10 +307,13 @@ const SettingBeneficiary = () => {
                   name='label'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className='text-right'>Nom</FormLabel>
+                      <FormLabel className='text-right'>
+                        Type bénéficiaire
+                      </FormLabel>
                       <FormControl>
                         <Input
-                          id='label'
+                          id='type'
+                          placeholder='Nom du type bénéficiaire'
                           {...field}
                           disabled={mutationCreateBeneficiaryType.isPending}
                         />
@@ -315,7 +327,7 @@ const SettingBeneficiary = () => {
                   <DialogClose asChild>
                     <Button
                       type='button'
-                      variant='secondary'
+                      variant='outline'
                       disabled={mutationCreateBeneficiaryType.isPending}
                     >
                       Annuler
@@ -331,7 +343,10 @@ const SettingBeneficiary = () => {
                         Ajout en cours
                       </>
                     ) : (
-                      'Ajouter'
+                      <>
+                        <Save />
+                        <span>Ajouter</span>
+                      </>
                     )}
                   </Button>
                 </DialogFooter>

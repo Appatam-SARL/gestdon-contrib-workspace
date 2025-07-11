@@ -1,7 +1,15 @@
 import AudienceApi from '@/api/audience.api';
-import { toast } from '@/components/ui/use-toast';
+import { toast, useToast } from '@/components/ui/use-toast';
 import { IAudienceFilterForm, IAudienceForm } from '@/interface/audience';
+import {
+  FormAssignAudienceSchema,
+  FormRejectedAudienceSchema,
+  FormReportAudienceSchema,
+  FormRepresentantAudienceSchema,
+  FormValidateAudienceSchema,
+} from '@/schema/audience.schema';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
 
 export const useAudiences = (filters: IAudienceFilterForm) => {
   return useQuery({
@@ -47,10 +55,8 @@ export const useCreateAudience = (onSuccessCallback?: () => void) => {
   });
 };
 
-export const useUpdateAudience = (
-  id: string,
-  onSuccessCallback?: () => void
-) => {
+export const useUpdateAudience = (id: string) => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (audience: Partial<IAudienceForm>) =>
@@ -62,7 +68,7 @@ export const useUpdateAudience = (
         title: 'Audience mise à jour avec succès',
         description: `L'audience a été modifiée.`,
       });
-      onSuccessCallback?.();
+      navigate(`/audiences/${id}`);
     },
     onError: (error) => {
       toast({
@@ -96,9 +102,15 @@ export const useDeleteAudience = (onSuccessCallback?: () => void) => {
   });
 };
 
-export const useValidateAudience = (onSuccessCallback?: () => void) => {
+export const useValidateAudience = (
+  id: string,
+  setIsValidateDialogOpen: (value: boolean) => void
+) => {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => AudienceApi.validateAudience(id),
+    mutationFn: (data: FormValidateAudienceSchema) => {
+      return AudienceApi.validateAudience(id, data);
+    },
     onMutate: () => {
       toast({
         title: "Validation de l'audience en cours",
@@ -110,7 +122,9 @@ export const useValidateAudience = (onSuccessCallback?: () => void) => {
         title: 'Audience validée avec succès',
         description: `L'audience a été validée.`,
       });
-      onSuccessCallback?.();
+      queryClient.invalidateQueries({ queryKey: ['audiences'] });
+      queryClient.invalidateQueries({ queryKey: ['audience', id] });
+      setIsValidateDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -118,13 +132,125 @@ export const useValidateAudience = (onSuccessCallback?: () => void) => {
         description: error.message || `Une erreur est survenue`,
         variant: 'destructive',
       });
+      setIsValidateDialogOpen(true);
     },
   });
 };
 
-export const useArchiveAudience = (onSuccessCallback?: () => void) => {
+export const useAssignAudience = (
+  id: string,
+  setIsAssignDialogOpen: (val: boolean) => void
+) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => AudienceApi.archiveAudience(id),
+    mutationFn: (data: FormAssignAudienceSchema) => {
+      return AudienceApi.assignAudience(id, data);
+    },
+    onMutate: () => {
+      toast({
+        title: 'Requête en cours',
+        description: 'Veuillez patienter...',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Assigné',
+        description: "L'audience a été assignée.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['audiences'] });
+      queryClient.invalidateQueries({ queryKey: ['audience', id] });
+      setIsAssignDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur lors de l'assignation de l'audience",
+        description: error.message || `Une erreur est survenue`,
+        variant: 'destructive',
+      });
+      setIsAssignDialogOpen(true);
+    },
+  });
+};
+
+export const useRepresentant = (
+  id: string,
+  setIsRepresentantDialogOpen: (val: boolean) => void
+) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: FormRepresentantAudienceSchema) =>
+      AudienceApi.updateRepresentant(id, data),
+    onMutate: () => {
+      toast({
+        title: 'Requête en cours',
+        description: 'Veuillez patienter...',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Assigné',
+        description: "L'audience a été assignée.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['audiences'] });
+      queryClient.invalidateQueries({ queryKey: ['audience', id] });
+      setIsRepresentantDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur lors de l'assignation de l'audience",
+        description: error.message || `Une erreur est survenue`,
+        variant: 'destructive',
+      });
+      setIsRepresentantDialogOpen(true);
+    },
+  });
+};
+
+export const useRejectedAudience = (
+  id: string,
+  setIsOpenDialogRejeted: (value: boolean) => void
+) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: FormRejectedAudienceSchema) => {
+      return AudienceApi.rejectedAudience(id, data);
+    },
+    onMutate: () => {
+      toast({
+        title: "Rejet de l'audience en cours",
+        description: `La rejet de l'audience est en cours.`,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Audience rejetée avec succès',
+        description: `L'audience a été rejetée.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['audiences'] });
+      queryClient.invalidateQueries({ queryKey: ['audience', id] });
+      setIsOpenDialogRejeted(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur lors de la rejet de l'audience",
+        description: error.message || `Une erreur est survenue`,
+        variant: 'destructive',
+      });
+      setIsOpenDialogRejeted(true);
+    },
+  });
+};
+
+export const useArchiveAudience = (
+  id: string,
+  setIsArchiveDialogOpen: (val: boolean) => void
+) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => AudienceApi.archiveAudience(id),
     onMutate: () => {
       toast({
         title: "Archivage de l'audience en cours",
@@ -136,7 +262,8 @@ export const useArchiveAudience = (onSuccessCallback?: () => void) => {
         title: 'Audience archivée avec succès',
         description: `L'audience a été archivée.`,
       });
-      onSuccessCallback?.();
+      queryClient.invalidateQueries({ queryKey: ['audience', id] });
+      setIsArchiveDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -144,14 +271,53 @@ export const useArchiveAudience = (onSuccessCallback?: () => void) => {
         description: error.message || `Une erreur est survenue`,
         variant: 'destructive',
       });
+      setIsArchiveDialogOpen(true);
     },
   });
 };
 
-export const useReportAudience = (onSuccessCallback?: () => void) => {
+export const useBrouillonAudience = (
+  id: string,
+  setIsBrouillonDialogOpen: (val: boolean) => void
+) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (audience: Partial<IAudienceForm>) =>
-      AudienceApi.reportAudience(audience),
+    mutationFn: () => AudienceApi.brouillonAudience(id),
+    onMutate: () => {
+      toast({
+        title: "Brouillon de l'audience en cours",
+        description: `La brouillon de l'audience est en cours.`,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Brouillon de l'audience réussi",
+        description: `L'audience a été brouillon.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['audiences'] });
+      queryClient.invalidateQueries({ queryKey: ['audience', id] });
+      setIsBrouillonDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur lors de la brouillon de l'audience",
+        description: error.message || `Une erreur est survenue`,
+        variant: 'destructive',
+      });
+      setIsBrouillonDialogOpen(true);
+    },
+  });
+};
+
+export const useReportAudience = (
+  id: string,
+  setIsReporterDialogOpen: (val: boolean) => void
+) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (audience: FormReportAudienceSchema) =>
+      AudienceApi.reportAudience(id, audience),
     onMutate: () => {
       toast({
         title: "Reportage de l'audience en cours",
@@ -163,7 +329,9 @@ export const useReportAudience = (onSuccessCallback?: () => void) => {
         title: 'Audience reportée avec succès',
         description: `L'audience a été reportée.`,
       });
-      onSuccessCallback?.();
+      queryClient.invalidateQueries({ queryKey: ['audiences'] });
+      queryClient.invalidateQueries({ queryKey: ['audience', id] });
+      setIsReporterDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -171,6 +339,15 @@ export const useReportAudience = (onSuccessCallback?: () => void) => {
         description: error.message || `Une erreur est survenue`,
         variant: 'destructive',
       });
+      setIsReporterDialogOpen(true);
     },
+  });
+};
+
+export const useStatsAudience = (filter: { contributorId: string }) => {
+  return useQuery({
+    queryKey: ['audiences', 'stats', ...(Object.values(filter) as string[])],
+    queryFn: () => AudienceApi.getStatsAudience(filter),
+    enabled: !!filter.contributorId,
   });
 };

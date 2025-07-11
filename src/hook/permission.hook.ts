@@ -61,6 +61,7 @@ export const useUpdatePermissionByadminId = (
     },
     onSuccess: (data) => {
       setPermissionStore('permission', data.data);
+      setPermissionStore('permissionMemberLogged', data.data as IPermission);
       toast({
         title: 'Permission mise à jour avec succès',
         duration: 3000,

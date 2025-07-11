@@ -1,12 +1,18 @@
 import ReportApi from '@/api/report.api';
 import { useToast } from '@/components/ui/use-toast';
-import { IReportFilterForm, tReportForm } from '@/interface/report';
+import { API_ROOT } from '@/config/app.config';
+import { IReport, IReportFilterForm, tReportForm } from '@/interface/report';
+import { FormRefusedReportSchema } from '@/schema/report.schema';
+import { APIResponse } from '@/types/generic.type';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { useNavigate } from 'react-router';
 
 export const useReports = (filters: IReportFilterForm) => {
   return useQuery({
     queryKey: ['reports', filters],
     queryFn: () => ReportApi.getReports(filters),
+    enabled: !!filters.contributorId,
   });
 };
 
@@ -18,6 +24,14 @@ export const useReport = (id: string) => {
   });
 };
 
+export const useStatsReport = (filter: { contributorId: string }) => {
+  return useQuery({
+    queryKey: ['reports', 'stats', ...(Object.values(filter) as string[])],
+    queryFn: () => ReportApi.getStatsReports(filter),
+    enabled: !!filter.contributorId,
+  });
+};
+
 export const useCreateReport = (onSuccessCallback?: () => void) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -25,8 +39,8 @@ export const useCreateReport = (onSuccessCallback?: () => void) => {
     mutationFn: (report: unknown) => ReportApi.createReport(report),
     onMutate: () => {
       toast({
-        title: "Création de l'report en cours",
-        description: `La création de l'report est en cours.`,
+        title: 'Création du rapport',
+        description: `La création du rapport est en cours.`,
       });
     },
     onSuccess: () => {
@@ -47,7 +61,48 @@ export const useCreateReport = (onSuccessCallback?: () => void) => {
   });
 };
 
-export const useUpdateReport = (id: string, onSuccessCallback?: () => void) => {
+export const useCreateReportOffline = (token: string) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (report: unknown): APIResponse<IReport> => {
+      try {
+        const response = await axios.post(
+          `http://localhost:5000/v1/api/${API_ROOT.reports}/offline/${token}`,
+          report
+        );
+        return response.data;
+      } catch (error) {
+        throw error;
+      }
+    },
+    onMutate: () => {
+      toast({
+        title: "Création de l'report en cours",
+        description: `La création de l'report est en cours.`,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Report créé avec succès',
+        description: `L'report a été ajoutée.`,
+      });
+      navigate('/');
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur lors de la création de l'report",
+        description: error.message || `Une erreur est survenue`,
+        variant: 'destructive',
+      });
+    },
+  });
+};
+
+export const useUpdateReport = (
+  id: string,
+  setIsEditDialogOpen: (val: boolean) => void
+) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   return useMutation({
@@ -65,7 +120,7 @@ export const useUpdateReport = (id: string, onSuccessCallback?: () => void) => {
         title: 'Report mis à jour avec succès',
         description: `L'report a été modifiée.`,
       });
-      onSuccessCallback?.();
+      setIsEditDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -73,6 +128,7 @@ export const useUpdateReport = (id: string, onSuccessCallback?: () => void) => {
         description: error.message || `Une erreur est survenue`,
         variant: 'destructive',
       });
+      setIsEditDialogOpen(true);
     },
   });
 };
@@ -108,12 +164,12 @@ export const useDeleteReport = (onSuccessCallback?: () => void) => {
 
 export const useValidateReport = (
   id: string,
-  onSuccessCallback?: () => void
+  setIsValidateDialogOpen: (val: boolean) => void
 ) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (id: string) => ReportApi.validate(id),
+    mutationFn: (data: { validateBy: string }) => ReportApi.validate(id, data),
     onMutate: () => {
       toast({
         title: "Validation de l'report en cours",
@@ -127,7 +183,7 @@ export const useValidateReport = (
         title: 'Report validé avec succès',
         description: `L'report a été validé.`,
       });
-      onSuccessCallback?.();
+      setIsValidateDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -135,15 +191,19 @@ export const useValidateReport = (
         description: error.message || `Une erreur est survenue`,
         variant: 'destructive',
       });
+      setIsValidateDialogOpen(true);
     },
   });
 };
 
-export const useRefuseReport = (id: string, onSuccessCallback?: () => void) => {
+export const useRefuseReport = (
+  id: string,
+  setIsRefuseDialogOpen: (val: boolean) => void
+) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (id: string) => ReportApi.refuse(id),
+    mutationFn: (data: FormRefusedReportSchema) => ReportApi.refuse(id, data),
     onMutate: () => {
       toast({
         title: "Refus de l'report en cours",
@@ -157,7 +217,7 @@ export const useRefuseReport = (id: string, onSuccessCallback?: () => void) => {
         title: 'Report refusé avec succès',
         description: `L'report a été refusé.`,
       });
-      onSuccessCallback?.();
+      setIsRefuseDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -165,6 +225,41 @@ export const useRefuseReport = (id: string, onSuccessCallback?: () => void) => {
         description: error.message || `Une erreur est survenue`,
         variant: 'destructive',
       });
+      setIsRefuseDialogOpen(true);
+    },
+  });
+};
+
+export const useArchiveReport = (
+  id: string,
+  setIsArchiveDialogOpen: (val: boolean) => void
+) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: () => ReportApi.archiveReport(id),
+    onMutate: () => {
+      toast({
+        title: "Archivage de l'report en cours",
+        description: `L'archivage de l'report est en cours.`,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['report', id] });
+      toast({
+        title: 'Report archivé avec succès',
+        description: `L'report a été archivé.`,
+      });
+      setIsArchiveDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur lors de l'archivage de l'report",
+        description: error.message || `Une erreur est survenue`,
+        variant: 'destructive',
+      });
+      setIsArchiveDialogOpen(true);
     },
   });
 };

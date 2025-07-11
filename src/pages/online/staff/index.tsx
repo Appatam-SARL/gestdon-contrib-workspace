@@ -1,6 +1,5 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +39,7 @@ import { Switch } from '@/components/ui/switch';
 import { useGetStaffMembers, useInviteUser } from '@/hook/admin.hook';
 // import useStaffStore, { INIT_MEMBER_FILTER } from '@/store/staff.store';
 import animationData from '@/assets/svg/send-invitation.json';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Pagination,
   PaginationContent,
@@ -52,9 +52,18 @@ import useContributorStore from '@/store/contributor.store';
 import useUserStore from '@/store/user.store';
 import { StaffMemberFilter, StaffStatus } from '@/types/staff';
 import { IUser, IUserFilterForm, setUserStore } from '@/types/user';
+import { helperUserPermission } from '@/utils';
 import { getRoleLayout } from '@/utils/display-of-variable';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, Filter, Loader2, RefreshCcw, UserPlus, X } from 'lucide-react';
+import {
+  Eye,
+  Filter,
+  Loader2,
+  RefreshCcw,
+  Search,
+  UserPlus,
+  X,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
@@ -140,7 +149,7 @@ export const StaffPage = withDashboard(() => {
   const { userFilterForm, setUserStore, user } = useUserStore((s) => s);
   console.log('🚀 ~ StaffPage ~ user:', user);
   // hook de récupération des données
-  const { data, isPending, refetch, isRefetching } = useGetStaffMembers({
+  const { data, isLoading, refetch } = useGetStaffMembers({
     ...userFilterForm,
     contributorId,
   } as IUserFilterForm);
@@ -154,8 +163,9 @@ export const StaffPage = withDashboard(() => {
     },
   });
 
-  const activeFiltersCount =
-    Object.values(userFilterForm).filter(Boolean).length;
+  const activeFiltersCount = Object.values(
+    userFilterForm as IUserFilterForm
+  ).filter(Boolean).length;
 
   const handleStatusChange = (memberId: string, isActive: boolean) => {
     // À implémenter: mise à jour du statut
@@ -195,20 +205,24 @@ export const StaffPage = withDashboard(() => {
       {/* En-tête */}
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold'>Personnel</h1>
+          <h4 className='text-3xl font-bold'>Personnel</h4>
           <p className='text-muted-foreground'>
             Gestion des membres du personnel
           </p>
         </div>
         <div className='flex gap-2'>
-          <Button onClick={() => navigate('/staff/create')}>
-            <UserPlus className='h-4 w-4 mr-2' />
-            Ajouter un membre
-          </Button>
-          <Button onClick={() => setIsInviteModalOpen(true)}>
-            <UserPlus className='h-4 w-4 mr-2' />
-            Ajouter un membre par invitation
-          </Button>
+          {helperUserPermission('staff', 'create') && (
+            <Button onClick={() => navigate('/staff/create')}>
+              <UserPlus className='h-4 w-4 mr-2' />
+              Ajouter un membre
+            </Button>
+          )}
+          {helperUserPermission('staff', 'create_by_invitation') && (
+            <Button onClick={() => setIsInviteModalOpen(true)}>
+              <UserPlus className='h-4 w-4 mr-2' />
+              Ajouter un membre par invitation
+            </Button>
+          )}
           {/* Modal d'invitation */}
           <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
             <DialogContent>
@@ -333,10 +347,11 @@ export const StaffPage = withDashboard(() => {
       </div>
 
       {/* Filtres */}
-      <Card className='p-4'>
-        <div className='flex gap-4'>
+      <div className='flex gap-4'>
+        <div className='relative flex-1'>
+          <Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
           <Input
-            className='flex-1'
+            className='flex-1 pl-10'
             placeholder='Rechercher un membre du personnel...'
             value={searchQuery}
             onChange={(e) => {
@@ -355,35 +370,35 @@ export const StaffPage = withDashboard(() => {
               }
             }}
           />
-          <Button
-            variant='outline'
-            onClick={() => setIsFilterModalOpen(true)}
-            className='relative'
-          >
-            <Filter className='h-4 w-4 mr-2' />
-            Filtres
-            {activeFiltersCount > 0 && (
-              <Badge
-                variant='secondary'
-                className='ml-2 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center'
-              >
-                {activeFiltersCount}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant='outline'
-            onClick={() => {
-              setUserStore('userFilterForm', {});
-              refetch();
-            }}
-            className='relative'
-          >
-            <RefreshCcw className='h-4 w-4 mr-2' />
-            Refresh
-          </Button>
         </div>
-      </Card>
+        <Button
+          variant='outline'
+          onClick={() => setIsFilterModalOpen(true)}
+          className='relative'
+        >
+          <Filter className='h-4 w-4 mr-2' />
+          Filtres
+          {activeFiltersCount > 0 && (
+            <Badge
+              variant='secondary'
+              className='ml-2 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center'
+            >
+              {activeFiltersCount}
+            </Badge>
+          )}
+        </Button>
+        <Button
+          variant='outline'
+          onClick={() => {
+            setUserStore('userFilterForm', {});
+            refetch();
+          }}
+          className='relative'
+        >
+          <RefreshCcw className='h-4 w-4 mr-2' />
+          Refresh
+        </Button>
+      </div>
 
       {/* Modal de filtres */}
       <FilterModal
@@ -399,118 +414,127 @@ export const StaffPage = withDashboard(() => {
       />
 
       {/* Tableau du personnel */}
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Rôle</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>Date d'ajout</TableHead>
-              <TableHead>Actions</TableHead>
+      {/* {helperUserPermission('staff', 'read') && ( */}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nom</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Rôle</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead>Date d'ajout</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
+            <TableRow className='p-8'>
+              <TableCell colSpan={7}>
+                <Skeleton
+                  count={1}
+                  width='100%'
+                  height={300}
+                  style={{ width: '100%' }}
+                />
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isPending || isRefetching ? (
-              <TableRow className='p-8'>
-                <TableCell colSpan={7}>
-                  <Skeleton
-                    count={1}
-                    width='100%'
-                    height={300}
-                    style={{ width: '100%' }}
-                  />
+          ) : (
+            data?.data.map((user: IUser) => (
+              <TableRow key={user._id}>
+                <TableCell className='font-medium flex items-center gap-2'>
+                  <Avatar>
+                    <AvatarImage
+                      src='https://github.com/shadcn.png'
+                      alt='@shadcn'
+                    />
+                    <AvatarFallback>CN</AvatarFallback>
+                  </Avatar>
+                  <span>
+                    {user.firstName} {user.lastName}
+                  </span>
+                </TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge>{getRoleLayout(user.role as string)}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={getStatusBadgeVariant(
+                      user.isActive ? 'actif' : 'inactif'
+                    )}
+                  >
+                    <span>{user.isActive ? 'actif' : 'inactif'}</span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {new Date(user.createdAt as string).toLocaleDateString(
+                    'fr-FR'
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className='flex items-center gap-2'>
+                    <Button
+                      variant='secondary'
+                      size='icon'
+                      onClick={() => navigate(`/staff/${user._id}`)}
+                    >
+                      <Eye className='h-4 w-4' color='white' />
+                    </Button>
+                    <Switch
+                      checked={user.isActive}
+                      onCheckedChange={(checked) =>
+                        handleStatusChange(user._id as string, checked)
+                      }
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
-            ) : (
-              data?.data.map((user: IUser) => (
-                <TableRow key={user._id}>
-                  <TableCell className='font-medium'>
-                    {user.firstName} {user.lastName}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge>{getRoleLayout(user.role as string)}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={getStatusBadgeVariant(
-                        user.isActive ? 'actif' : 'inactif'
-                      )}
-                    >
-                      <span>{user.isActive ? 'actif' : 'inactif'}</span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(user.createdAt as string).toLocaleDateString(
-                      'fr-FR'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className='flex items-center gap-2'>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() => navigate(`/staff/${user._id}`)}
-                      >
-                        <Eye className='h-4 w-4' />
-                      </Button>
-                      <Switch
-                        checked={user.isActive}
-                        onCheckedChange={(checked) =>
-                          handleStatusChange(user._id as string, checked)
-                        }
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+            ))
+          )}
+        </TableBody>
+      </Table>
+      {/* )} */}
 
-        {/* Pagination */}
-        <div className='p-4 border-t'>
-          <Pagination>
-            <PaginationContent>
+      {/* Pagination */}
+      <div className='p-4 border-t'>
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href='#'
+                size={'sm'}
+                onClick={() =>
+                  setCurrentPage(
+                    Math.max(Number(data?.metadata?.page), currentPage - 1)
+                  )
+                }
+              />
+            </PaginationItem>
+            {isLoading ? (
+              <Skeleton className='h-4 w-4' />
+            ) : (
+              // INSERT_YOUR_REWRITE_HERE
+              <></>
+            )}
+            {Number(data?.metadata?.total) > 3 && (
               <PaginationItem>
-                <PaginationPrevious
-                  href='#'
-                  size={'sm'}
-                  onClick={() =>
-                    setCurrentPage(
-                      Math.max(Number(data?.metadata?.page), currentPage - 1)
-                    )
-                  }
-                />
+                <PaginationEllipsis />
               </PaginationItem>
-              {isPending ? (
-                <Skeleton className='h-4 w-4' />
-              ) : (
-                // INSERT_YOUR_REWRITE_HERE
-                <></>
-              )}
-              {Number(data?.metadata?.total) > 3 && (
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              )}
-              <PaginationItem>
-                <PaginationNext
-                  href='#'
-                  size={'sm'}
-                  onClick={() =>
-                    setCurrentPage(
-                      Math.min(Number(data?.metadata?.page), currentPage + 1)
-                    )
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      </Card>
+            )}
+            <PaginationItem>
+              <PaginationNext
+                href='#'
+                size={'sm'}
+                onClick={() =>
+                  setCurrentPage(
+                    Math.min(Number(data?.metadata?.page), currentPage + 1)
+                  )
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
     </div>
   );
 });

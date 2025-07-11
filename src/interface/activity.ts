@@ -1,21 +1,40 @@
+import { IUser } from '@/types/user';
+import { IActivityType } from './activity-type';
+import { IBeneficiaire } from './beneficiaire';
+
 export interface IActivity {
-  id: number;
-  Title: string;
+  _id: number;
+  assigneeId: string | IUser;
+  representative?: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+  };
+  title: string;
+  locationOfActivity: string;
   description: string;
-  status: 'Draft' | 'Approved' | 'Rejected';
-  entity_id: number;
-  created_by: number;
-  activity_type_id: number;
-  CreatedDate: string;
-  UpdatedDate: string;
+  status: 'Draft' | 'Approved' | 'Rejected' | 'Archived' | 'Waiting' | '';
+  contributorId: number;
+  beneficiaryId: string | IBeneficiaire;
+  activityTypeId: string | IActivityType;
+  customFields: Map<string, any>;
+  motif?: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface IActivityFilterForm {
+  search?: string;
+  status?: 'Draft' | 'Approved' | 'Rejected' | 'Waiting' | 'Archived' | '';
+  contributorId?: string;
+  activityTypeId?: string;
   page?: number;
   limit?: number;
-  search?: string;
-  status?: 'Draft' | 'Approved' | 'Rejected';
-  entity_id?: number;
-  created_by?: number;
-  activity_type_id?: number;
+  period?: {
+    from?: string;
+    to?: string;
+  };
 }

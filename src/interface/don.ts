@@ -2,12 +2,14 @@ import { IBeneficiaire } from './beneficiaire';
 
 export interface IDon {
   _id: string;
+  title: string;
   beneficiaire: Pick<IBeneficiaire, '_id' | 'fullName'>;
+  type: string;
   montant: number;
   description?: string;
   devise: string;
-  dateDon: Date;
   contributorId: string;
+  status: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -17,6 +19,7 @@ export interface IDonFilterForm {
   limit?: number;
   page?: number;
   search?: string;
+  type?: string;
   period?: {
     from?: Date | string;
     to?: Date | string;

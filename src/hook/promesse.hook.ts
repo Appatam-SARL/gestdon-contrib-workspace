@@ -99,13 +99,13 @@ export const useDeletePromesse = () => {
         description: 'Veuillez patienter...',
       });
     },
-    onSuccess: (data, varialbles) => {
+    onSuccess: () => {
       toast({
         title: 'Promesse supprimée avec succès',
         description: 'La promesse a bien été supprimée',
       });
       queryClient.invalidateQueries({
-        queryKey: ['promesses', ...(Object.values(varialbles) as any)],
+        queryKey: ['promesses'],
       });
     },
     onError: () => {

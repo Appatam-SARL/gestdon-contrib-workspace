@@ -1,6 +1,5 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -33,14 +32,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { withDashboard } from '@/hoc/withDashboard';
-import { useReports } from '@/hook/report.hook';
-import { IReport, IReportFilterForm, tReportStatus } from '@/interface/report';
+import { useReports, useStatsReport } from '@/hook/report.hook';
+import {
+  IReport,
+  IReportFilterForm,
+  IReportState,
+  tReportStatus,
+} from '@/interface/report';
 import useContributorStore from '@/store/contributor.store';
 import useReportStore from '@/store/report.store';
-import { Eye, Filter, RefreshCcw } from 'lucide-react';
+import { helperUserPermission } from '@/utils';
+import { displayStatusReport } from '@/utils/display-of-variable';
+import { Eye, EyeOff, Filter, RefreshCcw, Search } from 'lucide-react';
 import { useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router-dom';
+import StatsReport from './Stats';
 
 // Helper function for status display layout - adapt as needed for report statuses
 export const getReportStatusLayout = (status: tReportStatus) => {
@@ -81,7 +88,7 @@ const FilterModal = ({
             <Select
               value={filters.status || 'all'}
               onValueChange={(value) =>
-                onFilterChange('reportFilter', {
+                onFilterChange('reportFilterForm', {
                   ...filters,
                   status: value === 'all' ? '' : value,
                 })
@@ -95,6 +102,7 @@ const FilterModal = ({
                 <SelectItem value='PENDING'>En attente</SelectItem>
                 <SelectItem value='VALIDATED'>Validé</SelectItem>
                 <SelectItem value='REFUSED'>Refusé</SelectItem>
+                <SelectItem value='ARCHIVED'>Archivé</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -111,7 +119,6 @@ export const RepportsPage = withDashboard(() => {
   const contributorId = useContributorStore((s) => s.contributor?._id);
   const { reportFilterForm, setReportStore } = useReportStore((s) => s);
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -126,6 +133,14 @@ export const RepportsPage = withDashboard(() => {
     contributorId,
   });
 
+  const {
+    data: statsReport,
+    isLoading: isLoadingStats,
+    isRefetching: isRefetchingStats,
+  } = useStatsReport({
+    contributorId: contributorId as string,
+  });
+  console.log('🚀 ~ RepportsPage ~ statsReport:', statsReport);
   const handleFilterChange = (key: keyof IReportFilterForm, value: any) => {
     setReportStore('reportFilterForm', {
       [key]: value,
@@ -155,15 +170,23 @@ export const RepportsPage = withDashboard(() => {
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold'>Rapports</h1>
+          <h4 className='text-3xl font-bold'>Rapports</h4>
           <p className='text-muted-foreground'>Gestion des rapports</p>
         </div>
       </div>
 
-      <Card className='p-4'>
-        <div className='flex gap-4'>
+      <StatsReport
+        handleFilterChange={handleFilterChange}
+        data={statsReport?.data as IReportState}
+        isLoadingStats={isLoadingStats}
+        isRefetchingStats={isRefetchingStats}
+      />
+
+      <div className='flex gap-4'>
+        <div className='relative flex-1'>
+          <Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
           <Input
-            className='flex-1'
+            className='flex-1 pl-10'
             placeholder='Rechercher un rapport par titre...'
             value={searchQuery}
             onChange={(e) => {
@@ -174,32 +197,32 @@ export const RepportsPage = withDashboard(() => {
               }
             }}
           />
-          <Button
-            variant='outline'
-            onClick={() => setIsFilterModalOpen(true)}
-            className='relative'
-          >
-            <Filter className='h-4 w-4 mr-2' />
-            Filtres
-            {activeFiltersCount > 0 && (
-              <Badge
-                variant='secondary'
-                className='ml-2 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center'
-              >
-                {activeFiltersCount}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant='outline'
-            onClick={handleClearFilters}
-            className='relative'
-          >
-            <RefreshCcw className='h-4 w-4 mr-2' />
-            Actualiser
-          </Button>
         </div>
-      </Card>
+        <Button
+          variant='outline'
+          onClick={() => setIsFilterModalOpen(true)}
+          className='relative'
+        >
+          <Filter className='h-4 w-4 mr-2' />
+          Filtres
+          {activeFiltersCount > 0 && (
+            <Badge
+              variant='secondary'
+              className='ml-2 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center'
+            >
+              {activeFiltersCount}
+            </Badge>
+          )}
+        </Button>
+        <Button
+          variant='outline'
+          onClick={handleClearFilters}
+          className='relative'
+        >
+          <RefreshCcw className='h-4 w-4 mr-2' />
+          Actualiser
+        </Button>
+      </div>
 
       <FilterModal
         isOpen={isFilterModalOpen}
@@ -210,95 +233,134 @@ export const RepportsPage = withDashboard(() => {
         }
       />
 
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Titre du rapport</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>Initier par</TableHead>
-              <TableHead>Valider par</TableHead>
-              <TableHead>Date de génération</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading || isRefetching ? (
-              <TableRow className='p-8'>
-                <TableCell colSpan={6}>
-                  <Skeleton
-                    count={1}
-                    width='100%'
-                    height={300}
-                    style={{ width: '100%' }}
-                  />
-                </TableCell>
+      {helperUserPermission('Rapports', 'read') ? (
+        <>
+          <Table className='border'>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Titre du rapport</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Initier par</TableHead>
+                <TableHead>Valider par</TableHead>
+                <TableHead>Date de génération</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ) : (
-              reportsResponse?.data.map((report: IReport) => (
-                <TableRow
-                  key={report._id}
-                  onClick={() => handleRowClick(String(report._id))}
-                  className='cursor-pointer hover:bg-gray-100'
-                >
-                  <TableCell className='font-medium'>{report.name}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        report.status === 'PENDING'
-                          ? 'secondary'
-                          : report.status === 'VALIDATED'
-                          ? 'success'
-                          : 'destructive'
-                      }
-                    >
-                      {getReportStatusLayout(report.status as tReportStatus)}
-                    </Badge>
+            </TableHeader>
+            <TableBody>
+              {isLoading || isRefetching ? (
+                <TableRow className='p-8'>
+                  <TableCell colSpan={6}>
+                    <Skeleton
+                      count={1}
+                      width='100%'
+                      height={300}
+                      style={{ width: '100%' }}
+                    />
                   </TableCell>
-                  <TableCell>
-                    {report.createdBy?.firstName +
-                      ' ' +
-                      report.createdBy?.lastName}
-                  </TableCell>
-                  <TableCell>
-                    {typeof report.validateBy === 'object'
-                      ? report.validateBy?.firstName +
+                </TableRow>
+              ) : (
+                reportsResponse?.data.map((report: IReport) => (
+                  <TableRow key={report._id}>
+                    <TableCell className='font-medium'>{report.name}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          displayStatusReport(report?.status as string) ===
+                          'Validé'
+                            ? 'success'
+                            : displayStatusReport(report?.status as string) ===
+                              'Archivé'
+                            ? 'warning'
+                            : displayStatusReport(report?.status as string) ===
+                              'Refusé'
+                            ? 'destructive'
+                            : 'secondary'
+                        }
+                      >
+                        <span
+                          className={
+                            displayStatusReport(report?.status as string) ===
+                            'Validé'
+                              ? 'text-success'
+                              : displayStatusReport(
+                                  report?.status as string
+                                ) === 'Archivé'
+                              ? 'text-warning'
+                              : displayStatusReport(
+                                  report?.status as string
+                                ) === 'Refusé'
+                              ? 'text-white'
+                              : 'text-dark'
+                          }
+                        >
+                          {displayStatusReport(report?.status as string) ===
+                          'Validé'
+                            ? '✅ Validé'
+                            : displayStatusReport(report?.status as string) ===
+                              'Archivé'
+                            ? '📦 Archivé'
+                            : displayStatusReport(report?.status as string) ===
+                              'Refusé'
+                            ? '❌ Rejeté'
+                            : '🕐 En attente'}
+                        </span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {report.createdBy?.firstName +
                         ' ' +
-                        report.validateBy?.lastName
-                      : report.validateBy}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(report.createdAt).toLocaleDateString('fr-FR')}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      onClick={() => navigate(`/repport/${report._id}`)}
-                    >
-                      <Eye className='h-4 w-4' />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-
-            {/* Empty state */}
-            {!isLoading &&
-              !isRefetching &&
-              (reportsResponse?.data?.length === 0 ||
-                !reportsResponse?.data) && (
-                <TableRow>
-                  <TableCell colSpan={4} className='text-center py-8'>
-                    Aucun rapport trouvé.
-                  </TableCell>
-                </TableRow>
+                        report.createdBy?.lastName}
+                    </TableCell>
+                    <TableCell>
+                      {typeof report.validateBy === 'object'
+                        ? report.validateBy?.firstName +
+                          ' ' +
+                          report.validateBy?.lastName
+                        : report.validateBy}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(report.createdAt as string).toLocaleDateString(
+                        'fr-FR'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {helperUserPermission('Rapports', 'read_detail') ? (
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          onClick={() => navigate(`/repport/${report._id}`)}
+                          className='hover:bg[#8e2bd9]'
+                        >
+                          <Eye className='h-4 w-4' />
+                        </Button>
+                      ) : (
+                        <div className='flex items-center gap-2'>
+                          <EyeOff className='h-4 w-4' />
+                          <span className='text-muted-foreground'>
+                            Non autorisé
+                          </span>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
-          </TableBody>
-        </Table>
 
-        {/* Pagination */}
-        <div className='p-4 border-t'>
+              {/* Empty state */}
+              {!isLoading &&
+                !isRefetching &&
+                (reportsResponse?.data?.length === 0 ||
+                  !reportsResponse?.data) && (
+                  <TableRow>
+                    <TableCell colSpan={4} className='text-center py-8'>
+                      Aucun rapport trouvé.
+                    </TableCell>
+                  </TableRow>
+                )}
+            </TableBody>
+          </Table>
+
+          {/* Pagination */}
           {isLoading || isRefetching ? (
             <Skeleton
               count={1}
@@ -313,13 +375,15 @@ export const RepportsPage = withDashboard(() => {
                   <PaginationPrevious
                     href='#'
                     size={'sm'}
+                    className={
+                      Number(reportFilterForm?.page) === 1
+                        ? 'pointer-events-none opacity-50'
+                        : ''
+                    }
                     onClick={() =>
-                      setCurrentPage(
-                        Math.max(
-                          Number(reportsResponse?.metadata?.page),
-                          currentPage - 1
-                        )
-                      )
+                      setReportStore('reportFilterForm', {
+                        page: Number(reportFilterForm?.page) - 1,
+                      })
                     }
                   />
                 </PaginationItem>
@@ -327,8 +391,14 @@ export const RepportsPage = withDashboard(() => {
                   (_, i) => (
                     <PaginationItem key={i + 1}>
                       <Button
-                        variant={currentPage === i + 1 ? 'default' : 'outline'}
-                        onClick={() => setCurrentPage(i + 1)}
+                        variant={
+                          Number(reportFilterForm?.page) === i + 1
+                            ? 'default'
+                            : 'outline'
+                        }
+                        onClick={() =>
+                          setReportStore('reportFilterForm', { page: i + 1 })
+                        }
                         size='sm'
                       >
                         {i + 1}
@@ -345,21 +415,28 @@ export const RepportsPage = withDashboard(() => {
                   <PaginationNext
                     href='#'
                     size={'sm'}
+                    className={
+                      Number(reportFilterForm?.page) ===
+                      Number(reportsResponse?.metadata?.totalPages)
+                        ? 'pointer-events-none opacity-50'
+                        : ''
+                    }
                     onClick={() =>
-                      setCurrentPage(
-                        Math.min(
-                          Number(reportsResponse?.metadata?.page),
-                          currentPage + 1
-                        )
-                      )
+                      setReportStore('reportFilterForm', {
+                        page: Number(reportFilterForm?.page) + 1,
+                      })
                     }
                   />
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
           )}
+        </>
+      ) : (
+        <div className='text-muted-foreground'>
+          Vous n'avez pas les permissions pour accéder à la liste des rapports.
         </div>
-      </Card>
+      )}
     </div>
   );
 });

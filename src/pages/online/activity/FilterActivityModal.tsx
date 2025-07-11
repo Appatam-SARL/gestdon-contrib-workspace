@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -15,8 +14,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useGetActivityType } from '@/hook/activity-type.hook';
 import { IActivity, IActivityFilterForm } from '@/interface/activity';
+import { IActivityType } from '@/interface/activity-type';
+import useContributorStore from '@/store/contributor.store';
+import { addDays } from 'date-fns';
+import fr from 'date-fns/locale/fr';
+import { Filter } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { DateRangePicker } from 'react-date-range';
 
 interface FilterActivityModalProps {
   isOpen: boolean;
@@ -32,6 +38,10 @@ const FilterActivityModal: React.FC<FilterActivityModalProps> = ({
   onFilterChange,
 }) => {
   const [tempFilters, setTempFilters] = useState<IActivityFilterForm>(filters);
+  const contributorId = useContributorStore((s) => s.contributor?._id);
+
+  const { isLoading: isLoadingActivityType, data: activityType } =
+    useGetActivityType({ contributorId: contributorId as string });
 
   useEffect(() => {
     setTempFilters(filters);
@@ -42,6 +52,16 @@ const FilterActivityModal: React.FC<FilterActivityModalProps> = ({
     setTempFilters((prev) => ({
       ...prev,
       [id]: value === '' ? undefined : value,
+    }));
+  };
+
+  const handleDateChange = ({ from, to }: { from: string; to: string }) => {
+    setTempFilters((prev) => ({
+      ...prev,
+      period: {
+        from,
+        to,
+      },
     }));
   };
 
@@ -63,14 +83,8 @@ const FilterActivityModal: React.FC<FilterActivityModalProps> = ({
   const handleApplyFilters = () => {
     const parsedFilters: IActivityFilterForm = {
       ...tempFilters,
-      entity_id: tempFilters.entity_id
-        ? Number(tempFilters.entity_id)
-        : undefined,
-      created_by: tempFilters.created_by
-        ? Number(tempFilters.created_by)
-        : undefined,
-      activity_type_id: tempFilters.activity_type_id
-        ? Number(tempFilters.activity_type_id)
+      activityTypeId: tempFilters.activityTypeId
+        ? tempFilters.activityTypeId
         : undefined,
       status: tempFilters.status,
     };
@@ -88,7 +102,7 @@ const FilterActivityModal: React.FC<FilterActivityModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='sm:max-w-[425px]'>
+      <DialogContent className='sm:max-w-[630px]'>
         <DialogHeader>
           <DialogTitle>Filter Activities</DialogTitle>
           <DialogDescription>
@@ -97,7 +111,7 @@ const FilterActivityModal: React.FC<FilterActivityModalProps> = ({
           </DialogDescription>
         </DialogHeader>
         <div className='grid gap-4 py-4'>
-          <div className='grid grid-cols-4 items-center gap-4'>
+          <div>
             <Label htmlFor='status' className='text-right'>
               Status
             </Label>
@@ -108,54 +122,70 @@ const FilterActivityModal: React.FC<FilterActivityModalProps> = ({
               }
             >
               <SelectTrigger className='col-span-3'>
-                <SelectValue placeholder='Select a status' />
+                <SelectValue placeholder='Selectionner un statut' />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='all'>All</SelectItem>
-                <SelectItem value='Draft'>Draft</SelectItem>
-                <SelectItem value='Approved'>Approved</SelectItem>
-                <SelectItem value='Rejected'>Rejected</SelectItem>
+                <SelectItem value='all'>Tous</SelectItem>
+                <SelectItem value='Draft'>Brouillon</SelectItem>
+                <SelectItem value='Approved'>Validé</SelectItem>
+                <SelectItem value='Rejected'>Rejeté</SelectItem>
+                <SelectItem value='Archived'>Archivé</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor='entity_id' className='text-right'>
-              Entity ID
+          <div>
+            <Label htmlFor='activityTypeId' className='text-right'>
+              Type d'activité
             </Label>
-            <Input
-              id='entity_id'
-              value={tempFilters.entity_id || ''}
-              onChange={handleChange}
-              className='col-span-3'
-              type='number'
-            />
+            <Select
+              onValueChange={(value) =>
+                handleSelectChange(value, 'activityTypeId')
+              }
+              value={tempFilters.activityTypeId}
+            >
+              <SelectTrigger className='col-span-3'>
+                <SelectValue placeholder="Selectionner un type d\'activité" />
+              </SelectTrigger>
+              <SelectContent>
+                {isLoadingActivityType ? (
+                  <SelectItem value='all'>Loading...</SelectItem>
+                ) : (
+                  activityType?.data?.map((activityType: IActivityType) => (
+                    <SelectItem key={activityType._id} value={activityType._id}>
+                      {activityType.label}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
-          <div className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor='created_by' className='text-right'>
-              Created By
-            </Label>
-            <Input
-              id='created_by'
-              value={tempFilters.created_by || ''}
-              onChange={handleChange}
-              className='col-span-3'
-              type='number'
-            />
-          </div>
-          <div className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor='activity_type_id' className='text-right'>
-              Activity Type ID
-            </Label>
-            <Input
-              id='activity_type_id'
-              value={tempFilters.activity_type_id || ''}
-              onChange={handleChange}
-              className='col-span-3'
-              type='number'
+          <div>
+            <DateRangePicker
+              locale={fr}
+              ranges={[
+                {
+                  startDate: tempFilters.period?.from
+                    ? new Date(tempFilters.period.from)
+                    : new Date(),
+                  endDate: tempFilters.period?.to
+                    ? new Date(tempFilters.period.to)
+                    : addDays(new Date(), 7),
+                  key: 'selection',
+                },
+              ]}
+              onChange={(item) => {
+                handleDateChange({
+                  from: item.selection.startDate?.toISOString() || '',
+                  to: item.selection.endDate?.toISOString() || '',
+                });
+              }}
             />
           </div>
         </div>
-        <Button onClick={handleApplyFilters}>Apply Filters</Button>
+        <Button onClick={handleApplyFilters}>
+          <Filter />
+          <span>Filtre</span>
+        </Button>
       </DialogContent>
     </Dialog>
   );

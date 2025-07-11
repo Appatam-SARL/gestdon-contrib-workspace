@@ -21,12 +21,34 @@ import { useCreateUser } from '@/hook/admin.hook';
 import { formAdminSchema, FormAdminValues } from '@/schema/admins.schema';
 import useContributorStore from '@/store/contributor.store';
 
-// import useStaffStore from '@/stores/staff.store';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Path, useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
+
+type FieldName =
+  | keyof FormAdminValues
+  | 'address.country'
+  | 'address.street'
+  | 'address.postalCode'
+  | 'address.city';
+
+const step1Fields: FieldName[] = [
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'role',
+];
+const step2Fields: FieldName[] = [
+  'address.country',
+  'address.street',
+  'address.postalCode',
+  'address.city',
+];
+
+type FormFields = Path<FormAdminValues>[] | readonly Path<FormAdminValues>[];
 
 const AddStaffForm = withDashboard(() => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -73,7 +95,7 @@ const AddStaffForm = withDashboard(() => {
             <ArrowLeft className='h-4 w-4' />
           </Link>
           <div>
-            <h1 className='text-3xl font-bold'>Staff</h1>
+            <h4 className='text-3xl font-bold'>Staff</h4>
             <p className='text-muted-foreground'>Ajouter un member du staff</p>
           </div>
         </div>
@@ -127,14 +149,12 @@ const AddStaffForm = withDashboard(() => {
                   name='firstName'
                   render={({ field }) => (
                     <FormItem>
-                      <label className='block text-sm font-medium'>
-                        Prénom
-                      </label>
+                      <label className='block text-sm font-medium'>Nom</label>
                       <FormControl>
                         <Input
                           id='firstName'
                           type='text'
-                          placeholder='Prénom'
+                          placeholder='Nom'
                           {...field}
                         />
                       </FormControl>
@@ -147,12 +167,14 @@ const AddStaffForm = withDashboard(() => {
                   name='lastName'
                   render={({ field }) => (
                     <FormItem>
-                      <label className='block text-sm font-medium'>Nom</label>
+                      <label className='block text-sm font-medium'>
+                        Prénom
+                      </label>
                       <FormControl>
                         <Input
                           id='lastName'
                           type='text'
-                          placeholder='Nom'
+                          placeholder='Prénom'
                           {...field}
                         />
                       </FormControl>
@@ -190,7 +212,7 @@ const AddStaffForm = withDashboard(() => {
                         <Input
                           id='phone'
                           type='text'
-                          placeholder='Téléphone'
+                          placeholder='+2250000000000'
                           {...field}
                         />
                       </FormControl>
@@ -288,7 +310,7 @@ const AddStaffForm = withDashboard(() => {
                 />
               </div>
             )}
-            <div className='flex justify-between p-4 border-t'>
+            <div className='flex justify-end p-4 border-t'>
               {currentStep > 1 && (
                 <Button
                   type='button'
@@ -304,13 +326,43 @@ const AddStaffForm = withDashboard(() => {
                   className='ml-auto'
                   disabled={mutation.isPending}
                 >
-                  {mutation.isPending ? 'En cours...' : "Créer l'utilisateur"}
+                  {mutation.isPending ? (
+                    <>
+                      <Loader2 className='animate-spin' />
+                      <span>En cours...</span>
+                    </>
+                  ) : (
+                    "Créer l'utilisateur"
+                  )}
                 </Button>
               ) : (
                 <Button
                   type='button'
                   className='ml-auto'
-                  onClick={() => setCurrentStep((prev) => prev + 1)}
+                  onClick={async () => {
+                    const step1Fields: FormFields = [
+                      'firstName',
+                      'lastName',
+                      'email',
+                      'phone',
+                      'role',
+                    ] as const;
+                    const step2Fields: FormFields = [
+                      'address.country',
+                      'address.street',
+                      'address.postalCode',
+                      'address.city',
+                    ] as const;
+
+                    const fieldsToValidate =
+                      currentStep === 1 ? step1Fields : step2Fields;
+                    const isValid = await formAddStaff.trigger(
+                      fieldsToValidate
+                    );
+                    if (isValid) {
+                      setCurrentStep((prev) => prev + 1);
+                    }
+                  }}
                 >
                   Suivant
                 </Button>

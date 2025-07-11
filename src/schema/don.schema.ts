@@ -2,6 +2,7 @@ import z from 'zod';
 
 export const createDonSchema = z.object({
   beneficiaire: z.string(),
+  type: z.string(),
   montant: z.string(),
   devise: z.string(),
   title: z.string(),
@@ -12,6 +13,7 @@ export const createDonSchema = z.object({
 export const donSchema = z.object({
   _id: z.string(),
   beneficiaire: z.string(),
+  type: z.string(),
   montant: z.number(),
   devise: z.string(),
   dateDon: z.date(),

@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -24,6 +25,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -36,7 +38,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { withDashboard } from '@/hoc/withDashboard';
+import { useCreateConversation } from '@/hook/conversation.hook';
 import {
+  useArchiveReport,
   useDeleteReport,
   useRefuseReport,
   useReport,
@@ -44,11 +48,29 @@ import {
   useValidateReport,
 } from '@/hook/report.hook';
 import {
+  createConversationSchema,
+  FormCreateConversationSchema,
+} from '@/schema/conversation.schema';
+import {
   createReportSchema,
   FormCreateReportSchema,
+  FormRefusedReportSchema,
+  refusedReportSchema,
 } from '@/schema/report.schema';
+import useUserStore from '@/store/user.store';
+import { helperUserPermission } from '@/utils';
+import { displayStatusReport } from '@/utils/display-of-variable';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Edit, Loader2, Trash2 } from 'lucide-react';
+import {
+  Archive,
+  CircleSlash,
+  Edit,
+  Loader2,
+  MessageCircleMore,
+  SquareCheckBigIcon,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
@@ -58,6 +80,17 @@ export const ReportDetailsPage = withDashboard(() => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const user = useUserStore((s) => s.user);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
+  const [isValidateDialogOpen, setIsValidateDialogOpen] =
+    useState<boolean>(false);
+  const [isRefuseDialogOpen, setIsRefuseDialogOpen] = useState<boolean>(false);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] =
+    useState<boolean>(false);
+  const [isOpenConversation, setIsOpenConversation] = useState<boolean>(false);
+
   const {
     data: reportResponse,
     isLoading,
@@ -66,20 +99,17 @@ export const ReportDetailsPage = withDashboard(() => {
   } = useReport(id as string);
 
   const deleteMutation = useDeleteReport(() => navigate('/repport'));
-  const updateMutation = useUpdateReport(id as string, () =>
-    setIsEditDialogOpen(false)
+  const updateMutation = useUpdateReport(id as string, setIsEditDialogOpen);
+  const validateMutation = useValidateReport(
+    id as string,
+    setIsValidateDialogOpen
   );
-  const validateMutation = useValidateReport(id as string, () =>
-    setIsValidateDialogOpen(false)
+  const refuseMutation = useRefuseReport(id as string, setIsRefuseDialogOpen);
+  const archiveMutation = useArchiveReport(
+    id as string,
+    setIsArchiveDialogOpen
   );
-  const refuseMutation = useRefuseReport(id as string, () =>
-    setIsRefuseDialogOpen(false)
-  );
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isValidateDialogOpen, setIsValidateDialogOpen] = useState(false);
-  const [isRefuseDialogOpen, setIsRefuseDialogOpen] = useState(false);
+  const mutationCreateConversation = useCreateConversation();
 
   const formEditReport = useForm<FormCreateReportSchema>({
     resolver: zodResolver(createReportSchema),
@@ -95,6 +125,20 @@ export const ReportDetailsPage = withDashboard(() => {
         dueDate: '',
       },
       documents: [],
+    },
+  });
+
+  const formRefuseReport = useForm<FormRefusedReportSchema>({
+    resolver: zodResolver(refusedReportSchema),
+    defaultValues: {
+      motif: '',
+    },
+  });
+
+  const formCreateConversation = useForm<FormCreateConversationSchema>({
+    resolver: zodResolver(createConversationSchema),
+    defaultValues: {
+      subject: '',
     },
   });
 
@@ -145,6 +189,10 @@ export const ReportDetailsPage = withDashboard(() => {
       </div>
     );
   }
+  console.log(
+    '🚀 ~ ReportDetailsPage ~ reportResponse:',
+    helperUserPermission('Rapports', 'create')
+  );
 
   const report = reportResponse?.data;
 
@@ -153,38 +201,59 @@ export const ReportDetailsPage = withDashboard(() => {
   }
 
   const handleDelete = () => {
-    if (id) {
-      deleteMutation.mutate(id);
-    }
+    deleteMutation.mutate(id as string);
   };
 
   const handleValidate = () => {
-    if (id) {
-      validateMutation.mutate(id);
-    }
+    const payload = {
+      validateBy: user?._id as string,
+    };
+    validateMutation.mutate(payload);
   };
 
-  const handleRefuse = () => {
-    if (id) {
-      refuseMutation.mutate(id);
-    }
+  const handleRefuse = (data: FormRefusedReportSchema) => {
+    refuseMutation.mutate(data);
+    formRefuseReport.reset();
   };
 
   const handleEdit = (data: FormCreateReportSchema) => {
-    if (id) {
-      const payload = {
-        ...data,
-        commitments: [data.commitments],
-      };
-      updateMutation.mutate(payload);
-    }
+    const payload = {
+      ...data,
+      commitments: [data.commitments],
+      status: 'PENDING',
+    };
+    updateMutation.mutate(payload);
+  };
+
+  const handleArchive = () => {
+    archiveMutation.mutate();
+  };
+
+  const handleCreateConversation = (data: FormCreateConversationSchema) => {
+    mutationCreateConversation.mutate({
+      subject: data.subject,
+      participants: [
+        {
+          firstName: user?.firstName,
+          lastName: user?.lastName,
+          email: user?.email,
+        },
+        {
+          firstName: report.createdBy?.firstName,
+          lastName: report.createdBy?.lastName,
+          email: report.createdBy?.email,
+        },
+      ],
+      status: 'OPEN',
+    });
+    formCreateConversation.reset();
   };
 
   return (
     <div className='space-y-4'>
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold'>Détails du rapport</h1>
+          <h4 className='text-3xl font-bold'>Détails du rapport</h4>
           <p className='text-muted-foreground'>
             Informations détaillées du rapport
           </p>
@@ -200,79 +269,199 @@ export const ReportDetailsPage = withDashboard(() => {
         <CardContent>
           <div className='flex items-center justify-between'>
             <div className='flex gap-2'>
-              <Button onClick={() => setIsEditDialogOpen(true)}>
-                <Edit className='h-4 w-4' />
-              </Button>
-              <AlertDialog
-                open={isValidateDialogOpen}
-                onOpenChange={setIsValidateDialogOpen}
-              >
-                <AlertDialogTrigger asChild>
-                  <Button style={{ backgroundColor: '#00B87C' }}>
-                    Valider
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Êtes-vous absolument sûr ?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Cette action ne peut pas être annulée. Cela validera
-                      définitivement ce rapport.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Fermer</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleValidate}
-                      disabled={validateMutation.isPending}
-                    >
-                      {validateMutation.isPending
-                        ? 'Validation en cours...'
-                        : 'Valider'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {user?.role === 'EDITOR' && (
+                <Button
+                  variant={'outline'}
+                  onClick={() => setIsEditDialogOpen(true)}
+                  className='hover:bg-grey-500'
+                >
+                  <Edit className='h-4 w-4' />
+                  <span>Modifier</span>
+                </Button>
+              )}
+              {(user?.role === 'MANAGER' &&
+                report.status !== 'VALIDATED' &&
+                report.status !== 'REFUSED' &&
+                report.status !== 'ARCHIVED') ||
+              (user?.role === 'COORDINATOR' &&
+                report.status !== 'VALIDATED' &&
+                report.status !== 'REFUSED' &&
+                report.status !== 'ARCHIVED') ? (
+                <AlertDialog
+                  open={isValidateDialogOpen}
+                  onOpenChange={setIsValidateDialogOpen}
+                >
+                  <AlertDialogTrigger asChild>
+                    <Button variant={'outline'} className='hover:bg-green-500'>
+                      <SquareCheckBigIcon />
+                      <span>Valider</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Êtes-vous absolument sûr ?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action ne peut pas être annulée. Cela validera
+                        définitivement ce rapport.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>
+                        <X />
+                        <span>Non, j'annule</span>
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleValidate}
+                        disabled={validateMutation.isPending}
+                      >
+                        {validateMutation.isPending ? (
+                          <>
+                            <Loader2 color='white' />
+                            <span>Validation en cours...</span>
+                          </>
+                        ) : (
+                          <>
+                            <SquareCheckBigIcon color='white' />
+                            <span>Oui, je valide</span>
+                          </>
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : null}
 
-              <AlertDialog
-                open={isRefuseDialogOpen}
-                onOpenChange={setIsRefuseDialogOpen}
-              >
-                <AlertDialogTrigger asChild>
-                  <Button variant='secondary' className='bg-red-500 text-white'>
-                    Refuser
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Êtes-vous absolument sûr ?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Cette action ne peut pas être annulée. Cela refusera
-                      définitivement ce rapport.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Fermer</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleRefuse}
-                      disabled={refuseMutation.isPending}
-                    >
-                      {refuseMutation.isPending
-                        ? 'Refus en cours...'
-                        : 'Refuser'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {/* Alert Dialog Archive un rapport */}
+              {(user?.role === 'MANAGER' && report.status === 'VALIDATED') ||
+              (user?.role === 'COORDINATOR' &&
+                report.status === 'VALIDATED') ? (
+                <AlertDialog
+                  open={isArchiveDialogOpen}
+                  onOpenChange={setIsArchiveDialogOpen}
+                >
+                  <AlertDialogTrigger asChild>
+                    <Button variant='outline'>
+                      <Archive className='h-4 w-4' />
+                      <span>Archiver</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Etes-vous absolument sûr ?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action ne peut pas être annulée. Cela archivera
+                        définitivement ce rapport de nos serveurs.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Non, j'annule</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleArchive}
+                        disabled={archiveMutation.isPending}
+                      >
+                        {archiveMutation.isPending ? (
+                          <>
+                            <Loader2 color='white' />
+                            <span>Archive en cours...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Archive color='white' />
+                            <span>Oui, j'archive</span>
+                          </>
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : null}
+
+              {(user?.role === 'MANAGER' &&
+                report.status !== 'REFUSED' &&
+                report.status !== 'VALIDATED' &&
+                report.status !== 'ARCHIVED') ||
+              (user?.role === 'COORDINATOR' &&
+                report.status !== 'REFUSED' &&
+                report.status !== 'VALIDATED' &&
+                report.status !== 'ARCHIVED') ? (
+                <Dialog
+                  open={isRefuseDialogOpen}
+                  onOpenChange={setIsRefuseDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant='outline' className='hover:bg-red-500'>
+                      <CircleSlash />
+                      <span>Refuser</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Êtes-vous absolument sûr ?</DialogTitle>
+                      <DialogDescription>
+                        Cette action ne peut pas être annulée. Cela refusera
+                        définitivement ce rapport.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <Form {...formRefuseReport}>
+                      <form
+                        onSubmit={formRefuseReport.handleSubmit(handleRefuse)}
+                        className='space-y-4'
+                      >
+                        <FormField
+                          control={formRefuseReport.control}
+                          name='motif'
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Motif</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  rows={10}
+                                  placeholder='Motif'
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <DialogFooter>
+                          <Button
+                            variant={'outline'}
+                            onClick={() => setIsRefuseDialogOpen(false)}
+                          >
+                            Non, j'annule
+                          </Button>
+                          <Button
+                            type='submit'
+                            disabled={refuseMutation.isPending}
+                          >
+                            {refuseMutation.isPending ? (
+                              <>
+                                <Loader2 color='white' />
+                                <span>Refus en cours...</span>
+                              </>
+                            ) : (
+                              <>
+                                <CircleSlash color='white' />
+                                <span>Oui, je refuse</span>
+                              </>
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              ) : null}
               <Dialog
                 open={isEditDialogOpen}
                 onOpenChange={setIsEditDialogOpen}
               >
-                <DialogContent className='sm:max-w-[500px]'>
+                <DialogContent className='sm:max-w-[500px] h-[600px] overflow-auto'>
                   <DialogHeader>
                     <DialogTitle>Modifier le rapport</DialogTitle>
                     <DialogDescription>
@@ -411,38 +600,135 @@ export const ReportDetailsPage = withDashboard(() => {
                   </div>
                 </DialogContent>
               </Dialog>
-              <AlertDialog
-                open={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
-              >
-                <AlertDialogTrigger asChild>
-                  <Button variant='destructive'>
-                    <Trash2 className='h-4 w-4' />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Êtes-vous absolument sûr ?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Cette action ne peut pas être annulée. Cela supprimera
-                      définitivement ce rapport de nos serveurs.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      disabled={deleteMutation.isPending}
-                    >
-                      {deleteMutation.isPending
-                        ? 'Suppression...'
-                        : 'Supprimer'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              {helperUserPermission('Rapports', 'delete') && (
+                <AlertDialog
+                  open={isDeleteDialogOpen}
+                  onOpenChange={setIsDeleteDialogOpen}
+                >
+                  <AlertDialogTrigger asChild>
+                    <Button variant='destructive'>
+                      <Trash2 className='h-4 w-4' />
+                      <span>Supprimer</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Êtes-vous absolument sûr ?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action ne peut pas être annulée. Cela supprimera
+                        définitivement ce rapport de nos serveurs.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>
+                        <X />
+                        <span>Non, j'annule</span>
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? (
+                          <>
+                            <Loader2 color='white' />
+                            <span>Suppression...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 color='white' />
+                            <span>Oui, je supprime</span>
+                          </>
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              {/* <Button onClick={() => setIsOpenConversation(true)}>
+                <MessageCircleMore />
+                <span>Ouvrir une conversation avec le rapporteur</span>
+              </Button> */}
+              {/* Alert Dialog Open a conversation */}
+              {(user?.role === 'MANAGER' && report.status === 'REFUSED') ||
+              (user?.role === 'COORDINATOR' && report.status === 'REFUSED') ? (
+                <Dialog
+                  open={isOpenConversation}
+                  onOpenChange={setIsOpenConversation}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant='outline' className='hover:bg-gray-300'>
+                      <MessageCircleMore />
+                      <span>Ouvrir une conversation</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Ouverture d'une conversation</DialogTitle>
+                      <DialogDescription>
+                        Cette action ne peut pas être annulée. Cela ouvrira
+                        définitivement une conversation avec le rapporteur.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {/* <DialogContent> */}
+                    <Form {...formCreateConversation}>
+                      <form
+                        onSubmit={formCreateConversation.handleSubmit(
+                          handleCreateConversation
+                        )}
+                        className='space-y-4'
+                      >
+                        <FormField
+                          control={formCreateConversation.control}
+                          name='subject'
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Saississez le sujet de la conversation
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type='text'
+                                  placeholder='Sujet'
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <DialogFooter>
+                          <Button
+                            variant='outline'
+                            onClick={() => setIsOpenConversation(false)}
+                            disabled={mutationCreateConversation.isPending}
+                          >
+                            Non, j'annule
+                          </Button>
+                          <Button
+                            type='submit'
+                            disabled={mutationCreateConversation.isPending}
+                          >
+                            {mutationCreateConversation.isPending ? (
+                              <>
+                                <Loader2 className='animate-spin' />
+                                <span>Ouverture de la conversation...</span>
+                              </>
+                            ) : (
+                              <>
+                                <MessageCircleMore color='white' />
+                                <span>Oui, je ouvre une conversation</span>
+                              </>
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                    {/* </DialogContent> */}
+                  </DialogContent>
+                </Dialog>
+              ) : null}
             </div>
           </div>
         </CardContent>
@@ -451,16 +737,52 @@ export const ReportDetailsPage = withDashboard(() => {
       <Card>
         <CardHeader>
           <CardTitle>{report.name}</CardTitle>
-          <CardDescription>Type d'entité: {report.entityType}</CardDescription>
+          <CardDescription>
+            Type d'entité: <Badge variant='outline'>{report.entityType}</Badge>
+            <div>
+              <p className='text-sm font-medium'>Statut:</p>
+              <Badge
+                variant={
+                  displayStatusReport(report?.status as string) === 'Validé'
+                    ? 'success'
+                    : displayStatusReport(report?.status as string) ===
+                      'Archivé'
+                    ? 'warning'
+                    : displayStatusReport(report?.status as string) === 'Refusé'
+                    ? 'destructive'
+                    : 'secondary'
+                }
+              >
+                <span
+                  className={
+                    displayStatusReport(report?.status as string) === 'Validé'
+                      ? 'text-success'
+                      : displayStatusReport(report?.status as string) ===
+                        'Archivé'
+                      ? 'text-warning'
+                      : displayStatusReport(report?.status as string) ===
+                        'Refusé'
+                      ? 'text-white'
+                      : 'text-dark'
+                  }
+                >
+                  {displayStatusReport(report?.status as string) === 'Validé'
+                    ? '✅ Validé'
+                    : displayStatusReport(report?.status as string) ===
+                      'Archivé'
+                    ? '📦 Archivé'
+                    : displayStatusReport(report?.status as string) === 'Refusé'
+                    ? '❌ Rejeté'
+                    : '🕐 En attente'}
+                </span>
+              </Badge>
+            </div>
+          </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
           <div>
             <p className='text-sm font-medium'>Description:</p>
             <p className='text-sm text-justify'>{report.description}</p>
-          </div>
-          <div>
-            <p className='text-sm font-medium'>Statut:</p>
-            <p>{report.status}</p>
           </div>
           {report.createdBy && (
             <div className='space-y-2 border-t pt-4 mt-4'>
@@ -534,6 +856,15 @@ export const ReportDetailsPage = withDashboard(() => {
               ))}
             </div>
           )}
+          {report.motif && (
+            <div className='space-y-2 border-t pt-4 mt-4'>
+              <h3 className='text-lg font-semibold'>Motif</h3>
+              <div>
+                <p className='text-sm font-medium'>Motif:</p>
+                <p>{report.motif}</p>
+              </div>
+            </div>
+          )}
           {report.documents && report.documents.length > 0 && (
             <div className='space-y-2 border-t pt-4 mt-4'>
               <h3 className='text-lg font-semibold'>Documents</h3>
@@ -558,14 +889,6 @@ export const ReportDetailsPage = withDashboard(() => {
               ))}
             </div>
           )}
-          <div>
-            <p className='text-sm font-medium'>Créé le:</p>
-            <p>{new Date(report.createdAt).toLocaleString()}</p>
-          </div>
-          <div>
-            <p className='text-sm font-medium'>Mis à jour le:</p>
-            <p>{new Date(report.updatedAt).toLocaleString()}</p>
-          </div>
         </CardContent>
       </Card>
     </div>

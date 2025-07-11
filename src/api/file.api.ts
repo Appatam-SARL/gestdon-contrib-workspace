@@ -1,6 +1,6 @@
 import { API_ROOT } from '@/config/app.config';
 import { AxiosDoc } from '@/config/axiosInstance';
-import { tFile } from '@/pages/partners/[id]';
+import { tFile } from '@/types/file';
 
 export const uploadFile = async (
   file: FormData,

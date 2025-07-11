@@ -19,6 +19,13 @@ export const useDon = (id: string) => {
   });
 };
 
+export const useStatsDon = (filter: { contributorId: string }) => {
+  return useQuery({
+    queryKey: ['statsDon'],
+    queryFn: () => DonApi.getStatsDon(filter),
+  });
+};
+
 export const useCreateDon = (setIsCreateDonOpen: (value: boolean) => void) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();

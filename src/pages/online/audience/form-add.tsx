@@ -31,7 +31,9 @@ export const AddAudiencePage = withDashboard(() => {
     limit: 100,
     page: 1,
     search: '',
+    contributorId,
   });
+  console.log('🚀 ~ AddAudiencePage ~ beneficiaries:', beneficiaries);
 
   const handleSubmit = (
     values: FormCreateAudienceSchema | FormUpdateAudienceSchema
@@ -52,16 +54,10 @@ export const AddAudiencePage = withDashboard(() => {
     createMutation.mutate({
       beneficiaryId: values.beneficiaryId as string,
       title: values.title as string,
+      locationOfActivity: values.locationOfActivity as string,
       description: values.description as string,
-      type: values.type as 'normal' | 'representative',
       startDate: values.startDate,
       endDate: values.endDate,
-      representative: {
-        firstName: values.representative?.firstName,
-        lastName: values.representative?.lastName,
-        email: values.representative?.email,
-        phone: values.representative?.phone,
-      },
       contributorId: contributorId as string,
     });
   };
@@ -70,9 +66,9 @@ export const AddAudiencePage = withDashboard(() => {
     <div className='space-y-4'>
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold'>
+          <h4 className='text-3xl font-bold'>
             Enregistrer une nouvelle audience
-          </h1>
+          </h4>
           <p className='text-muted-foreground'>
             Saisissez les informations pour ajouter une audience.
           </p>

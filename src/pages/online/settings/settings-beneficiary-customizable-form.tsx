@@ -50,12 +50,11 @@ const SettingsBeneficiaryCustomizableForm = () => {
   );
 
   const { data: beneficiaryTypes, isLoading: isLoadingBeneficiaryTypes } =
-    useGetBeneficiaryType();
+    useGetBeneficiaryType({ contributorId });
   const {
     data: customFieldsData,
     isLoading: isLoadingCustomFields,
     isRefetching: isRefetchingCustomFields,
-    refetch,
   } = useGetCustomFieldsFromForm(
     FORM_NAME,
     contributorId as string,
@@ -265,7 +264,7 @@ const SettingsBeneficiaryCustomizableForm = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className='border rounded-md p-4'>
+      <div className='bg-white border rounded-md p-4'>
         <h3 className='text-xl font-semibold mb-4'>
           {editingFieldId
             ? 'Modifier le champ personnalisé'

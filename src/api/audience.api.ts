@@ -8,6 +8,13 @@ import {
   IAudienceFilterForm,
   IAudienceForm,
 } from '@/interface/audience';
+import {
+  FormAssignAudienceSchema,
+  FormRejectedAudienceSchema,
+  FormReportAudienceSchema,
+  FormRepresentantAudienceSchema,
+  FormValidateAudienceSchema,
+} from '@/schema/audience.schema';
 import { APIResponse } from '@/types/generic.type';
 import { AxiosError } from 'axios';
 
@@ -86,11 +93,69 @@ class AudienceApi {
     }
   }
 
-  static async validateAudience(id: string): APIResponse<IAudience> {
+  static async validateAudience(
+    id: string,
+    data: FormValidateAudienceSchema
+  ): APIResponse<IAudience> {
     try {
-      const response = await Axios.patch(`${this.BASE_URL}/${id}`, {
-        status: 'VALIDATED',
-      });
+      const response = await Axios.patch(
+        `${this.BASE_URL}/${id}/validate`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async assignAudience(
+    id: string,
+    data: FormAssignAudienceSchema
+  ): APIResponse<IAudience> {
+    try {
+      const response = await Axios.patch(`${this.BASE_URL}/${id}/assign`, data);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async updateRepresentant(
+    id: string,
+    data: FormRepresentantAudienceSchema
+  ): APIResponse<IAudience> {
+    try {
+      const response = await Axios.put(
+        `${this.BASE_URL}/${id}/representative`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async rejectedAudience(
+    id: string,
+    data: FormRejectedAudienceSchema
+  ): APIResponse<IAudience> {
+    try {
+      const response = await Axios.patch(
+        `${this.BASE_URL}/${id}/refused`,
+        data
+      );
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -116,9 +181,51 @@ class AudienceApi {
     }
   }
 
-  static async reportAudience(audience: IAudienceForm): APIResponse<IAudience> {
+  static async brouillonAudience(id: string): APIResponse<IAudience> {
     try {
-      const response = await Axios.patch(`${this.BASE_URL}/report`, audience);
+      const response = await Axios.patch(`${this.BASE_URL}/${id}/brouillon`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async reportAudience(
+    id: string,
+    audience: FormReportAudienceSchema
+  ): APIResponse<IAudience> {
+    try {
+      const response = await Axios.patch(
+        `${this.BASE_URL}/${id}/report`,
+        audience
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async getStatsAudience(filter: {
+    contributorId: string;
+  }): APIResponse<{
+    PENDING: number;
+    DRAFT: number;
+    VALIDATED: number;
+    REFUSED: number;
+    ARCHIVED: number;
+  }> {
+    try {
+      const response = await Axios.get(`${this.BASE_URL}/stats`, {
+        params: filter,
+      });
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

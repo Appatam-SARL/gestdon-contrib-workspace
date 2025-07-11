@@ -101,11 +101,12 @@ export interface ReponseLoginByStaffWithMfa {
 
 export interface ReponseLoginByUser extends ReponseLoginByStaffWithMfa {
   token?: string;
-  readonly user: {
+  readonly user?: {
     id: string;
     email: string;
     firstName: string;
     lastName: string;
     phone: string;
   };
+  readonly userId?: string;
 }

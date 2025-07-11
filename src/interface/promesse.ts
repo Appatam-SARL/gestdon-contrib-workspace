@@ -7,7 +7,7 @@ export interface IPromesse {
   beneficiaireId: IBeneficiaire | string;
   contributorId: string;
   amount: string;
-  status: string;
+  status: tStatusPromesse;
   type: string;
   startDate: string;
   endDate: string;
@@ -17,18 +17,19 @@ export interface IPromesse {
 
 export type tPromesseForm = Partial<IPromesse>;
 export type tPromesse = Readonly<IPromesse>;
+export type tStatusPromesse = 'PENDING' | 'APPROVED' | 'REJECTED' | 'RECEIVED';
 
 export interface IPromesseFilters {
-  page: number;
-  limit: number;
-  search: string;
-  status: string;
-  beneficiaireId: string;
-  period: {
-    from: string;
-    to: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  beneficiaireId?: string;
+  period?: {
+    from?: string;
+    to?: string;
   };
-  contributorId: string;
+  contributorId?: string;
 }
 
 export interface IPromesseStore {

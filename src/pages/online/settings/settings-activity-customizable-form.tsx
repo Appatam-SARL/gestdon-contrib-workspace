@@ -1,4 +1,4 @@
-import { CustomFieldForm } from '@/components/custom-field/CustomFieldForm';
+import ActivityCustomField from '@/components/custom-field/ActivityCustomField';
 import { CustomFieldTable } from '@/components/custom-field/CustomFieldTable';
 import {
   AlertDialog,
@@ -20,6 +20,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { useToast } from '@/components/ui/use-toast';
 import { useGetActivityType } from '@/hook/activity-type.hook';
 import {
   useCreateCustomField,
@@ -31,15 +32,15 @@ import { ICustomFieldOption } from '@/interface/custom-field';
 import useContributorStore from '@/store/contributor.store';
 import { CustomFieldFormData } from '@/types/custom-field.types';
 import { useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Search, Trash } from 'lucide-react';
+import { RefreshCw, Search, Trash, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 const FORM_NAME = 'activity';
 const ITEMS_PER_PAGE = 5;
 
 const SettingsActivityCustomizableForm = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const contributorId = useContributorStore((state) => state.contributor?._id);
   const [customFields, setCustomFields] = useState<ICustomFieldOption[]>([]);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
@@ -50,12 +51,13 @@ const SettingsActivityCustomizableForm = () => {
   );
 
   const { data: activityTypes, isLoading: isLoadingActivityTypes } =
-    useGetActivityType();
+    useGetActivityType({
+      contributorId: contributorId as string,
+    });
   const {
     data: customFieldsData,
     isLoading: isLoadingCustomFields,
     isRefetching: isRefetchingCustomFields,
-    refetch,
   } = useGetCustomFieldsFromForm(
     FORM_NAME,
     contributorId as string,
@@ -76,12 +78,18 @@ const SettingsActivityCustomizableForm = () => {
 
   const handleSubmit = async (values: CustomFieldFormData) => {
     if (!contributorId) {
-      toast.error('ID du contributeur manquant.');
+      toast({
+        title: 'Erreur',
+        description: 'ID du contributeur manquant.',
+      });
       return;
     }
 
     if (!values.activityTypeId) {
-      toast.error("Veuillez sélectionner un type d'activité.");
+      toast({
+        title: 'Erreur',
+        description: "Veuillez sélectionner un type d'activité.",
+      });
       return;
     }
 
@@ -93,6 +101,8 @@ const SettingsActivityCustomizableForm = () => {
       options: values.options || [],
       activityTypeId: values.activityTypeId,
     };
+
+    console.log('🚀 ~ handleSubmit ~ innerFieldData:', innerFieldData);
 
     try {
       if (editingFieldId) {
@@ -107,7 +117,10 @@ const SettingsActivityCustomizableForm = () => {
           },
         };
         await mutationUpdateCustomField.mutateAsync(payload);
-        toast.success('Champ mis à jour avec succès.');
+        toast({
+          title: 'Succès',
+          description: 'Champ mis à jour avec succès.',
+        });
         setEditingFieldId(null);
       } else {
         const createPayload = {
@@ -117,8 +130,12 @@ const SettingsActivityCustomizableForm = () => {
           entityId: values.activityTypeId,
           fields: [innerFieldData],
         };
+        console.log('🚀 ~ handleSubmit ~ createPayload:', createPayload);
         await mutationCreateCustomField.mutateAsync(createPayload);
-        toast.success('Champ ajouté avec succès.');
+        toast({
+          title: 'Succès',
+          description: 'Champ ajouté avec succès.',
+        });
       }
       // Invalider le cache pour forcer un rechargement des données
       await queryClient.invalidateQueries({
@@ -133,7 +150,10 @@ const SettingsActivityCustomizableForm = () => {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Une erreur est survenue';
-      toast.error(`Erreur lors de la sauvegarde du champ: ${errorMessage}`);
+      toast({
+        title: 'Erreur',
+        description: `Erreur lors de la sauvegarde du champ: ${errorMessage}`,
+      });
       console.error('Error saving custom field:', error);
     }
   };
@@ -147,7 +167,10 @@ const SettingsActivityCustomizableForm = () => {
 
     const fieldToDelete = customFields.find((f) => f._id === fieldId);
     if (!fieldToDelete) {
-      toast.error('Impossible de trouver les informations du champ.');
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de trouver les informations du champ.',
+      });
       return;
     }
 
@@ -181,7 +204,10 @@ const SettingsActivityCustomizableForm = () => {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Une erreur est survenue';
-      toast.error(`Erreur lors de la suppression du champ: ${errorMessage}`);
+      toast({
+        title: 'Erreur',
+        description: `Erreur lors de la suppression du champ: ${errorMessage}`,
+      });
       console.error('Error deleting custom field:', error);
     }
   };
@@ -252,29 +278,30 @@ const SettingsActivityCustomizableForm = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelDelete}>
-              Annuler
+              <XIcon className='h-4 w-4' />
+              <span>Non, j'annule</span>
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90 text-white'
             >
               <Trash className='h-4 w-4' />
-              <span>Supprimer</span>
+              <span>Oui, je supprime</span>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className='border rounded-md p-4'>
+      <div className='border rounded-md p-4 bg-white'>
         <h3 className='text-xl font-semibold mb-4'>
           {editingFieldId
             ? 'Modifier le champ personnalisé'
             : 'Ajouter un nouveau champ personnalisé'}
         </h3>
-        <CustomFieldForm
+        <ActivityCustomField
           onSubmit={handleSubmit}
           activityTypes={activityTypes?.data}
-          isLoadingActivityTypes={isLoadingActivityTypes}
+          isLoadingActivity={isLoadingActivityTypes}
           isEditing={!!editingFieldId}
           onCancel={handleCancelEdit}
           initialValues={
@@ -285,7 +312,7 @@ const SettingsActivityCustomizableForm = () => {
         />
       </div>
 
-      <div className='border rounded-md'>
+      <div className='border rounded-md bg-white'>
         <div className='flex items-center justify-between p-4 mb-4'>
           <h3 className='text-xl font-semibold'>
             Champs personnalisés existants

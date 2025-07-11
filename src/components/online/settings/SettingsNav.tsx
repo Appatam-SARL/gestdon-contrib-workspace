@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { CreditCard, NotebookPen, Settings2 } from 'lucide-react';
+import { Activity, NotebookPen, Settings2, Users } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -39,7 +39,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, label, isActive, badge }) => (
 
 const SettingsNav = () => {
   return (
-    <nav className='space-y-1 border-r border-t border-border'>
+    <nav className='space-y-1 border-r border-t border-border bg-white'>
       <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2.5'>
         Paramètres du compte
       </h3>
@@ -60,8 +60,24 @@ const SettingsNav = () => {
       <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
         Configuration
       </h3>
-      <NavLink href='activity' label="Type d'activités" />
-      <NavLink href='beneficiary' label='Type Bénéficiaires' />
+      <NavLink
+        href='activity'
+        label={
+          <>
+            <Activity className='mr-2 h-4 w-4' />
+            Type d'activités
+          </>
+        }
+      />
+      <NavLink
+        href='beneficiary'
+        label={
+          <>
+            <Users className='mr-2 h-4 w-4' />
+            Type Bénéficiaires
+          </>
+        }
+      />
 
       <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
         Personnalisations des formulaires
@@ -81,28 +97,6 @@ const SettingsNav = () => {
           <>
             <NotebookPen className='mr-2 h-4 w-4' />
             Bénéficiaires
-          </>
-        }
-      />
-      {/* <NavLink
-        href='#'
-        label={
-          <>
-            <NotebookPen className='mr-2 h-4 w-4' />
-            Rapports
-          </>
-        }
-      /> */}
-
-      <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
-        Facturation
-      </h3>
-      <NavLink
-        href='#'
-        label={
-          <>
-            <CreditCard className='mr-2 h-4 w-4' />
-            Abonnement
           </>
         }
       />

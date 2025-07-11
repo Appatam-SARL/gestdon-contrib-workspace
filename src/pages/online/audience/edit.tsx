@@ -12,12 +12,15 @@ import { useAudience, useUpdateAudience } from '@/hook/audience.hook';
 import { useBeneficiaries } from '@/hook/beneficiaire.hook';
 import { IAudienceForm } from '@/interface/audience';
 import { FormUpdateAudienceSchema } from '@/schema/audience.schema';
+import useContributorStore from '@/store/contributor.store';
 import Skeleton from 'react-loading-skeleton';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AudienceForm } from './components/AudienceForm';
 
 export const EditAudiencePage = withDashboard(() => {
   const { id } = useParams<{ id: string }>();
+  const contributorId = useContributorStore((s) => s.contributor?._id);
+
   const navigate = useNavigate();
   const {
     data: audienceResponse,
@@ -25,13 +28,12 @@ export const EditAudiencePage = withDashboard(() => {
     isError,
     error,
   } = useAudience(id as string);
-  const updateMutation = useUpdateAudience(id as string, () =>
-    navigate(`/audiences/${id}`)
-  );
+  const updateMutation = useUpdateAudience(id as string);
   const { data: beneficiaries } = useBeneficiaries({
     limit: 100,
     page: 1,
     search: '',
+    contributorId: contributorId as string,
   });
 
   if (isLoading) {
@@ -68,34 +70,22 @@ export const EditAudiencePage = withDashboard(() => {
   }
 
   const initialFormValues: Partial<IAudienceForm> = {
-    beneficiaryId: audience.beneficiaryId,
+    beneficiaryId:
+      typeof audience.beneficiaryId === 'object'
+        ? (audience.beneficiaryId._id as string)
+        : audience.beneficiaryId,
     title: audience.title,
+    locationOfActivity: audience.locationOfActivity,
     description: audience.description,
-    email: audience.email,
-    type: audience.type,
-    startDate: audience.startDate,
-    endDate: audience.endDate,
-    representative: audience.representative
-      ? {
-          firstName: audience.representative.firstName || '',
-          lastName: audience.representative.lastName || '',
-          email: audience.representative.email || '',
-          phone: audience.representative.phone || '',
-        }
-      : undefined,
     contributorId: audience.contributorId,
   };
 
   const handleSubmit = (values: FormUpdateAudienceSchema) => {
     const payload: Partial<IAudienceForm> = {
       title: values.title,
+      locationOfActivity: values.locationOfActivity,
       description: values.description,
-      email: values.email,
-      type: values.type,
-      startDate: values.startDate,
-      endDate: values.endDate,
       beneficiaryId: values.beneficiaryId,
-      representative: values.representative,
     };
     updateMutation.mutate(payload);
   };

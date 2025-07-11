@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   FormControl,
   FormField,
@@ -28,7 +27,6 @@ const LoginPage = () => {
       email: '',
       phone: '',
       password: '',
-      remember: false,
     },
   });
 
@@ -59,7 +57,7 @@ const LoginPage = () => {
         <div className='w-1/2 bg-purple-700 text-white p-8 flex flex-col justify-center items-center'>
           <img src={logo} alt='Logo' className='w-38 mb-4' />
 
-          <h2 className='text-3xl font-bold mb-4'>Bienvenue !</h2>
+          <div className='text-3xl font-bold mb-4 text-white'>Bienvenue !</div>
           <p className='text-center'>
             {' '}
             Rejoignez notre communauté de contributeurs, mesurez votre
@@ -163,27 +161,6 @@ const LoginPage = () => {
                 )}
               />
 
-              <FormField
-                control={formLogin.control}
-                name='remember'
-                disabled={mutationLogin.isPending}
-                render={({ field }) => (
-                  <FormItem>
-                    <label className='text-gray-700'>
-                      Se souvenir de moi
-                      <span className='text-red-500'>*</span>
-                    </label>
-                    <FormControl>
-                      <Checkbox
-                        {...field}
-                        value={field.value ? 'on' : undefined}
-                        disabled={mutationLogin.isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <Button
                 type='submit'
                 className='w-full bg-purple-700 text-white py-3 cursor-pointer rounded-lg hover:bg-purple-800'
@@ -210,19 +187,13 @@ const LoginPage = () => {
             </Link>
           </div>
 
-          {/* <div className='flex flex-col gap-3'>
-            <Button className='w-full cursor-pointer flex items-center justify-center bg-red-500 text-white py-3 rounded-lg hover:bg-red-600'>
-              <FcGoogle className='mr-2 text-xl' /> Se connecter avec Google
-            </Button>
-            <Button className='w-full cursor-pointer flex items-center justify-center bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700'>
-              <FaFacebook className='mr-2 text-xl' /> Se connecter avec Facebook
-            </Button>
-          </div> */}
-
           <div className='text-center mt-6'>
-            <span>Vous n'avez pas de compte ? </span>
+            <span>
+              Vous n'avez pas de compte ? créer un espace pour votre
+              organisation{' '}
+            </span>
             <Link
-              to='sign-up'
+              to='/register'
               className='text-purple-600 font-bold bg-transparent cursor-pointer'
             >
               Inscrivez-vous

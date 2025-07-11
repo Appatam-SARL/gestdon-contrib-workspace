@@ -45,19 +45,18 @@ export const AudienceTable: React.FC<AudienceTableProps> = ({
 }) => {
   console.log('🚀 ~ totalPages:', totalPages);
   return (
-    <div className='space-y-4'>
-      <Table>
+    <div className='space-y-4 bg-white'>
+      <Table className='bg-white border rounded-2xl'>
         <TableHeader>
           <TableRow>
             <TableHead>Titre</TableHead>
             <TableHead>Description</TableHead>
-            <TableHead>Type</TableHead>
             <TableHead>Statut</TableHead>
             <TableHead>Créé le</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className='bg-white'>
           {isLoading || isRefetching ? (
             <TableRow>
               <TableCell colSpan={6} className='text-center py-8'>
@@ -72,23 +71,57 @@ export const AudienceTable: React.FC<AudienceTableProps> = ({
                   {audience.description.substring(0, 100) + '...'}
                 </TableCell>
                 <TableCell>
-                  <Badge variant='outline'>
-                    {audience.type === 'normal' ? 'Normale' : 'Représentant'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
                   <Badge
                     variant={
-                      audience.status === 'REFUSED'
-                        ? 'destructive'
-                        : audience.status === 'VALIDATED'
+                      displayStatusAudience(audience?.status as string) ===
+                      'Validé'
                         ? 'success'
-                        : audience.status === 'ARCHIVED'
+                        : displayStatusAudience(audience?.status as string) ===
+                          'Archivé'
                         ? 'warning'
+                        : displayStatusAudience(audience?.status as string) ===
+                          'Brouillon'
+                        ? 'default'
+                        : displayStatusAudience(audience?.status as string) ===
+                          'Refusé'
+                        ? 'destructive'
                         : 'secondary'
                     }
                   >
-                    {displayStatusAudience(audience.status || '')}
+                    <span
+                      className={
+                        displayStatusAudience(audience?.status as string) ===
+                        'Validé'
+                          ? 'text-success'
+                          : displayStatusAudience(
+                              audience?.status as string
+                            ) === 'Archivé'
+                          ? 'text-warning'
+                          : displayStatusAudience(
+                              audience?.status as string
+                            ) === 'Brouillon'
+                          ? 'text-default'
+                          : displayStatusAudience(
+                              audience?.status as string
+                            ) === 'Refusé'
+                          ? 'text-white'
+                          : 'text-dark'
+                      }
+                    >
+                      {displayStatusAudience(audience?.status as string) ===
+                      'Validé'
+                        ? '✅ Validé'
+                        : displayStatusAudience(audience?.status as string) ===
+                          'Archivé'
+                        ? '📦 Archivé'
+                        : displayStatusAudience(audience?.status as string) ===
+                          'Brouillon'
+                        ? '📝 Brouillon'
+                        : displayStatusAudience(audience?.status as string) ===
+                          'Refusé'
+                        ? '❌ Rejeté'
+                        : '🕐 En attente'}
+                    </span>
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -97,25 +130,25 @@ export const AudienceTable: React.FC<AudienceTableProps> = ({
                 <TableCell>
                   <div className='flex items-center gap-2'>
                     <Button
-                      variant='ghost'
+                      variant='secondary'
                       size='icon'
                       onClick={() => onView(audience._id)}
                     >
-                      <Eye className='h-4 w-4' />
+                      <Eye className='h-4 w-4' color='white' />
                     </Button>
                     <Button
-                      variant='ghost'
+                      variant='default'
                       size='icon'
                       onClick={() => onEdit(audience._id)}
                     >
-                      <Edit className='h-4 w-4' color={'blue'} />
+                      <Edit className='h-4 w-4' />
                     </Button>
                     <Button
-                      variant='ghost'
+                      variant='destructive'
                       size='icon'
                       onClick={() => onDelete(audience._id)}
                     >
-                      <Trash2 className='h-4 w-4' color='red' />
+                      <Trash2 className='h-4 w-4' />
                     </Button>
                   </div>
                 </TableCell>
@@ -131,45 +164,43 @@ export const AudienceTable: React.FC<AudienceTableProps> = ({
         </TableBody>
       </Table>
 
-      <div className='p-4 border-t'>
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href='#'
-                className={
-                  currentPage === 1 ? 'pointer-events-none opacity-50' : ''
-                }
-                onClick={() => setFilters({ page: currentPage - 1 })}
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              href='#'
+              className={
+                currentPage === 1 ? 'pointer-events-none opacity-50' : ''
+              }
+              onClick={() => setFilters({ page: currentPage - 1 })}
+              size='sm'
+            />
+          </PaginationItem>
+          {[...Array(totalPages)].map((_, i) => (
+            <PaginationItem key={i + 1}>
+              <Button
+                variant={currentPage === i + 1 ? 'default' : 'outline'}
+                onClick={() => setFilters({ page: i + 1 })}
                 size='sm'
-              />
+              >
+                {i + 1}
+              </Button>
             </PaginationItem>
-            {[...Array(totalPages)].map((_, i) => (
-              <PaginationItem key={i + 1}>
-                <Button
-                  variant={currentPage === i + 1 ? 'default' : 'outline'}
-                  onClick={() => setFilters({ page: i + 1 })}
-                  size='sm'
-                >
-                  {i + 1}
-                </Button>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href='#'
-                size='sm'
-                onClick={() => setFilters({ page: currentPage + 1 })}
-                className={
-                  currentPage === totalPages
-                    ? 'pointer-events-none opacity-50'
-                    : ''
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+          ))}
+          <PaginationItem>
+            <PaginationNext
+              href='#'
+              size='sm'
+              onClick={() => setFilters({ page: currentPage + 1 })}
+              className={
+                currentPage === totalPages
+                  ? 'pointer-events-none opacity-50'
+                  : ''
+              }
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
     </div>
   );
 };

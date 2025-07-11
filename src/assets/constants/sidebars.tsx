@@ -1,9 +1,10 @@
 import {
-  Building2,
+  Activity,
+  Banknote,
+  CalendarDays,
   File,
+  HeartHandshakeIcon,
   LayoutDashboard,
-  Package,
-  Truck,
   Users,
 } from 'lucide-react';
 
@@ -20,12 +21,12 @@ const sidebarLinks: SidebarLink[] = [
     href: '/dashboard',
   },
   {
-    icon: <Users className='h-5 w-5' />,
+    icon: <Activity className='h-5 w-5' />,
     label: 'Activités',
     href: '/activity',
   },
   {
-    icon: <Building2 className='h-5 w-5' />,
+    icon: <CalendarDays className='h-5 w-5' />,
     label: 'Agenda',
     href: '/agenda',
   },
@@ -35,22 +36,22 @@ const sidebarLinks: SidebarLink[] = [
     href: '/audiences',
   },
   {
-    icon: <Package className='h-5 w-5' />,
+    icon: <Banknote className='h-5 w-5' />,
     label: 'Don',
     href: '/don',
   },
   {
-    icon: <Truck className='h-5 w-5' />,
+    icon: <HeartHandshakeIcon className='h-5 w-5' />,
     label: 'Promesses',
     href: '/promises',
   },
   {
     icon: <Users className='h-5 w-5' />,
-    label: 'Communauté',
+    label: 'Bénéficiaires',
     href: '/community',
   },
   {
-    icon: <File />,
+    icon: <File className='h-5 w-5' />,
     label: 'Rapports',
     href: '/repport',
   },

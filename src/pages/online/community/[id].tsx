@@ -1,6 +1,17 @@
-import { withDashboard } from '@/hoc/withDashboard';
-import { useBeneficiary } from '@/hook/beneficiaire.hook';
-// import useBeneficiary from '@/hook/beneficiary.hook';
+import { UpdateRepresentantForm } from '@/components/community/UpdateRepresentantForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -20,25 +31,52 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { withDashboard } from '@/hoc/withDashboard';
 import {
+  useAddRepresentantBeneficiary,
+  useBeneficiary,
+  useDeleteRepresentantBeneficiary,
+  useUpdateBeneficiary,
+  useUpdateRepresentantBeneficiary,
+} from '@/hook/beneficiaire.hook';
+import { useGetBeneficiaryType } from '@/hook/beneficiary-type.hook';
+import { useDons } from '@/hook/don.hook';
+import { usePromesse } from '@/hook/promesse.hook';
+import { IRepresentantBeneficiaire } from '@/interface/beneficiaire';
+import { IBeneficiaryType } from '@/interface/beneficiary-type';
+import { IDon } from '@/interface/don';
+import { tPromesse } from '@/interface/promesse';
+import {
+  formAddRepresentantBeneficiarySchema,
+  FormAddRepresentantBeneficiarySchemaValue,
   formUpdateBeneficiarySchema,
   FormUpdateNameBeneficiarySchemaValue,
   formUpdateRepresentantBeneficiarySchema,
   FormUpdateRepresentantBeneficiarySchemaValue,
 } from '@/schema/beneficiary.schema';
+import useContributorStore from '@/store/contributor.store';
 import { helperFullAddress, helperFullName, tAddress } from '@/utils';
+import {
+  displayStatusDon,
+  displayStatusPromesse,
+} from '@/utils/display-of-variable';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Pencil, PenIcon } from 'lucide-react';
-import { useState } from 'react';
+import {
+  ArrowLeft,
+  Loader2,
+  PenIcon,
+  Save,
+  Trash,
+  UserPlus,
+} from 'lucide-react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
 import { Link, useParams } from 'react-router-dom';
@@ -46,56 +84,175 @@ import { Link, useParams } from 'react-router-dom';
 const DetailCommunity = withDashboard(() => {
   const { id } = useParams<{ id: string }>();
 
+  // zustand store
+  const contributorId = useContributorStore((s) => s.contributor?._id);
+
+  // state local
   const [isOpenUpdateBeneficiary, setIsOpenUpdateBeneficiary] =
-    useState<boolean>(true);
+    useState<boolean>(false);
   const [
     isOpenUpdateRepresentantBeneficiary,
     setIsOpenUpdateRepresentantBeneficiary,
   ] = useState<boolean>(false);
+  const [
+    isOpenAddRepresentantBeneficiary,
+    setIsOpenAddRepresentantBeneficiary,
+  ] = useState<boolean>(false);
+  const [representantBeneficiary, setRepresentantBeneficiary] =
+    useState<IRepresentantBeneficiaire>({
+      _id: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      address: {
+        country: '',
+        street: '',
+        postalCode: '',
+        city: '',
+      },
+    });
 
-  const { data: beneficiary, isLoading } = useBeneficiary(id as string);
+  const {
+    data: beneficiary,
+    isLoading,
+    isRefetching,
+  } = useBeneficiary(id as string);
+  const {
+    data: dons,
+    isLoading: isLoadingDons,
+    isRefetching: isRefetchingDons,
+  } = useDons({
+    limit: 10,
+    page: 1,
+    beneficiaire: id as string,
+    contributorId: contributorId as string,
+  });
+  const {
+    data: promesses,
+    isLoading: isLoadingPromesses,
+    isRefetching: isRefetchingPromesses,
+  } = usePromesse({
+    limit: 10,
+    page: 1,
+    beneficiaireId: id as string,
+    contributorId: contributorId as string,
+  });
+  const { isLoading: isLoadingBeneficiaryType, data: beneficiaryType } =
+    useGetBeneficiaryType({ contributorId: contributorId as string });
+
+  const beneficiaryMutation = useUpdateBeneficiary(
+    String(id),
+    setIsOpenUpdateBeneficiary
+  );
+  const mutationAddRepresentantBeneficiary = useAddRepresentantBeneficiary(
+    String(id),
+    setIsOpenAddRepresentantBeneficiary
+  );
+  const mutationUpdateRepresentantBeneficiary =
+    useUpdateRepresentantBeneficiary(
+      String(id),
+      setIsOpenUpdateRepresentantBeneficiary
+    );
+  const mutationDeleteRepresentantBeneficiary =
+    useDeleteRepresentantBeneficiary(String(id));
 
   const formUpdateBeneficiary = useForm<FormUpdateNameBeneficiarySchemaValue>({
     resolver: zodResolver(formUpdateBeneficiarySchema),
     defaultValues: {
       fullName: beneficiary?.data.fullName,
+      type: beneficiary?.data.type,
       description: beneficiary?.data.description,
+      contributorId: beneficiary?.data.contributorId,
     },
   });
+
+  const formAddRepresentantBeneficiary =
+    useForm<FormAddRepresentantBeneficiarySchemaValue>({
+      resolver: zodResolver(formAddRepresentantBeneficiarySchema),
+      defaultValues: {
+        firstName: beneficiary?.data.representant[0].firstName,
+        lastName: beneficiary?.data.representant[0].lastName,
+        phone: beneficiary?.data.representant[0].phone,
+        address: {
+          country: beneficiary?.data.representant[0].address.country,
+          street: beneficiary?.data.representant[0].address.street,
+          postalCode: beneficiary?.data.representant[0].address.postalCode,
+          city: beneficiary?.data.representant[0].address.city,
+        },
+      },
+    });
 
   const formUpdateRepresentantBeneficiary =
     useForm<FormUpdateRepresentantBeneficiarySchemaValue>({
       resolver: zodResolver(formUpdateRepresentantBeneficiarySchema),
       defaultValues: {
-        firstName: beneficiary?.data.representant.firstName,
-        lastName: beneficiary?.data.representant.lastName,
-        phone: beneficiary?.data.representant.phone,
-        address: beneficiary?.data.representant.address,
+        firstName: representantBeneficiary.firstName,
+        lastName: representantBeneficiary.lastName,
+        phone: representantBeneficiary.phone,
+        address: {
+          country: representantBeneficiary.address.country,
+          street: representantBeneficiary.address.street,
+          postalCode: representantBeneficiary.address.postalCode,
+          city: representantBeneficiary.address.city,
+        },
       },
     });
 
-  // const beneficiaryMutation = useUpdateBeneficiary(id as string, setIsOpenUpdateBeneficiary);
-  // const representantMutation = useUpdateRepresentantBeneficiary(id as string, setIsOpenUpdateRepresentantBeneficiary);
+  useLayoutEffect(() => {
+    // initialisation du formulaire
+    formUpdateBeneficiary.reset({
+      fullName: beneficiary?.data.fullName,
+      description: beneficiary?.data.description,
+      contributorId: beneficiary?.data.contributorId,
+    });
+  }, [beneficiary?.data]);
+
+  useEffect(() => {
+    formUpdateRepresentantBeneficiary.reset({
+      firstName: representantBeneficiary.firstName,
+      lastName: representantBeneficiary.lastName,
+      phone: representantBeneficiary.phone,
+      address: {
+        country: representantBeneficiary.address.country,
+        street: representantBeneficiary.address.street,
+        postalCode: representantBeneficiary.address.postalCode,
+        city: representantBeneficiary.address.city,
+      },
+    });
+  }, [representantBeneficiary]);
 
   const handleUpdateBeneficiary = async (
     data: FormUpdateNameBeneficiarySchemaValue
   ) => {
-    if (
-      formUpdateBeneficiary.getValues().fullName !== beneficiary?.data.fullName
-    ) {
-      // beneficiaryMutation.mutate(formUpdateBeneficiary.getValues());
-    }
+    beneficiaryMutation.mutate(data);
+    formUpdateBeneficiary.reset({
+      fullName: data.fullName,
+      description: data.description,
+      contributorId: data.contributorId,
+    });
   };
 
-  const handleUpdateRepresentant = async (
+  const handleAddRepresentantBeneficiary = async (
+    data: FormAddRepresentantBeneficiarySchemaValue
+  ) => {
+    mutationAddRepresentantBeneficiary.mutate(data);
+    formAddRepresentantBeneficiary.reset({
+      firstName: '',
+      lastName: '',
+      phone: '',
+      address: {
+        country: '',
+        street: '',
+        postalCode: '',
+        city: '',
+      },
+    });
+  };
+
+  const handleUpdateRepresentantBeneficiary = async (
     data: FormUpdateRepresentantBeneficiarySchemaValue
   ) => {
-    if (
-      formUpdateRepresentantBeneficiary.getValues().firstName !==
-      beneficiary?.data.representant.firstName
-    ) {
-      // representantMutation.mutate(formUpdateRepresentantBeneficiary.getValues());
-    }
+    mutationUpdateRepresentantBeneficiary.mutate(data);
   };
 
   return (
@@ -110,16 +267,18 @@ const DetailCommunity = withDashboard(() => {
             <ArrowLeft className='h-4 w-4' />
           </Link>
           <div>
-            <h1 className='text-3xl font-bold'>
-              {isLoading ? (
+            <h4 className='text-3xl font-bold'>
+              {isLoading || isRefetching ? (
                 <Skeleton className='h-4 w-4' />
               ) : (
-                `${beneficiary?.data.fullName}`
+                `${
+                  typeof beneficiary?.data === 'string'
+                    ? beneficiary?.data
+                    : beneficiary?.data?.fullName ||
+                      JSON.stringify(beneficiary?.data)
+                }`
               )}
-            </h1>
-            {/* <p className="text-muted-foreground">
-              {isLoading ? <Skeleton className="h-4 w-4" /> : beneficiary?.role}
-            </p> */}
+            </h4>
           </div>
         </div>
       </div>
@@ -131,21 +290,19 @@ const DetailCommunity = withDashboard(() => {
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <CardTitle>Informations du bénéficiaire</CardTitle>
               <Button
-                variant='ghost'
+                variant='secondary'
                 size='icon'
-                onClick={() =>
-                  setIsOpenUpdateBeneficiary(isOpenUpdateBeneficiary)
-                }
+                onClick={() => setIsOpenUpdateBeneficiary(true)}
                 className='h-8 w-8'
               >
-                <PenIcon className='h-4 w-4' />
+                <PenIcon className='h-4 w-4' color='white' />
               </Button>
             </CardHeader>
             <CardContent className='space-y-4'>
               <div>
                 <p className='text-sm text-muted-foreground'>ID</p>
                 <p className='font-medium'>
-                  {isLoading ? (
+                  {isLoading || isRefetching ? (
                     <Skeleton className='h-4 w-4' />
                   ) : (
                     (beneficiary?.data._id as string)
@@ -155,7 +312,7 @@ const DetailCommunity = withDashboard(() => {
               <div>
                 <p className='text-sm text-muted-foreground'>Nom complet</p>
                 <p className='font-medium'>
-                  {isLoading ? (
+                  {isLoading || isRefetching ? (
                     <Skeleton className='h-4 w-4' />
                   ) : (
                     beneficiary?.data.fullName
@@ -165,7 +322,7 @@ const DetailCommunity = withDashboard(() => {
               <div>
                 <p className='text-sm text-muted-foreground'>Description</p>
                 <p className='font-medium'>
-                  {isLoading ? (
+                  {isLoading || isRefetching ? (
                     <Skeleton className='h-4 w-4' />
                   ) : (
                     beneficiary?.data.description.substring(0, 100) + '...'
@@ -192,7 +349,6 @@ const DetailCommunity = withDashboard(() => {
                       )}
                       className='space-y-4'
                     >
-                      {/* <div className='grid grid-cols-2 gap-4'> */}
                       <FormField
                         control={formUpdateBeneficiary.control}
                         name='fullName'
@@ -215,6 +371,41 @@ const DetailCommunity = withDashboard(() => {
                       />
                       <FormField
                         control={formUpdateBeneficiary.control}
+                        name='type'
+                        render={({ field }) => (
+                          <FormItem>
+                            <label className='block text-sm font-medium'>
+                              Description
+                            </label>
+                            <FormControl>
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder='Sélectionnez un type de bénéficiaire' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {beneficiaryType?.data?.map(
+                                    (type: IBeneficiaryType) => (
+                                      <SelectItem
+                                        key={type._id}
+                                        value={type._id}
+                                      >
+                                        {type.label}
+                                      </SelectItem>
+                                    )
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={formUpdateBeneficiary.control}
                         name='description'
                         render={({ field }) => (
                           <FormItem>
@@ -225,6 +416,7 @@ const DetailCommunity = withDashboard(() => {
                               <Textarea
                                 id='description'
                                 placeholder='Description'
+                                rows={15}
                                 {...field}
                               />
                             </FormControl>
@@ -241,12 +433,20 @@ const DetailCommunity = withDashboard(() => {
                           Annuler
                         </Button>
                         <Button
-                          //   disabled={beneficiaryMutation.isPending}
-                          onClick={handleUpdateBeneficiary}
+                          type='submit'
+                          disabled={beneficiaryMutation.isPending}
                         >
-                          {/* {beneficiaryMutation.isPending
-                    ? 'En cours de modification...'
-                    : 'Enregistrer'} */}
+                          {beneficiaryMutation.isPending ? (
+                            <>
+                              <Loader2 className='animate-spin' />
+                              <span>En cours de modification...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save />
+                              <span>Enregistrer</span>
+                            </>
+                          )}
                         </Button>
                       </DialogFooter>
                     </form>
@@ -257,56 +457,105 @@ const DetailCommunity = withDashboard(() => {
           </Card>
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='flex items-center gap-2'>
+              <CardTitle className='flex justify-between items-center gap-2'>
                 <span>Information sur le chef ou représentant</span>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  onClick={() => setIsOpenUpdateRepresentantBeneficiary(true)}
-                  className='h-8 w-8'
-                >
-                  <Pencil className='h-4 w-4' />
-                </Button>
               </CardTitle>
+              <Button
+                variant='secondary'
+                size='icon'
+                onClick={() => setIsOpenAddRepresentantBeneficiary(true)}
+                className='h-8 w-8'
+              >
+                <UserPlus className='h-4 w-4' color='white' />
+              </Button>
             </CardHeader>
-            <CardContent>
-              <div>
-                <p className='text-sm text-muted-foreground'>Nom complet</p>
-                <p className='font-medium'>
-                  {isLoading ? (
-                    <Skeleton className='h-4 w-4' />
-                  ) : (
-                    helperFullName(
-                      beneficiary?.data.representant.firstName as string,
-                      beneficiary?.data.representant.lastName as string
-                    )
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className='text-sm text-muted-foreground'>
-                  Numéro de téléphone
-                </p>
-                <p className='font-medium'>
-                  {isLoading ? (
-                    <Skeleton className='h-4 w-4' />
-                  ) : (
-                    beneficiary?.data.representant.phone
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className='text-sm text-muted-foreground'>Adresse</p>
-                <p className='font-medium'>
-                  {isLoading ? (
-                    <Skeleton className='h-4 w-4' />
-                  ) : (
-                    helperFullAddress(
-                      beneficiary?.data.representant.address as tAddress
-                    )
-                  )}
-                </p>
-              </div>
+            <CardContent className='min-h-auto max-h-[400px] overflow-y-auto'>
+              {beneficiary?.data.representant.map((representant) => (
+                <div
+                  key={representant._id}
+                  className='flex justify-between items-center gap-4 mb-4 border-b border-gray-200 pb-4'
+                >
+                  <Avatar className='w-14 h-14'>
+                    <AvatarImage />
+                    <AvatarFallback>
+                      {representant.firstName.slice(0, 1) +
+                        '' +
+                        representant.lastName.slice(0, 1)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className='flex flex-col justify-center items-start gap-2 w-[50%]'>
+                    {isLoading || isRefetching ? (
+                      <Skeleton className='h-4 w-4' />
+                    ) : (
+                      <p className='font-medium'>
+                        {helperFullName(
+                          representant.firstName as string,
+                          representant.lastName as string
+                        )}
+                      </p>
+                    )}
+                    {isLoading || isRefetching ? (
+                      <Skeleton className='h-4 w-4' />
+                    ) : (
+                      <p className='font-regular'>{representant.phone}</p>
+                    )}
+                    {isLoading || isRefetching ? (
+                      <Skeleton className='h-4 w-4' />
+                    ) : (
+                      <p className='font-regular text-justify text-[12px]'>
+                        {helperFullAddress(representant.address as tAddress)}
+                      </p>
+                    )}
+                  </div>
+                  <div className='flex gap-2'>
+                    <Button
+                      variant='outline'
+                      onClick={() => {
+                        setRepresentantBeneficiary(representant);
+                        setIsOpenUpdateRepresentantBeneficiary(true);
+                      }}
+                      className='h-8 w-8'
+                    >
+                      <PenIcon className='h-4 w-4' />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger>
+                        <Button
+                          variant='destructive'
+                          size='icon'
+                          className='h-8 w-8'
+                        >
+                          <Trash className='h-4 w-4' color='white' />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Etre sûr de vouloir supprimer le représentant ?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Cette action est irréversible.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Non, annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            className='bg-red-500 hover:bg-red-700'
+                            onClick={() =>
+                              mutationDeleteRepresentantBeneficiary.mutate({
+                                _id: representant._id as string,
+                              })
+                            }
+                          >
+                            <Trash className='h-4 w-4' color='white' />
+                            <span>Oui je supprime</span>
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
 
@@ -324,13 +573,13 @@ const DetailCommunity = withDashboard(() => {
               <CardContent className='p-0'>
                 <div className='rounded-md'>
                   <table className='w-full'>
-                    <thead>
-                      <tr className='border-b bg-muted/50'>
+                    <thead className='bg-primary text-white'>
+                      <tr className='border-b'>
                         <th className='py-3 px-4 text-left text-sm font-medium'>
-                          Date & Heure
+                          Titre
                         </th>
                         <th className='py-3 px-4 text-left text-sm font-medium'>
-                          Description
+                          Montant
                         </th>
                         <th className='py-3 px-4 text-right text-sm font-medium'>
                           Type
@@ -338,81 +587,47 @@ const DetailCommunity = withDashboard(() => {
                       </tr>
                     </thead>
                     <tbody>
+                      {isLoadingDons || isRefetchingDons ? (
+                        <tr className='border-b hover:bg-muted/50 transition-colors'>
+                          <td colSpan={4}>
+                            <Skeleton
+                              count={1}
+                              width='100%'
+                              height={300}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                        </tr>
+                      ) : (
+                        dons?.data?.map((don: IDon) => (
+                          <tr
+                            className='border-b hover:bg-muted/50 transition-colors'
+                            key={don._id}
+                          >
+                            <td className='py-3 px-4 text-left text-sm font-medium'>
+                              {don.title}
+                            </td>
+                            <td className='py-3 px-4 text-left text-sm font-medium'>
+                              {don.montant + ' FCFA'}
+                            </td>
+                            <td className='py-3 px-4 text-right text-sm font-medium'>
+                              <Badge
+                                variant={
+                                  displayStatusDon(don.status ?? '') ===
+                                  'Validé'
+                                    ? 'success'
+                                    : 'secondary'
+                                }
+                              >
+                                {displayStatusDon(don.status ?? '')}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                       <tr className='border-b hover:bg-muted/50 transition-colors'></tr>
                     </tbody>
                   </table>
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          href='#'
-                          // onClick={() =>
-                          //     setFilterLogs((prev) => ({
-                          //         ...prev,
-                          //         page: Number(prev?.page) - 1,
-                          //     }))
-                          // }
-                          // className={
-                          //     currentPage === 1
-                          //         ? 'pointer-events-none opacity-50'
-                          //         : ''
-                          // }
-                          size='default'
-                        />
-                      </PaginationItem>
-                      {isLoading ? (
-                        <Skeleton className='h-4 w-4' />
-                      ) : Number(7) > 3 ? (
-                        <>
-                          {[...Array(3)].map((_, i) => (
-                            <PaginationItem key={i + 1}>
-                              <PaginationLink
-                                href='#'
-                                //   isActive={currentPage === i + 1}
-                                //   onClick={() => setCurrentPage(i + 1)}
-                                size='default'
-                              >
-                                {i + 1}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        </>
-                      ) : (
-                        [...Array(2)].map((_, i) => (
-                          <PaginationItem key={i + 1}>
-                            <PaginationLink
-                              href='#'
-                              //   isActive={currentPage === i + 1}
-                              //   onClick={() => setCurrentPage(i + 1)}
-                              size='default'
-                            >
-                              {i + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))
-                      )}
-                      <PaginationItem>
-                        <PaginationNext
-                          href='#'
-                          //   onClick={() =>
-                          //       setFilterLogs((prev) => ({
-                          //           ...prev,
-                          //           page: Number(prev?.page) + 1,
-                          //       }))
-                          //   }
-                          //   className={
-                          //       currentPage === logs?.metadata?.totalPages
-                          //           ? 'pointer-events-none opacity-50'
-                          //           : ''
-                          //   }
-                          size='default'
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
                 </div>
               </CardContent>
             </Card>
@@ -423,13 +638,13 @@ const DetailCommunity = withDashboard(() => {
               <CardContent className='p-0'>
                 <div className='rounded-md'>
                   <table className='w-full'>
-                    <thead>
-                      <tr className='border-b bg-muted/50'>
+                    <thead className='bg-primary text-white'>
+                      <tr className='border-b'>
                         <th className='py-3 px-4 text-left text-sm font-medium'>
-                          Date & Heure
+                          Titre
                         </th>
                         <th className='py-3 px-4 text-left text-sm font-medium'>
-                          Description
+                          Montant
                         </th>
                         <th className='py-3 px-4 text-right text-sm font-medium'>
                           Type
@@ -437,81 +652,47 @@ const DetailCommunity = withDashboard(() => {
                       </tr>
                     </thead>
                     <tbody>
+                      {isLoadingPromesses || isRefetchingPromesses ? (
+                        <tr className='border-b hover:bg-muted/50 transition-colors'>
+                          <td colSpan={4}>
+                            <Skeleton
+                              count={1}
+                              width='100%'
+                              height={300}
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                        </tr>
+                      ) : (
+                        promesses?.data?.map((promesse: tPromesse) => (
+                          <tr
+                            className='border-b hover:bg-muted/50 transition-colors'
+                            key={promesse._id}
+                          >
+                            <td className='py-3 px-4 text-left text-sm font-medium'>
+                              {promesse.title.substring(0, 25) + '...'}
+                            </td>
+                            <td className='py-3 px-4 text-left text-sm font-medium'>
+                              {promesse.amount} FCFA
+                            </td>
+                            <td className='py-3 px-4 text-right text-sm font-medium'>
+                              <Badge
+                                variant={
+                                  displayStatusPromesse(promesse.status) ===
+                                  'Validé'
+                                    ? 'success'
+                                    : 'secondary'
+                                }
+                              >
+                                {displayStatusPromesse(promesse.status)}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                       <tr className='border-b hover:bg-muted/50 transition-colors'></tr>
                     </tbody>
                   </table>
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          href='#'
-                          // onClick={() =>
-                          //     setFilterLogs((prev) => ({
-                          //         ...prev,
-                          //         page: Number(prev?.page) - 1,
-                          //     }))
-                          // }
-                          // className={
-                          //     currentPage === 1
-                          //         ? 'pointer-events-none opacity-50'
-                          //         : ''
-                          // }
-                          size='default'
-                        />
-                      </PaginationItem>
-                      {isLoading ? (
-                        <Skeleton className='h-4 w-4' />
-                      ) : Number(7) > 3 ? (
-                        <>
-                          {[...Array(3)].map((_, i) => (
-                            <PaginationItem key={i + 1}>
-                              <PaginationLink
-                                href='#'
-                                //   isActive={currentPage === i + 1}
-                                //   onClick={() => setCurrentPage(i + 1)}
-                                size='default'
-                              >
-                                {i + 1}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        </>
-                      ) : (
-                        [...Array(2)].map((_, i) => (
-                          <PaginationItem key={i + 1}>
-                            <PaginationLink
-                              href='#'
-                              //   isActive={currentPage === i + 1}
-                              //   onClick={() => setCurrentPage(i + 1)}
-                              size='default'
-                            >
-                              {i + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))
-                      )}
-                      <PaginationItem>
-                        <PaginationNext
-                          href='#'
-                          //   onClick={() =>
-                          //       setFilterLogs((prev) => ({
-                          //           ...prev,
-                          //           page: Number(prev?.page) + 1,
-                          //       }))
-                          //   }
-                          //   className={
-                          //       currentPage === logs?.metadata?.totalPages
-                          //           ? 'pointer-events-none opacity-50'
-                          //           : ''
-                          //   }
-                          size='default'
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
                 </div>
               </CardContent>
             </Card>
@@ -521,27 +702,27 @@ const DetailCommunity = withDashboard(() => {
 
       {/* Remove all Modals (Password, MFA, Info) */}
 
-      {/* Dialog update representant */}
+      {/* Dialog add representant */}
       <Dialog
-        open={isOpenUpdateRepresentantBeneficiary}
-        onOpenChange={setIsOpenUpdateRepresentantBeneficiary}
+        open={isOpenAddRepresentantBeneficiary}
+        onOpenChange={setIsOpenAddRepresentantBeneficiary}
       >
-        <DialogContent className='sm:max-w-[500px]'>
+        <DialogContent className='sm:max-w-[500px] h-[600px] overflow-y-auto'>
           <DialogHeader>
-            <DialogTitle>Modifier le représentant</DialogTitle>
+            <DialogTitle>Ajouter un représentant</DialogTitle>
             <DialogDescription>
-              Modifiez les informations du représentant.
+              Ajoutez un représentant pour cette communauté.
             </DialogDescription>
           </DialogHeader>
-          <Form {...formUpdateRepresentantBeneficiary}>
+          <Form {...formAddRepresentantBeneficiary}>
             <form
-              onSubmit={formUpdateRepresentantBeneficiary.handleSubmit(
-                handleUpdateRepresentant
+              onSubmit={formAddRepresentantBeneficiary.handleSubmit(
+                handleAddRepresentantBeneficiary
               )}
               className='space-y-4'
             >
               <FormField
-                control={formUpdateRepresentantBeneficiary.control}
+                control={formAddRepresentantBeneficiary.control}
                 name='firstName'
                 render={({ field }) => (
                   <FormItem>
@@ -558,121 +739,142 @@ const DetailCommunity = withDashboard(() => {
                   </FormItem>
                 )}
               />
-              <div className='grid grid-cols-2 gap-4'>
-                <FormField
-                  control={formUpdateRepresentantBeneficiary.control}
-                  name='lastName'
-                  render={({ field }) => (
-                    <FormItem>
-                      <label className='block text-sm font-medium'>Nom</label>
-                      <FormControl>
-                        <Input
-                          id='lastName'
-                          type='text'
-                          placeholder='Nom'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+              <FormField
+                control={formAddRepresentantBeneficiary.control}
+                name='lastName'
+                render={({ field }) => (
+                  <FormItem>
+                    <label className='block text-sm font-medium'>Nom</label>
+                    <FormControl>
+                      <Input
+                        id='lastName'
+                        type='text'
+                        placeholder='Nom'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={formAddRepresentantBeneficiary.control}
+                name='phone'
+                render={({ field }) => (
+                  <FormItem>
+                    <label className='block text-sm font-medium'>
+                      Téléphone
+                    </label>
+                    <FormControl>
+                      <Input
+                        id='phone'
+                        type='text'
+                        placeholder='Téléphone'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={formAddRepresentantBeneficiary.control}
+                name='address.country'
+                render={({ field }) => (
+                  <FormItem>
+                    <label className='block text-sm font-medium'>Pays</label>
+                    <FormControl>
+                      <Input {...field} placeholder='Pays' />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={formAddRepresentantBeneficiary.control}
+                name='address.street'
+                render={({ field }) => (
+                  <FormItem>
+                    <label className='block text-sm font-medium'>Rue</label>
+                    <FormControl>
+                      <Input {...field} placeholder='Rue' />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={formAddRepresentantBeneficiary.control}
+                name='address.postalCode'
+                render={({ field }) => (
+                  <FormItem>
+                    <label className='block text-sm font-medium'>
+                      Code postal
+                    </label>
+                    <FormControl>
+                      <Input {...field} placeholder='Code postal' />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={formAddRepresentantBeneficiary.control}
+                name='address.city'
+                render={({ field }) => (
+                  <FormItem>
+                    <label className='block text-sm font-medium'>Ville</label>
+                    <FormControl>
+                      <Input {...field} placeholder='Ville' />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className='flex justify-between p-4 border-t'>
+                <Button
+                  type='submit'
+                  className='ml-auto'
+                  disabled={mutationAddRepresentantBeneficiary.isPending}
+                >
+                  {mutationAddRepresentantBeneficiary.isPending ? (
+                    <>
+                      <Loader2 className='animate-spin' />
+                      <span>En cours de modification...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save />
+                      <span>Enregistrer</span>
+                    </>
                   )}
-                />
-                <FormField
-                  control={formUpdateRepresentantBeneficiary.control}
-                  name='phone'
-                  render={({ field }) => (
-                    <FormItem>
-                      <label className='block text-sm font-medium'>
-                        Téléphone
-                      </label>
-                      <FormControl>
-                        <Input
-                          id='phone'
-                          type='text'
-                          placeholder='Téléphone'
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={formUpdateRepresentantBeneficiary.control}
-                  name='address.country'
-                  render={({ field }) => (
-                    <FormItem>
-                      <label className='block text-sm font-medium'>Pays</label>
-                      <FormControl>
-                        <Input {...field} placeholder='Pays' />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={formUpdateRepresentantBeneficiary.control}
-                  name='address.street'
-                  render={({ field }) => (
-                    <FormItem>
-                      <label className='block text-sm font-medium'>Rue</label>
-                      <FormControl>
-                        <Input {...field} placeholder='Rue' />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={formUpdateRepresentantBeneficiary.control}
-                  name='address.postalCode'
-                  render={({ field }) => (
-                    <FormItem>
-                      <label className='block text-sm font-medium'>
-                        Code postal
-                      </label>
-                      <FormControl>
-                        <Input {...field} placeholder='Code postal' />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={formUpdateRepresentantBeneficiary.control}
-                  name='address.city'
-                  render={({ field }) => (
-                    <FormItem>
-                      <label className='block text-sm font-medium'>Ville</label>
-                      <FormControl>
-                        <Input {...field} placeholder='Ville' />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                </Button>
               </div>
             </form>
           </Form>
-          <DialogFooter>
-            <Button
-              variant='outline'
-              onClick={() => setIsOpenUpdateRepresentantBeneficiary(false)}
-            >
-              Annuler
-            </Button>
-            <Button
-            //   disabled={representantMutation.isPending}
-            //   onClick={handleUpdateRepresentant}
-            >
-              {/* {representantMutation.isPending
-                ? 'En cours de modification...'
-                : 'Enregistrer'} */}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* </div> */}
+
+      {/* Dialog update representant */}
+      <Dialog
+        open={isOpenUpdateRepresentantBeneficiary}
+        onOpenChange={setIsOpenUpdateRepresentantBeneficiary}
+      >
+        <DialogContent className='sm:max-w-[500px] h-[600px] overflow-y-auto'>
+          <DialogHeader>
+            <DialogTitle>Modifier le représentant</DialogTitle>
+            <DialogDescription>
+              Modifiez les informations du représentant.
+            </DialogDescription>
+          </DialogHeader>
+          <UpdateRepresentantForm
+            representant={representantBeneficiary}
+            onSubmit={handleUpdateRepresentantBeneficiary}
+            onCancel={() => setIsOpenUpdateRepresentantBeneficiary(false)}
+            isLoading={mutationUpdateRepresentantBeneficiary.isPending}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });

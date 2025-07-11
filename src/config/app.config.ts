@@ -1,9 +1,9 @@
 // 'development' | 'production' | 'preprod'
 
-export const workSpaceEnvironnement: 'dev' | 'preprod' | 'prod' = 'dev';
+export const workSpaceEnvironnement: 'dev' | 'preprod' | 'prod' = 'preprod';
 
 const BASE_URL: Record<'prod' | 'dev' | 'preprod', string> = {
-  preprod: 'https://api-pp.valdeli.com/',
+  preprod: 'https://e9d2c5ed2027.ngrok-free.app/',
   prod: 'https://api.valdeli.com/',
   dev: `http://localhost:5000/`,
 };
@@ -32,4 +32,5 @@ export const API_ROOT = {
   audiences: 'audiences',
   reports: 'reports',
   dashboard: 'dashboard',
+  chat: 'chat',
 };

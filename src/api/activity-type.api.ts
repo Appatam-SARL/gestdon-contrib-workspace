@@ -7,9 +7,11 @@ import { AxiosError } from 'axios';
 
 class ActivityTypeApi {
   private static baseUrl: string = API_ROOT.activityTypes;
-  static async getActivityTypes(): APIResponse<IActivityType[]> {
+  static async getActivityTypes(filter?: any): APIResponse<IActivityType[]> {
     try {
-      const response = await Axios.get(`${this.baseUrl}`);
+      const response = await Axios.get(`${this.baseUrl}`, {
+        params: filter,
+      });
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

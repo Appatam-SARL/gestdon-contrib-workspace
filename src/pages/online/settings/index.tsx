@@ -17,6 +17,7 @@ import {
 } from '@/hook/contributors.hook';
 import { IContributor } from '@/interface/contributor';
 import useContributorStore from '@/store/contributor.store';
+import { tFile } from '@/types/file';
 import React, { useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 
@@ -34,31 +35,37 @@ const Settings = () => {
 
   // Placeholder for logo state and upload handling
   // Initialize logoUrl with data?.logoUrl if exists on the contributor data structure
-  const [logoUrl, setLogoUrl] = useState<string | null>(
-    contributorData?.logoUrl || null
+  const [logoUrl, setLogoUrl] = useState<tFile | null>(
+    contributorData?.logo || null
   );
+
+  React.useEffect(() => {
+    if (!contributorData?.logo) return;
+    setLogoUrl(contributorData?.logo as tFile);
+  }, [logoUrl]);
+  console.log('🚀 ~ Settings ~ logoUrl:', typeof logoUrl?.fileUrl);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      // TODO: Add actual logo upload logic here (e.g., send file to backend)
+      // const reader = new FileReader();
+      // reader.onloadend = () => {
+      //   setLogoUrl(reader.result as string);
+      // };
+      // reader.readAsDataURL(file);
+      // // TODO: Add actual logo upload logic here (e.g., send file to backend)
     }
   };
 
   return (
     <>
-      <h1 className='text-3xl font-bold mb-8'>Paramètres du compte</h1>
+      <h4 className='text-3xl font-bold mb-8'>Paramètres du compte</h4>
 
       {/* General Settings Section */}
       <div className='bg-white p-6 rounded-lg shadow mb-8'>
-        <h2 className='text-xl font-semibold mb-4'>
+        <h4 className='text-xl font-semibold mb-4'>
           Information générale de votre compte
-        </h2>
+        </h4>
         {isLoading || isRefetching ? (
           <div>
             <Skeleton count={1} height={300} className='w-full' />
@@ -149,8 +156,10 @@ const Settings = () => {
               <div className='flex items-center space-x-4'>
                 {logoUrl ? (
                   <img
-                    src={logoUrl}
-                    alt='Organization Logo'
+                    src={
+                      'https://f005.backblazeb2.com/file/contrib/logo/original/1752054984995_261935156_agence.png'
+                    }
+                    alt={`Organization Logo ${logoUrl.fileId}`}
                     className='h-16 w-16 object-cover rounded-md'
                   />
                 ) : (
@@ -184,7 +193,7 @@ const Settings = () => {
           à votre compte.
         </p>
         <AlertDialog>
-          <AlertDialogTrigger>
+          <AlertDialogTrigger asChild>
             <Button variant='destructive'>Supprimer mon compte</Button>
           </AlertDialogTrigger>
           <AlertDialogContent>

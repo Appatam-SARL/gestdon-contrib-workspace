@@ -1,12 +1,15 @@
 import BeneficiaryTypeApi from '@/api/beneficiary-type.api';
 import { useToast } from '@/components/ui/use-toast';
-import { IBeneficiaryTypeForm } from '@/interface/beneficiary-type';
+import {
+  IBeneficiaryTypeFilters,
+  IBeneficiaryTypeForm,
+} from '@/interface/beneficiary-type';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-export const useGetBeneficiaryType = () => {
+export const useGetBeneficiaryType = (filter: IBeneficiaryTypeFilters) => {
   return useQuery({
-    queryKey: ['beneficiary-type'],
-    queryFn: () => BeneficiaryTypeApi.getBeneficiaryTypes(),
+    queryKey: ['beneficiary-type', ...(Object.values(filter) as string[])],
+    queryFn: () => BeneficiaryTypeApi.getBeneficiaryTypes(filter),
   });
 };
 

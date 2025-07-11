@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom';
 
 export default function MFA() {
   const [code, setCode] = useState('');
-  const mutation = useVerifyMfa(sessionStorage.getItem('adminId') as string);
+  const mutation = useVerifyMfa(localStorage.getItem('userId') as string);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

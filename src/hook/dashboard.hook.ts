@@ -1,26 +1,39 @@
 import DashboardApi from '@/api/dashboard.api';
 import { useQuery } from '@tanstack/react-query';
 
-export const useDashboard = (filter: string) => {
+export const useDashboard = (filter: {
+  period: string;
+  contributorId: string;
+}) => {
   return useQuery({
-    queryKey: ['dashboard', filter],
+    queryKey: ['dashboard', ...Object.values(filter)],
     queryFn: () => DashboardApi.getDashboardStats(filter),
-    enabled: true,
+    enabled: !!filter.contributorId,
   });
 };
 
-export const useDashboardActivitiesByType = (filter: string) => {
+export const useDashboardActivitiesByType = (filter: {
+  period: string;
+  contributorId: string;
+}) => {
   return useQuery({
-    queryKey: ['dashboard', 'activities-by-type', filter],
+    queryKey: ['dashboard', 'activities-by-type', ...Object.values(filter)],
     queryFn: () => DashboardApi.getDashboardsActivitiesByType(filter),
-    enabled: true,
+    enabled: !!filter.contributorId,
   });
 };
 
-export const useDashboardBeneficiaryDistribution = (filter: string) => {
+export const useDashboardBeneficiaryDistribution = (filter: {
+  period: string;
+  contributorId: string;
+}) => {
   return useQuery({
-    queryKey: ['dashboard', 'beneficiary-distribution', filter],
+    queryKey: [
+      'dashboard',
+      'beneficiary-distribution',
+      ...Object.values(filter),
+    ],
     queryFn: () => DashboardApi.getDashboardsByBeneficiary(filter),
-    enabled: true,
+    enabled: !!filter.contributorId,
   });
 };

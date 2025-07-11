@@ -1,3 +1,6 @@
+import { IPermission } from '@/interface/permission';
+import { usePermissionStore } from '@/store/permission.store';
+
 export type tAddress = {
   street: string;
   city: string;
@@ -59,4 +62,29 @@ export const truncateText = (text: string, maxLength: number = 10) => {
     text?.length > maxLength ? text?.substring(0, maxLength) + '...' : text;
 
   return textTruncate;
+};
+
+export const truncateTextWithEllipsis = (
+  text: string,
+  maxLength: number = 10
+) => {
+  const textTruncate: string =
+    text?.length > maxLength ? text?.substring(0, maxLength) + '...' : text;
+
+  return textTruncate;
+};
+
+export const helperUserPermission = (
+  menu: string,
+  actionValue: string
+): boolean => {
+  const permissions = usePermissionStore.getState().permissionMemberLogged;
+  if (!permissions || !Array.isArray(permissions)) return false;
+  const menuPermission = permissions.find(
+    (perm: IPermission) => perm.menu === menu
+  );
+  if (!menuPermission || !Array.isArray(menuPermission.actions)) return false;
+  return menuPermission.actions.some(
+    (action: any) => action.value === actionValue && action.enabled === true
+  );
 };

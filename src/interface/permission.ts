@@ -5,7 +5,7 @@ export interface IPermission {
 }
 
 export interface IPermissionStore {
-  permissionMemberLogged: IPermission[] | null;
+  permissionMemberLogged: IPermission | null;
   permission: IPermission | null;
   permissionForm: IPermission | null;
   setPermissionStore: <

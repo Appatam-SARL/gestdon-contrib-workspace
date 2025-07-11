@@ -4,6 +4,11 @@ import {
   IBeneficiaire,
   IBeneficiaireFilterForm,
 } from '@/interface/beneficiaire';
+import {
+  FormAddRepresentantBeneficiarySchemaValue,
+  FormUpdateNameBeneficiarySchemaValue,
+  FormUpdateRepresentantBeneficiarySchemaValue,
+} from '@/schema/beneficiary.schema';
 import { APIResponse } from '@/types/generic.type';
 import { AxiosError } from 'axios';
 
@@ -52,7 +57,48 @@ class BeneficiaireApi {
     }
   }
 
-  static async updateBeneficiary(id: string, beneficiary: IBeneficiaire) {
+  static async addRepresentantBeneficiary(
+    id: string,
+    representant: FormAddRepresentantBeneficiarySchemaValue
+  ) {
+    try {
+      const response = await Axios.patch(
+        `${this.BASE_URL}/${id}/add-representant`,
+        representant
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async updateRepresentantBeneficiary(
+    id: string,
+    representant: FormUpdateRepresentantBeneficiarySchemaValue
+  ) {
+    try {
+      const response = await Axios.patch(
+        `${this.BASE_URL}/${id}/update-representant`,
+        representant
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async updateBeneficiary(
+    id: string,
+    beneficiary: FormUpdateNameBeneficiarySchemaValue
+  ) {
     try {
       const response = await Axios.put(`${this.BASE_URL}/${id}`, beneficiary);
       return response.data;
@@ -68,6 +114,25 @@ class BeneficiaireApi {
   static async deleteBeneficiary(id: string) {
     try {
       const response = await Axios.delete(`${this.BASE_URL}/${id}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async deleteRepresentantBeneficiaire(
+    id: string,
+    data: { _id: string }
+  ) {
+    try {
+      const response = await Axios.post(
+        `${this.BASE_URL}/${id}/delete-representant`,
+        data as any
+      );
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

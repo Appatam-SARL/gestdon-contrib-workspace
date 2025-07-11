@@ -4,6 +4,10 @@ export interface IContributor {
   description: string;
   email: string;
   phoneNumber: string;
+  logo: {
+    fileId: string;
+    fileUrl: string;
+  };
   address: {
     country: string;
     street: string;

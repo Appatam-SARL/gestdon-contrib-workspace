@@ -3,7 +3,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/Accordion';
+} from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,6 +64,7 @@ import { usePermissionStore } from '@/store/permission.store';
 import useUserStore from '@/store/user.store';
 import { ILog, IlogFilter } from '@/types/log.type';
 import { StaffMemberForm } from '@/types/staff';
+import { helperUserPermission } from '@/utils';
 import { getRoleLayout } from '@/utils/display-of-variable';
 import { DialogTrigger } from '@radix-ui/react-dialog';
 import {
@@ -72,6 +73,7 @@ import {
   EyeOff,
   Loader2,
   Lock,
+  LockIcon,
   PencilIcon,
   SaveIcon,
   X,
@@ -134,7 +136,6 @@ export const StaffDetailsPage = withDashboard(() => {
 
   // store zustand
   const mfa = useMfaStore((s) => s.mfa);
-  console.log('🚀 ~ StaffDetailsPage ~ mfa:', mfa);
   const { user, setUserStore } = useUserStore((s) => s);
 
   // hook de récupération des données
@@ -144,10 +145,10 @@ export const StaffDetailsPage = withDashboard(() => {
   const { data: logs, isLoading: isLoadingLogs } = useGetLogs(
     id as string,
     'USER',
-    filterLogs  
+    filterLogs
   );
 
-  const isCurrentUser = true; // À remplacer par la vraie logique de vérification
+  const isCurrentUser = user?.email === data?.user.email; // À remplacer par la vraie logique de vérification
 
   // hook de mutation
   const mutation = useUpdateStaffMember(id as string, setIsInfoModalOpen);
@@ -213,7 +214,6 @@ export const StaffDetailsPage = withDashboard(() => {
 
   const updateUserStore = useCallback(() => {
     if (!data) return;
-    console.log('Updating user store with data:', data);
     setUserStore('user', data.user);
     setInfoForm((prev) => ({
       ...prev,
@@ -317,13 +317,13 @@ export const StaffDetailsPage = withDashboard(() => {
             <ArrowLeft className='h-4 w-4' />
           </Link>
           <div>
-            <h1 className='text-3xl font-bold'>
+            <h4 className='text-3xl font-bold'>
               {isLoading || isRefetching ? (
                 <Skeleton className='h-4 w-4' />
               ) : (
                 `${data.user?.firstName} ${data.user?.lastName}`
               )}
-            </h1>
+            </h4>
             <p className='text-muted-foreground'>
               {isLoading || isRefetching ? (
                 <Skeleton className='h-4 w-4' />
@@ -351,14 +351,19 @@ export const StaffDetailsPage = withDashboard(() => {
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <CardTitle>Informations personnelles</CardTitle>
-              <Button
-                variant='ghost'
-                size='icon'
-                onClick={() => setIsInfoModalOpen(true)}
-                className='h-8 w-8'
-              >
-                <Eye className='h-4 w-4' />
-              </Button>
+              {user?.role === 'MANAGER' ||
+              user?.role === 'COORDINATOR' ||
+              isCurrentUser ||
+              helperUserPermission('staff', 'update') ? (
+                <Button
+                  variant='secondary'
+                  size='icon'
+                  onClick={() => setIsInfoModalOpen(true)}
+                  className='h-8 w-8'
+                >
+                  <Eye className='h-4 w-4' color='white' />
+                </Button>
+              ) : null}
             </CardHeader>
             <CardContent className='space-y-4'>
               <div>
@@ -434,80 +439,189 @@ export const StaffDetailsPage = withDashboard(() => {
               </CardContent>
               <CardFooter>
                 <Button
-                  variant='outline'
+                  variant='default'
                   className='w-full'
                   onClick={() => setIsPasswordModalOpen(true)}
                 >
-                  Changer le mot de passe
+                  <LockIcon className='h-4 w-4' color='white' />
+                  <span>Changer le mot de passe</span>
                 </Button>
               </CardFooter>
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Authentification à deux facteurs (MFA)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='flex items-center justify-between'>
-                <Label htmlFor='mfa-toggle'>
-                  {data?.user?.mfaEnabled ? 'Désactiver' : 'Activer'} MFA
-                </Label>
-                {mutation.isPending ? (
-                  <Skeleton className='w-4 h-4' />
-                ) : (
-                  <Switch
-                    id='mfa-toggle'
-                    checked={data?.user?.mfaEnabled}
-                    onCheckedChange={handleMFAToggle}
-                  />
-                )}
-              </div>
-              <p className='text-sm text-muted-foreground mt-4'>
-                L'authentification à deux facteurs ajoute une couche de sécurité
-                supplémentaire à votre compte.
-              </p>
-            </CardContent>
-          </Card>
+          {isCurrentUser && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Authentification à deux facteurs (MFA)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='flex items-center justify-between'>
+                  <Label htmlFor='mfa-toggle'>
+                    {data?.user?.mfaEnabled ? 'Désactiver' : 'Activer'} MFA
+                  </Label>
+                  {mutation.isPending ? (
+                    <Skeleton className='w-4 h-4' />
+                  ) : (
+                    <Switch
+                      id='mfa-toggle'
+                      checked={data?.user?.mfaEnabled}
+                      onCheckedChange={handleMFAToggle}
+                    />
+                  )}
+                </div>
+                <p className='text-sm text-muted-foreground mt-4'>
+                  L'authentification à deux facteurs ajoute une couche de
+                  sécurité supplémentaire à votre compte.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Colonne droite - Historique des actions */}
+
         <div className='col-span-8'>
-          <Card className='mb-4'>
-            <CardHeader>
-              <CardTitle className='flex justify-between items-center gap-2'>
-                <span>Permission et accès</span>
-                <Dialog open={open} onOpenChange={setOpen}>
-                  <DialogTrigger asChild>
-                    <Button size={'icon'} onClick={() => setOpen(true)}>
-                      <PencilIcon />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className='w-screen max-h-screen max-w-lg overflow-auto'>
-                    <DialogHeader>
-                      <DialogTitle>
-                        Modifier les permissions de l'utilisateur
-                      </DialogTitle>
-                      <DialogDescription>
-                        Cette modal permet d'attribuer des permissions à un
-                        utilisateur
-                      </DialogDescription>
-                    </DialogHeader>
-                    {isPendingPermission || !localPermissions ? (
+          {(user?.role === 'MANAGER' || user?.role === 'COORDINATOR') &&
+            helperUserPermission('staff', 'list_permissions') && (
+              <Card className='mb-4'>
+                <CardHeader>
+                  <CardTitle className='flex justify-between items-center gap-2'>
+                    <span>Permission et accès</span>
+                    <Dialog open={open} onOpenChange={setOpen}>
+                      <DialogTrigger asChild>
+                        {helperUserPermission(
+                          'staff',
+                          'update_permissions'
+                        ) && (
+                          <Button
+                            variant={'secondary'}
+                            size={'icon'}
+                            onClick={() => setOpen(true)}
+                          >
+                            <PencilIcon color='white' />
+                          </Button>
+                        )}
+                      </DialogTrigger>
+                      <DialogContent className='w-screen max-h-screen max-w-lg overflow-auto'>
+                        <DialogHeader>
+                          <DialogTitle>
+                            Modifier les permissions de l'utilisateur
+                          </DialogTitle>
+                          <DialogDescription>
+                            Cette modal permet d'attribuer des permissions à un
+                            utilisateur
+                          </DialogDescription>
+                        </DialogHeader>
+                        {isPendingPermission || !localPermissions ? (
+                          <div className='py-4'>
+                            <Skeleton
+                              height={40}
+                              count={5}
+                              style={{ marginBottom: 8 }}
+                            />
+                          </div>
+                        ) : (
+                          localPermissions.map((perm, permIndex) => (
+                            <Accordion
+                              type='single'
+                              collapsible
+                              key={permIndex}
+                              className='w-full mb-4 border rounded-md bg-card text-card-foreground shadow-sm'
+                            >
+                              <AccordionItem
+                                id='single'
+                                className='border-b'
+                                value={String(permIndex)}
+                              >
+                                <AccordionTrigger className='px-4 py-3 text-sm font-medium hover:no-underline'>
+                                  {perm.label}
+                                </AccordionTrigger>
+                                <AccordionContent className='px-4 py-3 space-y-2'>
+                                  {perm.actions.map((action, actionIndex) => (
+                                    <div
+                                      className='flex items-center space-x-2'
+                                      onClick={() =>
+                                        handleToggleAction(
+                                          permIndex,
+                                          actionIndex
+                                        )
+                                      }
+                                      key={actionIndex}
+                                    >
+                                      <Checkbox
+                                        className={cn(
+                                          'peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                                          action.enabled
+                                            ? 'data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground'
+                                            : 'data-[state=checked]:bg-red-500 data-[state=checked]:text-white'
+                                        )}
+                                        checked={action.enabled}
+                                        id={`terms2-${permIndex}-${actionIndex}`}
+                                      />
+                                      <label
+                                        htmlFor={`terms2-${permIndex}-${actionIndex}`}
+                                        className='text-sm font-regular leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+                                      >
+                                        {action.name}
+                                      </label>
+                                    </div>
+                                  ))}
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          ))
+                        )}
+                        <DialogFooter>
+                          <Button
+                            variant={'secondary'}
+                            disabled={isPendingUpdatePermission}
+                            onClick={() => setOpen(false)}
+                          >
+                            <X color='white' />
+                            <span className='text-white'>Annuler</span>
+                          </Button>
+                          <Button
+                            disabled={isPendingUpdatePermission}
+                            onClick={handleUpdatePermission}
+                          >
+                            {isPendingUpdatePermission ? (
+                              <>
+                                <Loader2 className='animate-spin' />
+                                <span>En cours de modification...</span>
+                              </>
+                            ) : (
+                              <>
+                                <SaveIcon />
+                                Valider
+                              </>
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </CardTitle>
+                  <CardDescription>
+                    Vous pouvez consulter l'historique des actions effectuées
+                    sur votre compte.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className='p-0'>
+                  <div className='rounded-md'>
+                    {isPendingPermission ? (
                       <div className='py-4'>
                         <Skeleton
-                          height={40}
-                          count={5}
-                          style={{ marginBottom: 8 }}
+                          className='w-full'
+                          style={{ width: '100%', height: '300px' }}
                         />
                       </div>
                     ) : (
-                      localPermissions.map((perm, permIndex) => (
+                      permission?.map((perm, permIndex) => (
                         <Accordion
                           type='single'
                           collapsible
-                          key={permIndex}
                           className='w-full mb-4 border rounded-md bg-card text-card-foreground shadow-sm'
+                          key={permIndex}
                         >
                           <AccordionItem
                             id='single'
@@ -521,9 +635,6 @@ export const StaffDetailsPage = withDashboard(() => {
                               {perm.actions.map((action, actionIndex) => (
                                 <div
                                   className='flex items-center space-x-2'
-                                  onClick={() =>
-                                    handleToggleAction(permIndex, actionIndex)
-                                  }
                                   key={actionIndex}
                                 >
                                   <Checkbox
@@ -535,6 +646,7 @@ export const StaffDetailsPage = withDashboard(() => {
                                     )}
                                     checked={action.enabled}
                                     id={`terms2-${permIndex}-${actionIndex}`}
+                                    disabled
                                   />
                                   <label
                                     htmlFor={`terms2-${permIndex}-${actionIndex}`}
@@ -549,239 +661,159 @@ export const StaffDetailsPage = withDashboard(() => {
                         </Accordion>
                       ))
                     )}
-                    <DialogFooter>
-                      <Button
-                        variant={'secondary'}
-                        disabled={isPendingUpdatePermission}
-                        onClick={() => setOpen(false)}
-                      >
-                        <X />
-                        Annuler
-                      </Button>
-                      <Button
-                        disabled={isPendingUpdatePermission}
-                        onClick={handleUpdatePermission}
-                      >
-                        {isPendingUpdatePermission ? (
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+          {(user?.role === 'MANAGER' ||
+            user?.role === 'COORDINATOR' ||
+            isCurrentUser) &&
+            helperUserPermission('log', 'read') && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historique des actions</CardTitle>
+                </CardHeader>
+                <CardContent className='p-0'>
+                  <div className='rounded-md'>
+                    <table className='w-full'>
+                      <thead className='border-b bg-primary'>
+                        <tr className='border-b bg-[#6c2bd9] text-white'>
+                          <th className='py-3 px-4 text-left text-sm font-medium'>
+                            Date & Heure
+                          </th>
+                          <th className='py-3 px-4 text-left text-sm font-medium'>
+                            Description
+                          </th>
+                          <th className='py-3 px-4 text-right text-sm font-medium'>
+                            Type
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {isLoadingLogs ? (
+                          <tr>
+                            <td colSpan={3} className='py-3 px-4 text-sm'>
+                              <div className='py-4'>
+                                <Skeleton
+                                  count={1}
+                                  style={{ marginBottom: 8, height: '300px' }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        ) : Number(logs?.metadata?.total) > 0 ? (
+                          logs?.data?.map((action: ILog) => (
+                            <tr
+                              key={action._id}
+                              className='border-b hover:bg-muted/50 transition-colors'
+                            >
+                              <td className='py-3 px-4 text-sm'>
+                                {new Date(action.createdAt).toLocaleString(
+                                  'fr-FR'
+                                )}
+                              </td>
+                              <td className='py-3 px-4 text-sm font-medium'>
+                                {action.details}
+                              </td>
+                              <td className='py-3 px-4 text-right'>
+                                <Badge
+                                  variant={getActionBadgeVariant(action.action)}
+                                  className='capitalize'
+                                >
+                                  {action.action}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr className='border-b hover:bg-muted/50 transition-colors'>
+                            <td
+                              colSpan={3}
+                              className='text-sm text-muted-foreground text-center p-2'
+                            >
+                              Aucun historique de logs disponible.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            href='#'
+                            onClick={() =>
+                              setFilterLogs((prev) => ({
+                                ...prev,
+                                page: Number(prev?.page) - 1,
+                              }))
+                            }
+                            className={
+                              currentPage === 1
+                                ? 'pointer-events-none opacity-50'
+                                : ''
+                            }
+                            size='default'
+                          />
+                        </PaginationItem>
+                        {isLoadingLogs ? (
+                          <Skeleton className='h-4 w-4' />
+                        ) : Number(logs?.metadata?.totalPages) > 3 ? (
                           <>
-                            <Loader2 className='animate-spin' />
-                            <span>En cours de modification...</span>
+                            {[...Array(3)].map((_, i) => (
+                              <PaginationItem key={i + 1}>
+                                <PaginationLink
+                                  href='#'
+                                  isActive={currentPage === i + 1}
+                                  onClick={() => setCurrentPage(i + 1)}
+                                  size='default'
+                                >
+                                  {i + 1}
+                                </PaginationLink>
+                              </PaginationItem>
+                            ))}
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
                           </>
                         ) : (
-                          <>
-                            <SaveIcon />
-                            Valider
-                          </>
-                        )}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </CardTitle>
-              <CardDescription>
-                Vous pouvez consulter l'historique des actions effectuées sur
-                votre compte.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className='p-0'>
-              <div className='rounded-md'>
-                {isPendingPermission ? (
-                  <div className='py-4'>
-                    <Skeleton
-                      className='w-full'
-                      style={{ width: '100%', height: '300px' }}
-                    />
-                  </div>
-                ) : (
-                  permission?.map((perm, permIndex) => (
-                    <Accordion
-                      type='single'
-                      collapsible
-                      className='w-full mb-4 border rounded-md bg-card text-card-foreground shadow-sm'
-                      key={permIndex}
-                    >
-                      <AccordionItem
-                        id='single'
-                        className='border-b'
-                        value={String(permIndex)}
-                      >
-                        <AccordionTrigger className='px-4 py-3 text-sm font-medium hover:no-underline'>
-                          {perm.label}
-                        </AccordionTrigger>
-                        <AccordionContent className='px-4 py-3 space-y-2'>
-                          {perm.actions.map((action, actionIndex) => (
-                            <div
-                              className='flex items-center space-x-2'
-                              key={actionIndex}
-                            >
-                              <Checkbox
-                                className={cn(
-                                  'peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-                                  action.enabled
-                                    ? 'data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground'
-                                    : 'data-[state=checked]:bg-red-500 data-[state=checked]:text-white'
-                                )}
-                                checked={action.enabled}
-                                id={`terms2-${permIndex}-${actionIndex}`}
-                                disabled
-                              />
-                              <label
-                                htmlFor={`terms2-${permIndex}-${actionIndex}`}
-                                className='text-sm font-regular leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+                          [...Array(2)].map((_, i) => (
+                            <PaginationItem key={i + 1}>
+                              <PaginationLink
+                                href='#'
+                                isActive={currentPage === i + 1}
+                                onClick={() => setCurrentPage(i + 1)}
+                                size='default'
                               >
-                                {action.name}
-                              </label>
-                            </div>
-                          ))}
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Historique des actions</CardTitle>
-            </CardHeader>
-            <CardContent className='p-0'>
-              <div className='rounded-md'>
-                <table className='w-full'>
-                  <thead>
-                    <tr className='border-b bg-muted/50'>
-                      <th className='py-3 px-4 text-left text-sm font-medium'>
-                        Date & Heure
-                      </th>
-                      <th className='py-3 px-4 text-left text-sm font-medium'>
-                        Description
-                      </th>
-                      <th className='py-3 px-4 text-right text-sm font-medium'>
-                        Type
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {isLoadingLogs ? (
-                      <tr>
-                        <td colSpan={3} className='py-3 px-4 text-sm'>
-                          <div className='py-4'>
-                            <Skeleton
-                              count={1}
-                              style={{ marginBottom: 8, height: '300px' }}
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ) : Number(logs?.metadata?.total) > 0 ? (
-                      logs?.data?.map((action: ILog) => (
-                        <tr
-                          key={action._id}
-                          className='border-b hover:bg-muted/50 transition-colors'
-                        >
-                          <td className='py-3 px-4 text-sm'>
-                            {new Date(action.createdAt).toLocaleString('fr-FR')}
-                          </td>
-                          <td className='py-3 px-4 text-sm font-medium'>
-                            {action.details}
-                          </td>
-                          <td className='py-3 px-4 text-right'>
-                            <Badge
-                              variant={getActionBadgeVariant(action.action)}
-                              className='capitalize'
-                            >
-                              {action.action}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr className='border-b hover:bg-muted/50 transition-colors'>
-                        <td
-                          colSpan={3}
-                          className='text-sm text-muted-foreground text-center p-2'
-                        >
-                          Aucun historique de logs disponible.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href='#'
-                        onClick={() =>
-                          setFilterLogs((prev) => ({
-                            ...prev,
-                            page: Number(prev?.page) - 1,
-                          }))
-                        }
-                        className={
-                          currentPage === 1
-                            ? 'pointer-events-none opacity-50'
-                            : ''
-                        }
-                        size='default'
-                      />
-                    </PaginationItem>
-                    {isLoadingLogs ? (
-                      <Skeleton className='h-4 w-4' />
-                    ) : Number(logs?.metadata?.totalPages) > 3 ? (
-                      <>
-                        {[...Array(3)].map((_, i) => (
-                          <PaginationItem key={i + 1}>
-                            <PaginationLink
-                              href='#'
-                              isActive={currentPage === i + 1}
-                              onClick={() => setCurrentPage(i + 1)}
-                              size='default'
-                            >
-                              {i + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
+                                {i + 1}
+                              </PaginationLink>
+                            </PaginationItem>
+                          ))
+                        )}
                         <PaginationItem>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      </>
-                    ) : (
-                      [...Array(2)].map((_, i) => (
-                        <PaginationItem key={i + 1}>
-                          <PaginationLink
+                          <PaginationNext
                             href='#'
-                            isActive={currentPage === i + 1}
-                            onClick={() => setCurrentPage(i + 1)}
+                            onClick={() =>
+                              setFilterLogs((prev) => ({
+                                ...prev,
+                                page: Number(prev?.page) + 1,
+                              }))
+                            }
+                            className={
+                              currentPage === logs?.metadata?.totalPages
+                                ? 'pointer-events-none opacity-50'
+                                : ''
+                            }
                             size='default'
-                          >
-                            {i + 1}
-                          </PaginationLink>
+                          />
                         </PaginationItem>
-                      ))
-                    )}
-                    <PaginationItem>
-                      <PaginationNext
-                        href='#'
-                        onClick={() =>
-                          setFilterLogs((prev) => ({
-                            ...prev,
-                            page: Number(prev?.page) + 1,
-                          }))
-                        }
-                        className={
-                          currentPage === logs?.metadata?.totalPages
-                            ? 'pointer-events-none opacity-50'
-                            : ''
-                        }
-                        size='default'
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            </CardContent>
-          </Card>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
         </div>
       </div>
 
@@ -1044,28 +1076,31 @@ export const StaffDetailsPage = withDashboard(() => {
                 }
               />
             </div>
-            <div>
-              <Label htmlFor='role'>Rôle</Label>
-              <Select
-                value={infoForm.role}
-                onValueChange={(value) =>
-                  setInfoForm((prev) => ({
-                    ...prev,
-                    role: value,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder='Sélectionnez un rôle' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='MANAGER'>Manager</SelectItem>
-                  <SelectItem value='COORDINATOR'>Coordinateur</SelectItem>
-                  <SelectItem value='EDITOR'>Redacteur</SelectItem>
-                  <SelectItem value='AGENT'>Agent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {user?.role === 'MANAGER' ||
+              (user?.role === 'COORDINATOR' && (
+                <div>
+                  <Label htmlFor='role'>Rôle</Label>
+                  <Select
+                    value={infoForm.role}
+                    onValueChange={(value) =>
+                      setInfoForm((prev) => ({
+                        ...prev,
+                        role: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder='Sélectionnez un rôle' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='MANAGER'>Manager</SelectItem>
+                      <SelectItem value='COORDINATOR'>Coordinateur</SelectItem>
+                      <SelectItem value='EDITOR'>Redacteur</SelectItem>
+                      <SelectItem value='AGENT'>Agent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
           </div>
           <DialogFooter>
             <Button

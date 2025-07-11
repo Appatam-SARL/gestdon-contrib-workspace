@@ -1,22 +1,26 @@
 export interface IBeneficiaire {
   _id: string;
   fullName: string;
+  type: string;
   description: string;
-  representant: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    address: {
-      country: string;
-      street: string;
-      postalCode: string;
-      city: string;
-    };
-  };
+  representant: Array<IRepresentantBeneficiaire>;
   contributorId: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
+}
+
+export interface IRepresentantBeneficiaire {
+  _id?: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  address: {
+    country: string;
+    street: string;
+    postalCode: string;
+    city: string;
+  };
 }
 
 export interface IBeneficiaireFilterForm {

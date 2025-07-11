@@ -7,8 +7,8 @@ const INIT_BENEFICIARY = {
 
 const INIT_BENEFICIARY_FILTER_FORM = {
   period: {
-    from: new Date().toISOString(),
-    to: new Date().toISOString(),
+    from: '',
+    to: '',
   },
   contributorId: '',
   limit: 10,

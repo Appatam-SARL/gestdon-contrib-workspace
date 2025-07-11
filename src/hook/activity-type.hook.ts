@@ -1,5 +1,6 @@
 import ActivityTypeApi from '@/api/activity-type.api';
 import { useToast } from '@/components/ui/use-toast';
+import { IFilterActivityType } from '@/pages/online/activity/AddActivity';
 import { ActivityFormValues } from '@/pages/online/settings/setting-activity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -8,10 +9,10 @@ interface UpdateActivityPayload {
   label: string;
 }
 
-export function useGetActivityType() {
+export function useGetActivityType(filter: IFilterActivityType) {
   return useQuery({
-    queryKey: ['activity-type'],
-    queryFn: () => ActivityTypeApi.getActivityTypes(),
+    queryKey: ['activity-type', ...Object.values(filter || {})],
+    queryFn: () => ActivityTypeApi.getActivityTypes(filter),
   });
 }
 

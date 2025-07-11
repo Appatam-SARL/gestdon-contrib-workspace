@@ -54,6 +54,11 @@ const RegisterInvited = () => {
   return (
     <div className='flex items-center justify-center h-screen'>
       <Card className='p-4 mt-5 w-[800px]'>
+        {/* <div className='flex justify-between items-center mb-10'> */}
+        <h4 className='text-2xl font-bold text-[#6c2bd9!important]'>
+          Création d'un utilisateur par invitation
+        </h4>
+        {/* </div> */}
         <div className='flex justify-between items-center mb-8'>
           <div className='flex items-center gap-2'>
             {[1, 2].map((step) => (
@@ -99,13 +104,13 @@ const RegisterInvited = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className='block text-sm font-medium'>
-                        Prénom
+                        Nom
                       </FormLabel>
                       <FormControl>
                         <Input
                           id='firstName'
                           type='text'
-                          placeholder='Prénom'
+                          placeholder='Nom'
                           {...field}
                         />
                       </FormControl>
@@ -119,13 +124,13 @@ const RegisterInvited = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className='block text-sm font-medium'>
-                        Nom
+                        Prénom
                       </FormLabel>
                       <FormControl>
                         <Input
                           id='lastName'
                           type='text'
-                          placeholder='Nom'
+                          placeholder='Prénom'
                           {...field}
                         />
                       </FormControl>
@@ -165,7 +170,7 @@ const RegisterInvited = () => {
                         <Input
                           id='phone'
                           type='text'
-                          placeholder='Téléphone'
+                          placeholder='+2250000000000'
                           {...field}
                         />
                       </FormControl>

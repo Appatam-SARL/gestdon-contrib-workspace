@@ -10,8 +10,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -64,12 +64,21 @@ import {
 import { IBeneficiaire } from '@/interface/beneficiaire';
 import { IPromesseFilters, tPromesse } from '@/interface/promesse';
 import useContributorStore from '@/store/contributor.store';
-import { helperFullName } from '@/utils';
+import { helperUserPermission } from '@/utils';
 import { displayStatus } from '@/utils/display-of-variable';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Badge, Eye, Filter, Loader2, RefreshCcw, Trash } from 'lucide-react';
+import {
+  Eye,
+  Filter,
+  Loader2,
+  RefreshCcw,
+  ScrollTextIcon,
+  Search,
+  Trash,
+  XIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 import { DateRangePicker } from 'react-date-range';
 import { useForm } from 'react-hook-form';
@@ -155,19 +164,106 @@ const FilterModal = ({
   </Dialog>
 );
 
+const PromesseDetailModal = ({
+  isOpen,
+  onClose,
+  promesse,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  promesse: tPromesse | null;
+}) => (
+  <Dialog open={isOpen} onOpenChange={onClose}>
+    <DialogContent className='sm:max-w-[630px] sm:max-h-[90vh] overflow-auto'>
+      <DialogHeader>
+        <DialogTitle>Détail de la promesse</DialogTitle>
+        <DialogDescription>
+          Détail de la promesse sélectionnée
+        </DialogDescription>
+      </DialogHeader>
+      {promesse ? (
+        <div className='bg-white rounded-xl shadow-md border p-6 grid grid-cols-1 sm:grid-cols-2 gap-4'>
+          <div className='flex flex-col'>
+            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
+              Titre
+            </span>
+            <span className='text-base font-semibold text-gray-800'>
+              {promesse.title}
+            </span>
+          </div>
+          <div className='flex flex-col'>
+            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
+              Bénéficiaire
+            </span>
+            <span className='text-base text-gray-700'>
+              {typeof promesse.beneficiaireId === 'string'
+                ? promesse.beneficiaireId
+                : promesse.beneficiaireId.fullName}
+            </span>
+          </div>
+          <div className='flex flex-col'>
+            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
+              Montant
+            </span>
+            <span className='text-lg font-bold text-green-600'>
+              {promesse.amount} FCFA
+            </span>
+          </div>
+          <div className='flex flex-col'>
+            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
+              Date de création
+            </span>
+            <span className='text-base text-gray-700'>
+              {new Date(promesse.createdAt).toLocaleString('fr-FR')}
+            </span>
+          </div>
+          <div className='flex flex-col col-span-2'>
+            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
+              Description
+            </span>
+            <span className='text-base text-gray-700 whitespace-pre-wrap'>
+              {promesse.description}
+            </span>
+          </div>
+          <div className='flex flex-col'>
+            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
+              Statut
+            </span>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                displayStatus(promesse.status) === 'Validé'
+                  ? 'bg-green-100 text-green-700'
+                  : displayStatus(promesse.status) === 'En attente'
+                  ? 'bg-yellow-100 text-yellow-700'
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {displayStatus(promesse.status)}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div>Chargement...</div>
+      )}
+    </DialogContent>
+  </Dialog>
+);
+
 export const PromisesPage = withDashboard(() => {
-  const [isOpenDetailPromesse, setIsOpenDetailPromesse] =
-    useState<boolean>(false);
+  const contributorId = useContributorStore((s) => s.contributor?._id);
+
   const [openAddPromise, setOpenAddPromise] = useState<boolean>(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [filters, setFilters] =
     useState<IPromesseFilters>(INIT_FILTER_PROMESSE);
-  const contributorId = useContributorStore((s) => s.contributor?._id);
+  const [selectedPromesse, setSelectedPromesse] = useState<tPromesse | null>(
+    null
+  );
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const {
     data: promesses,
     isLoading,
-    isRefetching,
     refetch,
   } = usePromesse({
     ...filters,
@@ -177,7 +273,9 @@ export const PromisesPage = withDashboard(() => {
     limit: 100,
     page: 1,
     search: '',
+    contributorId,
   });
+
   const mutation = useCreatePromesse(setOpenAddPromise);
   const mutationDeleted = useDeletePromesse();
 
@@ -205,17 +303,25 @@ export const PromisesPage = withDashboard(() => {
   const handleDeletePromesse = (id: string) => {
     mutationDeleted.mutate(id);
   };
+
   return (
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold'>Promesses</h1>
+          <h4 className='text-3xl font-bold'>Promesses</h4>
           <p className='text-muted-foreground'>Gérer vos promesses ici.</p>
         </div>
         <div>
-          <Button onClick={() => setOpenAddPromise(true)}>
-            Ajouter une promesse
-          </Button>
+          {helperUserPermission('promesse', 'create') ? (
+            <Button onClick={() => setOpenAddPromise(true)}>
+              <ScrollTextIcon />
+              <span>Ajouter une promesse</span>
+            </Button>
+          ) : (
+            <div className='text-muted-foreground'>
+              Vous n'avez pas les permissions pour créer une promesses.
+            </div>
+          )}
           {/* Modal pour ajouter une promesse */}
           <Dialog open={openAddPromise} onOpenChange={setOpenAddPromise}>
             <DialogContent className='overflow-y-auto max-h-[80vh]'>
@@ -338,11 +444,13 @@ export const PromisesPage = withDashboard(() => {
         </div>
       </div>
 
-      <Card className='p-4'>
-        <div className='flex gap-4'>
+      {/* <Card className='p-4'> */}
+      <div className='flex gap-4'>
+        <div className='relative flex-1'>
+          <Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
           <Input
-            className='flex-1'
-            placeholder='Rechercher une promesse...'
+            className='flex-1 pl-10'
+            placeholder='Rechercher une promesse par titre...'
             // value={filters.search}
             defaultValue={filters.search}
             onChange={(e) => {
@@ -351,32 +459,33 @@ export const PromisesPage = withDashboard(() => {
                 setFilters({ ...filters, search: e.target.value });
             }}
           />
-          <Button
-            variant='outline'
-            onClick={() => setIsFilterModalOpen(true)}
-            className='relative'
-          >
-            <Filter className='h-4 w-4 mr-2' />
-            Filtres
-            {activeFiltersCount > 0 && (
-              <Badge className='ml-2 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center'>
-                {activeFiltersCount}
-              </Badge>
-            )}
-          </Button>
-          <Button
-            variant='outline'
-            onClick={() => {
-              refetch();
-              setFilters(INIT_FILTER_PROMESSE);
-            }}
-            className='relative'
-          >
-            <RefreshCcw className='h-4 w-4 mr-2' />
-            Refresh
-          </Button>
         </div>
-      </Card>
+        <Button
+          variant='outline'
+          onClick={() => setIsFilterModalOpen(true)}
+          className='relative'
+        >
+          <Filter className='h-4 w-4 mr-2' />
+          Filtres
+          {activeFiltersCount > 0 && (
+            <Badge className='ml-2 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center'>
+              {activeFiltersCount}
+            </Badge>
+          )}
+        </Button>
+        <Button
+          variant='outline'
+          onClick={() => {
+            refetch();
+            setFilters(INIT_FILTER_PROMESSE);
+          }}
+          className='relative'
+        >
+          <RefreshCcw className='h-4 w-4 mr-2' />
+          Refresh
+        </Button>
+      </div>
+      {/* </Card> */}
 
       <FilterModal
         isOpen={isFilterModalOpen}
@@ -388,180 +497,140 @@ export const PromisesPage = withDashboard(() => {
         }}
       />
 
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Titre de la promesse</TableHead>
-              <TableHead>Bénéficiaire</TableHead>
-              <TableHead>Date d'échéance</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading || isRefetching ? (
+      {/* <Card> */}
+      {helperUserPermission('promesse', 'read') ? (
+        <>
+          <Table className='border'>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5}>
-                  <Skeleton
-                    count={1}
-                    width='100%'
-                    height={300}
-                    style={{ width: '100%' }}
-                  />
-                </TableCell>
+                <TableHead>Titre de la promesse</TableHead>
+                <TableHead>Bénéficiaire</TableHead>
+                <TableHead>Date d'échéance</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ) : (
-              promesses?.data?.map((promesse: tPromesse) => (
-                <TableRow
-                  key={promesse._id}
-                  className='cursor-pointer hover:bg-gray-100'
-                >
-                  <TableCell className='font-medium'>
-                    {promesse.title}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <Skeleton
+                      count={1}
+                      width='100%'
+                      height={300}
+                      style={{ width: '100%' }}
+                    />
                   </TableCell>
-                  <TableCell>
-                    {typeof promesse.beneficiaireId === 'string' ? (
-                      <div className='flex items-center gap-2'>
-                        <div className='flex-1'>
-                          <div className='text-sm font-medium'>
-                            {promesse.beneficiaireId}
+                </TableRow>
+              ) : (
+                promesses?.data?.map((promesse: tPromesse) => (
+                  <TableRow
+                    key={promesse._id}
+                    className='cursor-pointer hover:bg-gray-100'
+                  >
+                    <TableCell className='font-medium'>
+                      {promesse.title.substring(0, 50) + '...'}
+                    </TableCell>
+                    <TableCell>
+                      {typeof promesse.beneficiaireId === 'string' ? (
+                        <div className='flex items-center gap-2'>
+                          <div className='flex-1'>
+                            <div className='text-sm font-medium'>
+                              {promesse.beneficiaireId}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      helperFullName(
-                        promesse.beneficiaireId.representant.firstName,
-                        promesse.beneficiaireId.representant.lastName
-                      )
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(promesse.createdAt).toLocaleDateString('fr-FR')}
-                  </TableCell>
-                  <TableCell>{displayStatus(promesse.status)}</TableCell>
-                  <TableCell>
-                    <div className='flex items-center gap-2'>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsOpenDetailPromesse(true);
-
-                          // handleRowClick(promesse._id);
-                        }}
+                      ) : (
+                        promesse.beneficiaireId.fullName
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(promesse.createdAt).toLocaleDateString('fr-FR')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className='ml-2 rounded-full p-2 text-xs flex items-center justify-center'
+                        variant={
+                          displayStatus(promesse.status) === 'Validé'
+                            ? 'success'
+                            : 'secondary'
+                        }
                       >
-                        <Eye className='h-4 w-4' />
-                      </Button>
-                      {/* Dialog detail promesse */}
-                      <Dialog
-                        open={isOpenDetailPromesse}
-                        onOpenChange={setIsOpenDetailPromesse}
-                      >
-                        <DialogContent className='sm:max-w-[500px]'>
-                          <DialogHeader>
-                            <DialogTitle>Détail du promesse</DialogTitle>
-                            <DialogDescription>
-                              Détails de la promesse
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div>
-                            <div>
-                              <p className='text-sm text-muted-foreground'>
-                                Titre
-                              </p>
-                              <p className='font-medium'>
-                                {isLoading ? (
-                                  <Skeleton className='h-4 w-4' />
-                                ) : (
-                                  promesse.title
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <p className='text-sm text-muted-foreground'>
-                                Nom complet
-                              </p>
-                              <p className='font-medium'>
-                                {isLoading ? (
-                                  <Skeleton className='h-4 w-4' />
-                                ) : typeof promesse.beneficiaireId ===
-                                  'string' ? (
-                                  promesse.beneficiaireId
-                                ) : (
-                                  (promesse.beneficiaireId.fullName as string)
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <p className='text-sm text-muted-foreground'>
-                                Nom complet
-                              </p>
-                              <p className='font-medium'>
-                                {isLoading ? (
-                                  <Skeleton className='h-4 w-4' />
-                                ) : (
-                                  promesse.description
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // handleRowEdit(promesse._id);
-                            }}
-                          >
-                            <Trash color='red' className='h-4 w-4' />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Êtes-vous absolument sûr ?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Cette action est irréversible. Elle supprimera
-                              définitivement les informations concernant ce
-                              promesse.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeletePromesse(promesse._id)}
+                        {displayStatus(promesse.status) === 'Validé'
+                          ? '✅' + displayStatus(promesse.status)
+                          : '🕐' + displayStatus(promesse.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className='flex items-center gap-2'>
+                        <Button
+                          variant='secondary'
+                          size='icon'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPromesse(promesse);
+                            setIsDetailModalOpen(true);
+                          }}
+                        >
+                          <Eye className='h-4 w-4' color='white' />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant='destructive'
+                              size='icon'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
                             >
-                              confirmer
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-            {!isLoading &&
-              !isRefetching &&
-              (promesses?.data?.length === 0 || !promesses?.data) && (
-                <TableRow>
-                  <TableCell colSpan={4} className='text-center py-8'>
-                    Aucune promesse trouvée.
-                  </TableCell>
-                </TableRow>
+                              <Trash color='white' className='h-4 w-4' />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Êtes-vous absolument sûr ?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Cette action est irréversible. Elle supprimera
+                                définitivement les informations concernant cette
+                                promesse.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                <XIcon className='h-4 w-4' />
+                                <span>Non, j'annule</span>
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  handleDeletePromesse(promesse._id)
+                                }
+                              >
+                                <Trash color='white' className='h-4 w-4' />
+                                <span>Oui, je supprime</span>
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
-          </TableBody>
-        </Table>
-        {/* Pagination */}
-        <div className='p-4 border-t'>
-          {isLoading || isRefetching ? (
+              {!isLoading &&
+                (promesses?.data?.length === 0 || !promesses?.data) && (
+                  <TableRow>
+                    <TableCell colSpan={4} className='text-center py-8'>
+                      Aucune promesse trouvée.
+                    </TableCell>
+                  </TableRow>
+                )}
+            </TableBody>
+          </Table>
+          {/* Pagination */}
+          {/* <div className='p-4 border-t'> */}
+          {isLoading ? (
             <Skeleton
               count={1}
               width='100%'
@@ -574,16 +643,11 @@ export const PromisesPage = withDashboard(() => {
                 <PaginationItem>
                   <PaginationPrevious
                     href='#'
-                    // ajoute une classe pour disactivé le boutton si la page est à 1 ou si le nombre de pages est inférieur à 2
                     className={
                       filters.page === 1 ? 'pointer-events-none opacity-50' : ''
                     }
                     onClick={() =>
-                      setFilters((p) =>
-                        p.page === Number(beneficiaires?.metadata?.totalPages)
-                          ? p
-                          : { ...p, page: p.page + 1 }
-                      )
+                      setFilters((p) => ({ ...p, page: Number(p.page) - 1 }))
                     }
                     size='sm'
                   />
@@ -594,7 +658,7 @@ export const PromisesPage = withDashboard(() => {
                     ))
                   : [
                       ...Array(
-                        Math.min(Number(beneficiaires?.metadata?.totalPages))
+                        Math.min(Number(promesses?.metadata?.totalPages))
                       ),
                     ].map((_, i) => (
                       <PaginationItem key={i + 1}>
@@ -616,14 +680,11 @@ export const PromisesPage = withDashboard(() => {
                   <PaginationNext
                     href='#'
                     size={'sm'}
-                    onClick={() => {
-                      (p: number) =>
-                        p === Number(beneficiaires?.metadata?.totalPages)
-                          ? p
-                          : p + 1;
-                    }}
+                    onClick={() =>
+                      setFilters((p) => ({ ...p, page: Number(p.page) + 1 }))
+                    }
                     className={
-                      filters.page === beneficiaires?.metadata?.totalPages
+                      filters.page === promesses?.metadata?.totalPages
                         ? 'pointer-events-none opacity-50'
                         : ''
                     }
@@ -632,8 +693,18 @@ export const PromisesPage = withDashboard(() => {
               </PaginationContent>
             </Pagination>
           )}
+        </>
+      ) : (
+        <div className='text-muted-foreground'>
+          Vous n'avez pas les permissions pour accéder à la liste des promesses.
         </div>
-      </Card>
+      )}
+
+      <PromesseDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        promesse={selectedPromesse}
+      />
     </div>
   );
 });

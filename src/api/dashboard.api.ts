@@ -11,12 +11,13 @@ import { AxiosError } from 'axios';
 class DashboardApi {
   static BASE_URL = API_ROOT.dashboard;
 
-  static async getDashboardStats(
-    filter: string = 'month'
-  ): APIResponse<IDashboardStats> {
+  static async getDashboardStats(filter: {
+    period: string;
+    contributorId: string;
+  }): APIResponse<IDashboardStats> {
     try {
       const response = await Axios.get(`${this.BASE_URL}/stats`, {
-        params: { period: filter },
+        params: { period: filter.period, contributorId: filter.contributorId },
       });
       return response.data;
     } catch (error) {
@@ -28,12 +29,16 @@ class DashboardApi {
     }
   }
 
-  static async getDashboardsActivitiesByType(
-    filter: string = 'month'
-  ): APIResponse<IActivityTypeStats[]> {
+  static async getDashboardsActivitiesByType(filter: {
+    period: string;
+    contributorId: string;
+  }): APIResponse<IActivityTypeStats[]> {
     try {
       const response = await Axios.get(`${this.BASE_URL}/activities-by-type`, {
-        params: { filter },
+        params: {
+          period: filter.period,
+          contributorId: filter.contributorId,
+        },
       });
       return response.data;
     } catch (error) {
@@ -45,13 +50,19 @@ class DashboardApi {
     }
   }
 
-  static async getDashboardsByBeneficiary(
-    filter: string = 'month'
-  ): APIResponse<IBeneficiaryDistributionStats[]> {
+  static async getDashboardsByBeneficiary(filter: {
+    period: string;
+    contributorId: string;
+  }): APIResponse<IBeneficiaryDistributionStats[]> {
     try {
       const response = await Axios.get(
-        `${this.BASE_URL}//beneficiary-distribution`,
-        { params: { filter } }
+        `${this.BASE_URL}/beneficiary-distribution`,
+        {
+          params: {
+            period: filter.period,
+            contributorId: filter.contributorId,
+          },
+        }
       );
       return response.data;
     } catch (error) {

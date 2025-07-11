@@ -4,7 +4,10 @@ export const formAdminSchema = z.object({
   firstName: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   lastName: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   email: z.string().email('Email invalide'),
-  phone: z.string().min(10, 'Numéro de téléphone invalide'),
+  phone: z
+    .string()
+    .regex(/^(?:\+|00)?[1-9]\d{1,14}$/)
+    .nonempty('Numéro de téléphone requis'),
   role: z.enum(['MANAGER', 'COORDINATOR', 'EDITOR', 'AGENT']),
   address: z.object({
     country: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
@@ -54,7 +57,6 @@ export const formLoginSchema = z.union([
         'Le mot de passe doit contenir au moins 8 caractères'
       )
       .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-    remember: z.boolean(),
   }),
   z.object({
     phone: z.string().min(10, 'Numéro de téléphone invalide'),
@@ -65,7 +67,6 @@ export const formLoginSchema = z.union([
         'Le mot de passe doit contenir au moins 8 caractères'
       )
       .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-    remember: z.boolean(),
   }),
 ]);
 

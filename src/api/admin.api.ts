@@ -1,4 +1,6 @@
 import { API_ROOT } from '@/config/app.config';
+import { IContributor } from '@/interface/contributor';
+import { IPermission } from '@/interface/permission';
 import {
   FormInviteRegisterUserValues,
   FormInviteValues,
@@ -76,11 +78,11 @@ export const activateMfa = async (
     }
 
     const payload = {
-      mfaToken: mfaToken,
+      token: mfaToken,
     };
 
     const response = await Axios.post(
-      `${API_ROOT.users}/${adminId}/mfa/activate`,
+      `${API_ROOT.users}/mfa/${adminId}/verify`,
       payload
     );
     return response.data;
@@ -94,17 +96,17 @@ export const activateMfa = async (
 };
 
 export const deactivateMfa = async (
-  adminId: string,
+  userId: string,
   data: {
     mfaToken: string;
   }
 ): Promise<ReponseLoginByStaffWithMfa> => {
   try {
-    if (!adminId || !data.mfaToken) {
-      throw new Error('AdminId and mfaToken are required');
+    if (!userId || !data.mfaToken) {
+      throw new Error('userId and mfaToken are required');
     }
     const response = await Axios.post(
-      `${API_ROOT.users}/${adminId}/mfa/deactivate`,
+      `${API_ROOT.users}/${userId}/mfa/disable`,
       data
     );
     return response.data;
@@ -118,17 +120,16 @@ export const deactivateMfa = async (
 };
 
 export const verifyMfa = async (data: {
-  adminId: string;
+  userId: string;
   mfaToken: string;
 }): Promise<{
   token: string;
   admin: StaffMember;
 }> => {
   try {
-    if (!data.adminId || !data.mfaToken) {
-      throw new Error('AdminId and mfaToken are required');
+    if (!data.userId || !data.mfaToken) {
+      throw new Error('UserId and mfaToken are required');
     }
-    console.log(data);
     const response = await Axios.post(`${API_ROOT.users}/verify-mfa`, data);
     return response.data;
   } catch (error: unknown) {
@@ -251,8 +252,8 @@ export const verifyAccount = async (data: {
   token: string;
 }): Promise<{
   message: string;
-  admin: StaffMember;
-  alreadyConfirmed: boolean;
+  status: string;
+  emailVerified: boolean;
 }> => {
   try {
     if (!data.token) {
@@ -312,7 +313,8 @@ export const resetPassword = async (data: {
 export const findByToken = async (): Promise<{
   success: boolean;
   user: IUser;
-  contributor: any;
+  contributor: IContributor;
+  permissions: IPermission[];
 }> => {
   try {
     const response = await Axios.get(`${API_ROOT.users}/check-auth/by-token`);

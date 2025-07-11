@@ -21,6 +21,7 @@ export interface CustomField {
   options?: string[];
   activityTypeId?: string;
   beneficiaryTypeId?: string;
+  state?: string;
 }
 
 export const customFieldSchema = z.object({
@@ -45,6 +46,7 @@ export const customFieldSchema = z.object({
   options: z.array(z.string()).optional(),
   activityTypeId: z.string().optional(),
   beneficiaryTypeId: z.string().optional(),
+  state: z.string().optional(),
 });
 
 export type CustomFieldFormData = z.infer<typeof customFieldSchema>;

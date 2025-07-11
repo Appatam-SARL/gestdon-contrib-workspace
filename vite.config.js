@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), flowbiteReact()],
   server: {
     host: '0.0.0.0', // Pour rendre l'application accessible depuis d'autres appareils
-    port: 5173, // Le port que tu veux utiliser
+    port: 5173, // Le port que tu veux utiliser,
   },
   resolve: {
     alias: {

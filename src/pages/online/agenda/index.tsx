@@ -125,7 +125,7 @@ const AgendaPage = withDashboard(() => {
 
   return (
     <div className='container mx-auto'>
-      <h1 className='text-2xl font-bold mb-6'>Agenda</h1>
+      <h4 className='text-2xl font-bold mb-6'>Agenda</h4>
       <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
         {/* Calendar Component */}
         <div className='col-span-2 bg-white p-4 rounded shadow'>

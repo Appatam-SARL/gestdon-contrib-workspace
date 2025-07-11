@@ -13,20 +13,28 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useCreateBeneficiary } from '@/hook/beneficiaire.hook';
+import { useGetBeneficiaryType } from '@/hook/beneficiary-type.hook';
+import { IBeneficiaryType } from '@/interface/beneficiary-type';
 import {
   formBeneficiarySchema,
   FormBeneficiaryValues,
 } from '@/schema/beneficiary.schema';
 import useContributorStore from '@/store/contributor.store';
-// import useStaffStore from '@/store/staff.store';
 
-// import useStaffStore from '@/stores/staff.store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useState } from 'react';
@@ -37,11 +45,15 @@ const AddDonForm = withDashboard(() => {
   const contributorId = useContributorStore((state) => state.contributor?._id);
   console.log('🚀 ~ AddDonForm ~ contributorId:', contributorId);
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const { isLoading, data: beneficiaryType } = useGetBeneficiaryType({
+    contributorId: contributorId as string,
+  });
   const mutation = useCreateBeneficiary();
   const formAddBeneficiary = useForm<FormBeneficiaryValues>({
     resolver: zodResolver(formBeneficiarySchema),
     defaultValues: {
       fullName: '',
+      type: '',
       description: '',
       representant: {
         firstName: '',
@@ -54,16 +66,16 @@ const AddDonForm = withDashboard(() => {
           city: '',
         },
       },
-      contributorId: '',
     },
   });
 
   const handleSubmit = (data: FormBeneficiaryValues) => {
     const payload = {
       ...data,
+      representant: [data.representant],
       contributorId: contributorId as string,
     };
-
+    console.log('🚀 ~ handleSubmit ~ payload:', payload);
     mutation.mutate(payload);
   };
 
@@ -79,7 +91,7 @@ const AddDonForm = withDashboard(() => {
             <ArrowLeft className='h-4 w-4' />
           </Link>
           <div>
-            <h1 className='text-3xl font-bold'>Bénéficiaire</h1>
+            <h4 className='text-3xl font-bold'>Bénéficiaire</h4>
             <p className='text-muted-foreground'>Ajouter un bénéficiaire</p>
           </div>
         </div>
@@ -167,6 +179,36 @@ const AddDonForm = withDashboard(() => {
                   />
                   <FormField
                     control={formAddBeneficiary.control}
+                    name='type'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder='Sélectionnez un type de bénéficiaire' />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {beneficiaryType?.data?.map(
+                                (type: IBeneficiaryType) => (
+                                  <SelectItem key={type._id} value={type._id}>
+                                    {type.label}
+                                  </SelectItem>
+                                )
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={formAddBeneficiary.control}
                     name='description'
                     render={({ field }) => (
                       <FormItem>
@@ -177,6 +219,7 @@ const AddDonForm = withDashboard(() => {
                           <Textarea
                             id='description'
                             placeholder='Description'
+                            rows={10}
                             {...field}
                           />
                         </FormControl>
@@ -335,7 +378,7 @@ const AddDonForm = withDashboard(() => {
                     onClick={async () => {
                       const isValid = await formAddBeneficiary.trigger(
                         currentStep === 1
-                          ? ['fullName', 'description']
+                          ? ['fullName', 'type', 'description']
                           : currentStep === 2
                           ? [
                               'representant.firstName',
