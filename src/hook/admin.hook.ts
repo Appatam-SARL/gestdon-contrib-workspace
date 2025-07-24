@@ -546,6 +546,7 @@ export function useResetPassword() {
 
 export function useFindByToken() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const setUserStore = useUserStore((s) => s.setUserStore);
   const setContributorStore = useContributorStore((s) => s.setContributorStore);
   const handleCheckToken = React.useCallback(() => {
@@ -553,16 +554,20 @@ export function useFindByToken() {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          navigate('/');
           localStorage.clear();
-          // toast.error('Token inexistant, veuillez vous reconnecter.');
+          toast({
+            title: 'Vous devez vous connecter pour accéder à cette page',
+            description: 'Token inexistant, veuillez vous reconnecter.',
+          });
+          navigate('/');
           return;
         }
         const response = await findByToken();
         if (!response.success) {
+          // Ne pas supprimer le token ici, juste afficher le toast et rediriger
+          toast({ description: 'Token invalide, veuillez vous reconnecter.' });
           navigate('/');
-          localStorage.clear();
-          // toast.error('Token invalide, veuillez vous reconnecter.');
+          return;
         }
         setUserStore('user', response.user as IUser);
         setContributorStore(
@@ -570,9 +575,23 @@ export function useFindByToken() {
           response.contributor as IContributor
         );
       } catch (error) {
+        // Ne pas supprimer le token ici
+        if (
+          error instanceof AxiosError &&
+          error.message.includes('Network Error')
+        ) {
+          toast({
+            title: 'Erreur réseau',
+            description:
+              'Impossible de contacter le serveur. Vérifiez votre connexion ou la configuration CORS.',
+          });
+        } else {
+          toast({
+            title: 'Erreur lors de la vérification de la session',
+            description: 'Erreur lors de la vérification de la session.',
+          });
+        }
         navigate('/');
-        localStorage.clear();
-        alert(error as string);
       }
     })();
   }, [navigate]);

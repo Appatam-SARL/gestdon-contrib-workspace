@@ -162,7 +162,7 @@ export const AudiencePage = withDashboard(() => {
           <p className='text-muted-foreground'>Gestion des audiences</p>
         </div>
         <div className='flex gap-2'>
-          {(user?.role === 'MANAGER' || user?.role === 'EDITOR') &&
+          {(user?.role === 'AGENT' || user?.role === 'EDITOR') &&
             helperUserPermission('Audience', 'create') && (
               <Button onClick={() => navigate('/audiences/create')}>
                 <UserPlus className='h-4 w-4 mr-2' />

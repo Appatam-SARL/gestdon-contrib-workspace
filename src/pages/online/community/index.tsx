@@ -19,7 +19,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Select, SelectContent, SelectItem } from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -77,7 +76,7 @@ const FilterModal = ({
       </DialogHeader>
       <div>
         <div className='grid gap-4 py-4'>
-          <div className='grid gap-2 grid-cols-2'>
+          {/* <div className='grid gap-2 grid-cols-2'>
             <label className='text-sm font-medium'>Type de bénéficiaire</label>
             <Select>
               <SelectContent>
@@ -86,7 +85,7 @@ const FilterModal = ({
                 <SelectItem value='inactive'>Inactifs</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </div> */}
           <div className='grid gap-2'>
             <label className='text-sm font-medium'>Période d'inscription</label>
             <DateRangePicker

@@ -240,7 +240,10 @@ function RapportActivityOrAudience() {
                     name='documents.file'
                     render={() => (
                       <FormItem>
-                        <FormLabel>Uploader le document en PDF</FormLabel>
+                        <FormLabel>
+                          Uploader les images prises lors de l'activité (type
+                          d'image accepté : png, jpg, jpeg)
+                        </FormLabel>
                         <FormControl>
                           <div className='flex items-center gap-4'>
                             <Input

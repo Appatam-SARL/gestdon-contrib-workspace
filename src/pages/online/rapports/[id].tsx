@@ -39,6 +39,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useCreateConversation } from '@/hook/conversation.hook';
+import { useGetAllDocuments } from '@/hook/document.hook';
 import {
   useArchiveReport,
   useDeleteReport,
@@ -97,6 +98,11 @@ export const ReportDetailsPage = withDashboard(() => {
     isError,
     error,
   } = useReport(id as string);
+
+  const { data: mediaReports } = useGetAllDocuments(
+    String(reportResponse?.data._id),
+    'Report'
+  );
 
   const deleteMutation = useDeleteReport(() => navigate('/repport'));
   const updateMutation = useUpdateReport(id as string, setIsEditDialogOpen);
@@ -163,6 +169,12 @@ export const ReportDetailsPage = withDashboard(() => {
       });
     }
   }, [reportResponse, formEditReport]);
+
+  // useEffect(() => {
+  //   if (mediaReports?.documents && fileIds) {
+  //     getMultipeFile(fileIds).then((url) => console.log(url));
+  //   }
+  // }, [mediaReports, fileIds]);
 
   if (isLoading) {
     return (
@@ -269,16 +281,17 @@ export const ReportDetailsPage = withDashboard(() => {
         <CardContent>
           <div className='flex items-center justify-between'>
             <div className='flex gap-2'>
-              {user?.role === 'EDITOR' && (
-                <Button
-                  variant={'outline'}
-                  onClick={() => setIsEditDialogOpen(true)}
-                  className='hover:bg-grey-500'
-                >
-                  <Edit className='h-4 w-4' />
-                  <span>Modifier</span>
-                </Button>
-              )}
+              {(user?.role === 'EDITOR' || user?.role === 'AGENT') &&
+                helperUserPermission('Rapports', 'update') && (
+                  <Button
+                    variant={'outline'}
+                    onClick={() => setIsEditDialogOpen(true)}
+                    className='hover:bg-grey-500'
+                  >
+                    <Edit className='h-4 w-4' />
+                    <span>Modifier</span>
+                  </Button>
+                )}
               {(user?.role === 'MANAGER' &&
                 report.status !== 'VALIDATED' &&
                 report.status !== 'REFUSED' &&

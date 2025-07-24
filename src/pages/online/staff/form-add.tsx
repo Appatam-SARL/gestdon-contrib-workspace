@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormMessage,
@@ -16,10 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useToast } from '@/components/ui/use-toast';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useCreateUser } from '@/hook/admin.hook';
 import { formAdminSchema, FormAdminValues } from '@/schema/admins.schema';
 import useContributorStore from '@/store/contributor.store';
+import { validatePhoneNumber } from '@/utils';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, Loader2 } from 'lucide-react';
@@ -27,34 +30,15 @@ import { useState } from 'react';
 import { Path, useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
-type FieldName =
-  | keyof FormAdminValues
-  | 'address.country'
-  | 'address.street'
-  | 'address.postalCode'
-  | 'address.city';
-
-const step1Fields: FieldName[] = [
-  'firstName',
-  'lastName',
-  'email',
-  'phone',
-  'role',
-];
-const step2Fields: FieldName[] = [
-  'address.country',
-  'address.street',
-  'address.postalCode',
-  'address.city',
-];
-
 type FormFields = Path<FormAdminValues>[] | readonly Path<FormAdminValues>[];
 
 const AddStaffForm = withDashboard(() => {
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isValid, setIsValid] = useState<null | boolean>(null);
+  const [formattedNumber, setFormattedNumber] = useState('');
 
+  const { toast } = useToast();
   const contributorId = useContributorStore((s) => s.contributor?._id);
-  console.log('🚀 ~ AddStaffForm ~ contributorId:', contributorId);
 
   const mutation = useCreateUser();
   const formAddStaff = useForm<FormAdminValues>({
@@ -76,6 +60,16 @@ const AddStaffForm = withDashboard(() => {
 
   const handleSubmit = (data: FormAdminValues) => {
     // setStaffMemberStore('staffMemberForm', data);
+    const { isValidNumber, formattedNumber } = validatePhoneNumber(data.phone);
+    console.log('🚀 ~ handleSubmit ~ isValidNumber:', formattedNumber);
+    if (!isValidNumber) {
+      toast({
+        title: 'Numéro de téléphone invalide',
+        description: 'Veuillez entrer un numéro de téléphone valide.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const payload = {
       ...data,
       contributorId: contributorId as string,
@@ -213,9 +207,54 @@ const AddStaffForm = withDashboard(() => {
                           id='phone'
                           type='text'
                           placeholder='+2250000000000'
-                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            const { isValidNumber, formattedNumber } =
+                              validatePhoneNumber(e.target.value);
+                            setIsValid(isValidNumber);
+                            setFormattedNumber(formattedNumber);
+                          }}
+                          // {...field}
                         />
                       </FormControl>
+                      <FormDescription>
+                        {/* Exemples de formats acceptés */}
+                        {formAddStaff.watch('phone') && isValid ? (
+                          <div
+                            className={`p-3 rounded-md ${
+                              isValid
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            <div>
+                              <span className='font-medium'>
+                                ✓ Numéro valide
+                              </span>
+                              {formattedNumber && (
+                                <div className='mt-1 text-sm'>
+                                  Format: {formattedNumber}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className='mt-6 text-sm text-gray-600'>
+                            <h3 className='font-medium mb-2'>
+                              Formats acceptés :
+                            </h3>
+                            <ul className='space-y-1'>
+                              <li className='text-red'>
+                                • +225 01 23 45 67 89
+                              </li>
+                              <li className='text-red'>
+                                • Préfixes: 01, 05, 07 (mobile), 27 (fixe
+                                Abidjan)
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -2,7 +2,7 @@ import PermissionApi from '@/api/permission.api';
 import { useToast } from '@/components/ui/use-toast';
 import { IPermission } from '@/interface/permission';
 import { usePermissionStore } from '@/store/permission.store';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const useCreatePermissionByadminId = (adminId: string) => {
   const { toast } = useToast();
@@ -35,9 +35,10 @@ export const useGetPermissionByAdminId = (adminId: string) => {
     queryKey: ['getPermissionBadminId', adminId],
     queryFn: async () => {
       const data = await PermissionApi.getPermissionByadminId(adminId);
-      setPermissionStore('permission', data.data);
+      setPermissionStore('permissionMemberLogged', data.data);
       return data;
     },
+    enabled: !!adminId,
   });
 };
 
@@ -45,7 +46,7 @@ export const useUpdatePermissionByadminId = (
   adminId: string,
   setOpen: (open: boolean) => void
 ) => {
-  const setPermissionStore = usePermissionStore.getState().setPermissionStore;
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   return useMutation({
     mutationKey: ['updatePermissionBadminId'],
@@ -59,9 +60,11 @@ export const useUpdatePermissionByadminId = (
         duration: 5000,
       });
     },
-    onSuccess: (data) => {
-      setPermissionStore('permission', data.data);
-      setPermissionStore('permissionMemberLogged', data.data as IPermission);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', 'profile', adminId] });
+      queryClient.invalidateQueries({
+        queryKey: ['getPermissionBadminId', adminId],
+      });
       toast({
         title: 'Permission mise à jour avec succès',
         duration: 3000,

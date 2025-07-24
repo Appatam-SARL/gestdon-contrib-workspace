@@ -1,8 +1,11 @@
+import { createManyDocuments } from '@/api/document.api';
+import { uploadFile } from '@/api/file.api';
 import ReportApi from '@/api/report.api';
 import { useToast } from '@/components/ui/use-toast';
 import { API_ROOT } from '@/config/app.config';
 import { IReport, IReportFilterForm, tReportForm } from '@/interface/report';
 import { FormRefusedReportSchema } from '@/schema/report.schema';
+import { IDocument } from '@/types/document';
 import { APIResponse } from '@/types/generic.type';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -35,8 +38,64 @@ export const useStatsReport = (filter: { contributorId: string }) => {
 export const useCreateReport = (onSuccessCallback?: () => void) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Type pour l'argument unique de la mutation
+  type CreateReportArgs = {
+    report: unknown;
+    files: FileList;
+  };
+
+  // Fonction utilitaire pour uploader les fichiers
+  const uploadFiles = async (files: FileList) => {
+    console.log('🚀 ~ uploadFiles ~ files:', files);
+
+    const filesObject: {
+      fileId: string;
+      fileUrl: string;
+      mimetype?: string;
+    }[] = [];
+    for (const f of files) {
+      const formData = new FormData();
+      formData.append('files', f);
+      const res = await uploadFile(formData, 'media');
+      if (res.success) {
+        filesObject.push(res.filesData[0]);
+      } else {
+        toast({
+          title: 'Erreur lors de la création du fichier',
+          description: res.message,
+          duration: 3000,
+        });
+      }
+    }
+    return filesObject;
+  };
+
   return useMutation({
-    mutationFn: (report: unknown) => ReportApi.createReport(report),
+    mutationFn: async ({ report, files }: CreateReportArgs) => {
+      console.log('🚀 ~ mutationFn: ~ files:', files);
+      // 1. Upload des fichiers
+      const filesObject = await uploadFiles(files);
+
+      // 2. Création du rapport
+      const responsereport = await ReportApi.createReport(report);
+
+      // 3. Création des documents liés aux fichiers
+      if (filesObject.length > 0) {
+        const documents: IDocument[] = filesObject.map((file) => ({
+          owner: String(responsereport.data._id),
+          ownerType: 'Report',
+          type: 'OTHER',
+          status: 'PENDING',
+          fileUrl: file.fileUrl,
+          fileId: file.fileId,
+          mimeType: file.mimetype,
+        }));
+        await createManyDocuments(documents);
+      }
+
+      return responsereport;
+    },
     onMutate: () => {
       toast({
         title: 'Création du rapport',
@@ -47,13 +106,13 @@ export const useCreateReport = (onSuccessCallback?: () => void) => {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       toast({
         title: 'Report créé avec succès',
-        description: `L'report a été ajoutée.`,
+        description: `Le rapport a été ajouté.`,
       });
       onSuccessCallback?.();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: "Erreur lors de la création de l'report",
+        title: 'Erreur lors de la création du rapport',
         description: error.message || `Une erreur est survenue`,
         variant: 'destructive',
       });

@@ -60,7 +60,6 @@ import {
 import { IPermission } from '@/interface/permission';
 import { cn } from '@/lib/utils';
 import { useMfaStore } from '@/store/mfa.store';
-import { usePermissionStore } from '@/store/permission.store';
 import useUserStore from '@/store/user.store';
 import { ILog, IlogFilter } from '@/types/log.type';
 import { StaffMemberForm } from '@/types/staff';
@@ -164,12 +163,14 @@ export const StaffDetailsPage = withDashboard(() => {
     setIsMFAModalOpen
   );
 
-  const { permission } = usePermissionStore() as {
-    permission: IPermission[] | null;
-  };
-  const { isLoading: isPendingPermission } = useGetPermissionByAdminId(
-    id as string
-  );
+  // const { permission } = usePermissionStore() as {
+  //   permission: IPermission[] | null;
+  // };
+  const {
+    isLoading: isPendingPermission,
+    data: permission,
+    isRefetching: isPendingRefetchPermission,
+  } = useGetPermissionByAdminId(id as string);
   const { mutate: updatePermission, isPending: isPendingUpdatePermission } =
     useUpdatePermissionByadminId(id as string, setOpen);
 
@@ -182,7 +183,7 @@ export const StaffDetailsPage = withDashboard(() => {
   useEffect(() => {
     if (permission) {
       // Deep copy pour éviter de modifier le store directement
-      setLocalPermissions(JSON.parse(JSON.stringify(permission)));
+      setLocalPermissions(JSON.parse(JSON.stringify(permission.data)));
     }
   }, [permission]);
 
@@ -351,10 +352,7 @@ export const StaffDetailsPage = withDashboard(() => {
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
               <CardTitle>Informations personnelles</CardTitle>
-              {user?.role === 'MANAGER' ||
-              user?.role === 'COORDINATOR' ||
-              isCurrentUser ||
-              helperUserPermission('staff', 'update') ? (
+              {user?.role === 'MANAGER' || user?.role === 'COORDINATOR' ? (
                 <Button
                   variant='secondary'
                   size='icon'
@@ -513,7 +511,9 @@ export const StaffDetailsPage = withDashboard(() => {
                             utilisateur
                           </DialogDescription>
                         </DialogHeader>
-                        {isPendingPermission || !localPermissions ? (
+                        {isPendingPermission ||
+                        !localPermissions ||
+                        isPendingRefetchPermission ? (
                           <div className='py-4'>
                             <Skeleton
                               height={40}
@@ -608,15 +608,15 @@ export const StaffDetailsPage = withDashboard(() => {
                 </CardHeader>
                 <CardContent className='p-0'>
                   <div className='rounded-md'>
-                    {isPendingPermission ? (
-                      <div className='py-4'>
-                        <Skeleton
-                          className='w-full'
-                          style={{ width: '100%', height: '300px' }}
-                        />
-                      </div>
+                    {isPendingPermission || isPendingRefetchPermission ? (
+                      // <div className='py-4'>
+                      <Skeleton
+                        className='w-full'
+                        style={{ width: '100%', height: '300px' }}
+                      />
                     ) : (
-                      permission?.map((perm, permIndex) => (
+                      // </div>
+                      permission?.data?.map((perm, permIndex) => (
                         <Accordion
                           type='single'
                           collapsible

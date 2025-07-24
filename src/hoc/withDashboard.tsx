@@ -7,6 +7,7 @@ import React from 'react';
 import NotificationButton from '@/components/commons/NotificationButton';
 import ProfilButton from '@/components/commons/ProfilButton';
 import { useGetPermissionByAdminId } from '@/hook/permission.hook';
+import { IPermission } from '@/interface/permission';
 import { usePermissionStore } from '@/store/permission.store';
 import useUserStore from '@/store/user.store';
 import { IUser } from '@/types/user';
@@ -28,7 +29,10 @@ export function withDashboard<P extends object>(
 
     React.useEffect(() => {
       if (isSuccess && permission?.data) {
-        setPermissionStore('permissionMemberLogged', permission.data);
+        setPermissionStore(
+          'permissionMemberLogged',
+          permission.data as IPermission[]
+        );
       }
     }, [isSuccess, permission, setPermissionStore]);
 

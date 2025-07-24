@@ -53,9 +53,9 @@ export const displayStatusDon = (status: string) => {
   switch (status) {
     case 'pending':
       return 'En attente';
+    case 'received':
     case 'validated':
-    case 'validé':
-      return 'Validé';
+      return 'Reçu';
     case 'refused':
       return 'Refusé';
     default:

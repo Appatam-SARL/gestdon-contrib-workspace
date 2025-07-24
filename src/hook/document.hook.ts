@@ -1,6 +1,6 @@
 import {
   getDocumentById,
-  getDocumentyByPartnerId,
+  getDocuments,
   rejectDocument,
   uploadDocument,
   verifyDocument,
@@ -48,14 +48,11 @@ export const useUploadDocument = (
   });
 };
 
-export const useGetAllDocumentsForAPartner = (
-  id: string,
-  ownerType: string
-) => {
+export const useGetAllDocuments = (id: string, ownerType: string) => {
   return useQuery({
-    queryKey: ['documents', 'partner', id],
+    queryKey: ['documents', 'report', id],
     queryFn: async () => {
-      const response = await getDocumentyByPartnerId(id, ownerType);
+      const response = await getDocuments(id, ownerType);
       return response.data;
     },
   });
@@ -71,33 +68,18 @@ export const useGetOneDocumentForAPartner = (id: string) => {
   });
 };
 
-export const useDowwloadDocument = () => {
-  const { toast } = useToast();
-  return useMutation({
-    mutationKey: ['downloadDocument'],
-    mutationFn: async ({
-      fileId,
-      filename,
-    }: {
-      fileId: string;
-      filename: string;
-    }) => {
+export const useDowwloadDocument = ({
+  fileId,
+  filename,
+}: {
+  fileId: string;
+  filename: string;
+}) => {
+  return useQuery({
+    queryKey: ['downloadDocument'],
+    queryFn: async () => {
       const response = await downloadFile(fileId, filename);
-      return response;
-    },
-    onSuccess(data) {
-      toast({
-        title: 'Document downloadé avec succès',
-        description: "Vous pouvez maintenant l'ajouter à votre profil",
-        duration: 5000,
-      });
-    },
-    onError(error) {
-      toast({
-        title: 'Erreur lors du téléchargement du document',
-        description: error.message,
-        duration: 5000,
-      });
+      return response.message;
     },
   });
 };

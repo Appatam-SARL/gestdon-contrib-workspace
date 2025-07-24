@@ -88,3 +88,36 @@ export const helperUserPermission = (
     (action: any) => action.value === actionValue && action.enabled === true
   );
 };
+
+export const validatePhoneNumber = (value: any) => {
+  const strictIvorianPhoneRegex = /^\+225(01|05|07|27)[0-9]{8}$/;
+  // Nettoyer le numéro (enlever espaces)
+  const cleanNumber = value.replace(/\s+/g, '');
+
+  // Vérifier avec le regex
+  const isValidNumber = strictIvorianPhoneRegex.test(cleanNumber);
+  console.log('🚀 ~ validatePhoneNumber ~ isValidNumber:', isValidNumber);
+
+  let formatted = '';
+  // Formater le numéro si valide
+  if (isValidNumber) {
+    formatted = cleanNumber;
+    // Ajouter +225 si pas présent
+    if (!formatted.startsWith('+225') && !formatted.startsWith('225')) {
+      formatted = '+225' + formatted;
+    } else if (formatted.startsWith('225')) {
+      formatted = '+' + formatted;
+    }
+
+    // Formater avec espaces : +225 XX XX XX XX XX
+    const match = formatted.match(
+      /^(\+225)([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})$/
+    );
+    if (match) {
+      formatted = `${match[1]} ${match[2]} ${match[3]} ${match[4]} ${match[5]} ${match[6]}`;
+      console.log('🚀 ~ validatePhoneNumber ~ formatted:', formatted);
+    }
+  }
+
+  return { isValidNumber, formattedNumber: formatted };
+};

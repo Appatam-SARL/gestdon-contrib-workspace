@@ -31,7 +31,7 @@ import {
   Heart,
   Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router';
 import {
@@ -58,7 +58,7 @@ const Dashboard = withDashboard(() => {
   const [selectedFilter, setSelectedFilter] = useState<{
     period: string;
     contributorId: string;
-  }>({ period: 'month', contributorId: contributorId as string }); // Default to month
+  }>({ period: 'month', contributorId: '' }); // Default to month
   const { data: stats, isLoading, refetch } = useDashboard(selectedFilter);
   const {
     data: activitiesByType,
@@ -80,6 +80,14 @@ const Dashboard = withDashboard(() => {
       page: 1,
       contributorId: contributorId,
     });
+
+  React.useEffect(() => {
+    if (!contributorId) return;
+    setSelectedFilter({
+      ...selectedFilter,
+      contributorId: contributorId as string,
+    });
+  }, [contributorId]);
 
   const handleFilterSelect = (filter: string) => {
     setSelectedFilter({ ...selectedFilter, period: filter });

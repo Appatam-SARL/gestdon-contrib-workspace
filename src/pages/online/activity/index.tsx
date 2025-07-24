@@ -24,6 +24,7 @@ import { useGetActivities, useGetActivityStats } from '@/hook/activity.hook';
 import { IActivity, IActivityFilterForm } from '@/interface/activity';
 import useContributorStore from '@/store/contributor.store';
 import useUserStore from '@/store/user.store';
+import { helperUserPermission } from '@/utils';
 import { displayStatusActivity } from '@/utils/display-of-variable';
 import {
   Activity,
@@ -142,14 +143,15 @@ const ActivityPage = withDashboard(() => {
           </p>
         </div>
         <div className='flex gap-2'>
-          {(user?.role === 'MANAGER' || user?.role === 'EDITOR') && (
-            <Link to='/activity/create'>
-              <Button>
-                <Activity />
-                <span>Ajouter une activité</span>
-              </Button>
-            </Link>
-          )}
+          {(user?.role === 'AGENT' || user?.role === 'EDITOR') &&
+            helperUserPermission('Activités', 'create') && (
+              <Link to='/activity/create'>
+                <Button>
+                  <Activity />
+                  <span>Ajouter une activité</span>
+                </Button>
+              </Link>
+            )}
         </div>
       </div>
 

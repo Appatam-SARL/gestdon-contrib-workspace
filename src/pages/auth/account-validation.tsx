@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -18,42 +19,36 @@ export default function AccountValidation() {
   const token = useSearchParams()[0].get('token') as string;
   const mutation = useVerifyAccount(setMessageConfirmation, setIsConfirmed);
 
-  React.useEffect(() => {
-    (async () => {
-      if (!token) throw new Error('Token is not defined');
-      mutation.mutate({ token });
-    })();
-  }, [token]);
-
   return (
     <div className='min-h-screen flex items-center justify-center bg-background p-4'>
       <div className='w-full max-w-[400px] space-y-6'>
         <Card>
           <CardHeader>
             <CardTitle className='text-center'>Validation du compte</CardTitle>
-            <CardDescription></CardDescription>
+            <CardDescription>
+              Veuillez confirmer votre adresse mail pour activer votre compte.
+            </CardDescription>
           </CardHeader>
           <CardContent className='space-y-4'>
+            <Button
+              onClick={() => mutation.mutate({ token })}
+              disabled={mutation.isPending}
+              className='w-full'
+            >
+              Je confirme mon compte
+            </Button>
             <div className='flex flex-col justify-center items-center space-y-2'>
-              {mutation.isPending ? (
-                <span>Validation en cours...</span>
-              ) : (
+              {mutation.isPending && <span>Validation en cours...</span>}
+              {mutation.isSuccess && (
                 <>
-                  {isConfirmed ? (
-                    <>
-                      <Check size={62} color='green' />
-                      <span className='text-green-500'>
-                        {messageConfirmation}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircleX size={62} color='red' />
-                      <span className='text-red-500'>
-                        {messageConfirmation}
-                      </span>
-                    </>
-                  )}
+                  <Check size={62} color='green' />
+                  <span className='text-green-500'>{messageConfirmation}</span>
+                </>
+              )}
+              {mutation.isError && (
+                <>
+                  <MessageCircleX size={62} color='red' />
+                  <span className='text-red-500'>{messageConfirmation}</span>
                 </>
               )}
             </div>
@@ -63,12 +58,12 @@ export default function AccountValidation() {
               <Link
                 to='/'
                 className='underline underline-offset-4 hover:text-primary'
+                aria-disabled={mutation.isPending}
               >
                 Retour à la connexion
               </Link>
             </div>
           </CardFooter>
-          {/* </form> */}
         </Card>
       </div>
     </div>

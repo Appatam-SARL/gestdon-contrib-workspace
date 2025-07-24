@@ -64,7 +64,7 @@ function NotificationButton() {
               className='absolute -top-1 -right-1 h-5 min-w-5 rounded-full px-1 font-mono tabular-nums text-xs'
               variant='destructive'
             >
-              {unreadCount}
+              <span className='text-white'>{unreadCount}</span>
             </Badge>
           )}
         </Button>

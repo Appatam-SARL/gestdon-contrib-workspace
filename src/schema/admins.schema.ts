@@ -3,11 +3,13 @@ import z from 'zod';
 export const formAdminSchema = z.object({
   firstName: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   lastName: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
-  email: z.string().email('Email invalide'),
+  email: z.string().email('Email invalide').nonempty('Email requis'),
   phone: z
     .string()
-    .regex(/^(?:\+|00)?[1-9]\d{1,14}$/)
-    .nonempty('Numéro de téléphone requis'),
+    .nonempty({ message: 'Numéro de téléphone requis' })
+    .regex(/^\+225(01|05|07|27)[0-9]{8}$/, {
+      message: 'Numéro de téléphone invalide',
+    }),
   role: z.enum(['MANAGER', 'COORDINATOR', 'EDITOR', 'AGENT']),
   address: z.object({
     country: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
@@ -52,11 +54,14 @@ export const formLoginSchema = z.union([
       .regex(/^\S+@\S+$/, 'Email invalide'),
     password: z
       .string()
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-        'Le mot de passe doit contenir au moins 8 caractères'
-      )
-      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+      // .regex(
+      //   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+      //   'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule et une lettre minuscule.'
+      // )
+      .min(
+        8,
+        'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule et une lettre minuscule'
+      ),
   }),
   z.object({
     phone: z.string().min(10, 'Numéro de téléphone invalide'),
@@ -64,7 +69,7 @@ export const formLoginSchema = z.union([
       .string()
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-        'Le mot de passe doit contenir au moins 8 caractères'
+        'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule et une lettre minuscule.'
       )
       .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   }),

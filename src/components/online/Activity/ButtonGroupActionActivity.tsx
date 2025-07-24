@@ -87,6 +87,7 @@ import {
   Save,
   StickyNote,
   Trash2,
+  Upload,
   UserPlus,
 } from 'lucide-react';
 import { useLayoutEffect, useState } from 'react';
@@ -135,6 +136,7 @@ function ButtonGroupActionActivity({
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   const [activity, setActivity] = useState<IActivity>();
+  const [files, setFiles] = useState<FileList>();
 
   const { data: activityResponse } = useActivity(id as string);
   const { data: members } = useGetStaffMembers({
@@ -238,6 +240,9 @@ function ButtonGroupActionActivity({
   };
 
   const onSubmitAddReport = async (data: FormCreateReportSchema) => {
+    if (!files) return;
+    if (files.length === 0) return;
+    console.log('🚀 ~ onSubmitAddReport ~ files:', files);
     const payload = {
       ...data,
       entityType: 'ACTIVITY',
@@ -257,7 +262,7 @@ function ButtonGroupActionActivity({
         email: user?.email,
       },
     };
-    createReportMutation.mutate(payload);
+    createReportMutation.mutate({ report: payload, files });
   };
   const handleDelete = () => {
     if (id) {
@@ -1036,9 +1041,29 @@ function ButtonGroupActionActivity({
                           name='documents.file'
                           render={() => (
                             <FormItem>
-                              <FormLabel>Uploader le document en PDF</FormLabel>
+                              <FormLabel htmlFor='upload-media'>
+                                Uploader les images prises lors de l'activité
+                                (type d'image accepté : png, jpg, jpeg)
+                              </FormLabel>
                               <FormControl>
-                                <div className='flex items-center gap-4'></div>
+                                <div className='flex items-center gap-4'>
+                                  <Input
+                                    type='file'
+                                    id='upload-media'
+                                    multiple
+                                    onChange={(e) =>
+                                      setFiles(e.target.files as FileList)
+                                    }
+                                  />
+                                  <Button
+                                    variant='outline'
+                                    id='upload-media'
+                                    // onClick={() => setIsUploadDocumentModalOpen(true)}
+                                  >
+                                    <Upload className='h-4 w-4' />
+                                    <span>Uploader un document</span>
+                                  </Button>
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>

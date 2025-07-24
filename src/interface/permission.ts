@@ -5,9 +5,9 @@ export interface IPermission {
 }
 
 export interface IPermissionStore {
-  permissionMemberLogged: IPermission | null;
-  permission: IPermission | null;
-  permissionForm: IPermission | null;
+  permissionMemberLogged: IPermission[] | null;
+  permission: IPermission[] | null;
+  permissionForm: IPermission[] | null;
   setPermissionStore: <
     K extends keyof Omit<IPermissionStore, 'setPermissionStore'>
   >(

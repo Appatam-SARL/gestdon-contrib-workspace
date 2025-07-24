@@ -23,7 +23,30 @@ export const uploadDocument = async (
   }
 };
 
-export const getDocumentyByPartnerId = async (
+export const createManyDocuments = async (
+  documents: IDocument[]
+): Promise<{
+  data: { documents: IDocument[] };
+  status: string;
+  results: number;
+}> => {
+  try {
+    const response = await Axios.post(
+      `${API_ROOT.documents}/create-many`,
+      documents,
+      {}
+    );
+    return response.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    } else {
+      throw new Error('Something went wrong');
+    }
+  }
+};
+
+export const getDocuments = async (
   id: string,
   ownerType: string
 ): Promise<{

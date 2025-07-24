@@ -498,6 +498,7 @@ export const DonPage = withDashboard(() => {
                 <TableHead>Type de don</TableHead>
                 <TableHead>Montant</TableHead>
                 <TableHead>Devise</TableHead>
+                <TableHead>Statut</TableHead>
                 <TableHead>Date du don</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -505,7 +506,7 @@ export const DonPage = withDashboard(() => {
             <TableBody>
               {isLoading ? (
                 <TableRow className='p-8'>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={7}>
                     <Skeleton
                       count={1}
                       width='100%'
@@ -528,6 +529,17 @@ export const DonPage = withDashboard(() => {
                     </TableCell>
                     <TableCell>{donation.montant}</TableCell>
                     <TableCell>{donation.devise}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          displayStatusDon(donation.status) === 'En attente'
+                            ? 'secondary'
+                            : 'success'
+                        }
+                      >
+                        {displayStatusDon(donation.status)}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       {new Date(donation.createdAt).toLocaleString('fr-FR')}
                     </TableCell>

@@ -1,5 +1,5 @@
 import { API_ROOT } from '@/config/app.config';
-import { AxiosDoc } from '@/config/axiosInstance';
+import { Axios, AxiosDoc } from '@/config/axiosInstance';
 import { tFile } from '@/types/file';
 
 export const uploadFile = async (
@@ -54,6 +54,47 @@ export const downloadFile = async (
     link.remove();
     window.URL.revokeObjectURL(downloadUrl);
     return response.data;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    } else {
+      throw new Error('Something went wrong');
+    }
+  }
+};
+
+export const getFileUrl = async (fileId: string): Promise<string> => {
+  try {
+    const response = await AxiosDoc.get(
+      `${API_ROOT.files}/download/${fileId}`,
+      {
+        responseType: 'blob',
+      }
+    );
+    const blob = response.data;
+    const objectUrl = window.URL.createObjectURL(blob);
+    return objectUrl; // Tu utilises cette URL dans un <img src={objectUrl} />
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    } else {
+      throw new Error('Something went wrong');
+    }
+  }
+};
+
+export const getMultipeFile = async (fileIds: string[]) => {
+  try {
+    const response = await Axios.post(
+      `${API_ROOT.files}/metadata`,
+      { fileIds },
+      {
+        responseType: 'blob',
+      }
+    );
+    const blob = response.data;
+    const objectUrl = window.URL.createObjectURL(blob);
+    return objectUrl; // Tu utilises cette URL dans un <img src={objectUrl} />
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw new Error(error.message);

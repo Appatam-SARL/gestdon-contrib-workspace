@@ -155,9 +155,9 @@ const AgendaPage = withDashboard(() => {
             <h2 className='text-xl font-semibold'>
               Tâches pour {selectedDate.toLocaleDateString()}
             </h2>
-            <Button onClick={() => setIsModalOpen(true)}>
+            {/*<Button onClick={() => setIsModalOpen(true)}>
               Ajouter une tâche
-            </Button>
+            </Button>*/}
           </div>
           <div>
             {eventsForSelectedDate.length > 0 ? (

@@ -24,7 +24,7 @@ class PermissionApi {
   }
   static async getPermissionByadminId(
     adminId: string
-  ): Promise<APIResponse<IPermission>> {
+  ): Promise<APIResponse<IPermission[]>> {
     try {
       const response = await Axios.get(`${this.BASE_URL}/get/${adminId}`);
       return await response.data;
