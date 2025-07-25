@@ -1,6 +1,6 @@
 // 'development' | 'production' | 'preprod'
 
-export const workSpaceEnvironnement: 'dev' | 'preprod' | 'prod' = 'dev';
+export const workSpaceEnvironnement: 'dev' | 'preprod' | 'prod' = 'preprod';
 
 const BASE_URL: Record<'prod' | 'dev' | 'preprod', string> = {
   preprod: 'https://2f0c7422563c.ngrok-free.app/',
