@@ -31,6 +31,7 @@ import { formInviteSchema, FormInviteValues } from '@/schema/admins.schema';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormMessage,
@@ -48,12 +49,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { useToast } from '@/components/ui/use-toast';
 import useContributorStore from '@/store/contributor.store';
 import useUserStore from '@/store/user.store';
 import { StaffMemberFilter, StaffStatus } from '@/types/staff';
 import { IUser, IUserFilterForm, setUserStore } from '@/types/user';
 import { helperUserPermission } from '@/utils';
 import { getRoleLayout } from '@/utils/display-of-variable';
+import { cleanEmail, validateEmailComplete } from '@/utils/emailValidator';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Eye,
@@ -136,6 +139,7 @@ const FilterModal = ({
 
 export const StaffPage = withDashboard(() => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   // state local
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
@@ -143,6 +147,7 @@ export const StaffPage = withDashboard(() => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [responseServerSuccess, setResponseServerSuccess] =
     useState<boolean>(false);
+  const [validation, setValidation] = useState<null | any>(null);
 
   // state store zustand
   const contributorId = useContributorStore((s) => s.contributor?._id);
@@ -173,6 +178,14 @@ export const StaffPage = withDashboard(() => {
   };
 
   const handleInvite = async (data: FormInviteValues) => {
+    if (!data.email || !cleanEmail(data.email)) {
+      toast({
+        title: 'Email invalide',
+        description: 'Veuillez entrer une adresse email valide.',
+        variant: 'destructive',
+      });
+      return;
+    }
     mutationInviteUser.mutate(data);
     mutationInviteUser.isSuccess
       ? setResponseServerSuccess(true)
@@ -268,9 +281,62 @@ export const StaffPage = withDashboard(() => {
                                     id='email'
                                     type='email'
                                     placeholder='Email'
-                                    {...field}
+                                    // {...field}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      const result = validateEmailComplete(
+                                        e.target.value
+                                      );
+                                      setValidation(result);
+                                    }}
                                   />
                                 </FormControl>
+                                <FormDescription>
+                                  {validation ? (
+                                    <div
+                                      className={`p-3 rounded-md ${
+                                        validation.isValid
+                                          ? 'bg-green-100 text-green-800'
+                                          : 'bg-red-100 text-red-800'
+                                      }`}
+                                    >
+                                      {validation.isValid ? (
+                                        <div>
+                                          <span className='mt-1 font-medium'>
+                                            ✓ Email valide
+                                          </span>
+                                          {validation.info.provider && (
+                                            <div className='text-sm'>
+                                              Fournisseur:{' '}
+                                              {validation.info.provider}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          <span className='mt-1 font-medium'>
+                                            ✗ Email invalide
+                                          </span>
+                                          <div className='text-sm'>
+                                            {validation.suggestion}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className='mt-1 text-sm text-gray-600'>
+                                      <h3 className='font-medium mb-2'>
+                                        Exemples valides :
+                                      </h3>
+                                      <ul className='space-y-1'>
+                                        <li>• utilisateur@exemple.com</li>
+                                        <li>• jean.dupont@gmail.com</li>
+                                        <li>• contact+info@entreprise.fr</li>
+                                        <li>• test_123@domaine.co.uk</li>
+                                      </ul>
+                                    </div>
+                                  )}
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}

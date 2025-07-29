@@ -11,6 +11,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -23,9 +24,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
 import WHeader from '@/components/welcome/WHeader';
 import { useCreateContributor } from '@/hook/contributors.hook';
 import { cn } from '@/lib/utils';
+import { validatePhoneNumber } from '@/utils';
+import { cleanEmail, validateEmailComplete } from '@/utils/emailValidator';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, CheckIcon, ChevronsUpDownIcon, Loader2 } from 'lucide-react';
 import React from 'react';
@@ -79,11 +83,28 @@ const domaineActivity = [
 ];
 
 const Register = () => {
+  const { toast } = useToast();
   const mutation = useCreateContributor();
   const [files, setFiles] = React.useState<File[]>([]);
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState('');
   const [currentStep, setCurrentStep] = React.useState<number>(1);
+  const [validationContributor, setValidationContributor] = React.useState<
+    null | any
+  >(null);
+  const [validationOwner, setValidationOwner] = React.useState<null | any>(
+    null
+  );
+  const [formattedNumberContributor, setFormattedNumberContributor] =
+    React.useState<string>('');
+  const [isValidNumberContributor, setIsValidNumberContributor] =
+    React.useState<null | boolean>(null);
+  const [formattedNumberOwner, setFormattedNumberOwner] =
+    React.useState<string>('');
+  const [isValidNumberOwner, setIsValidNumberOwner] = React.useState<
+    null | boolean
+  >(null);
+
   const form = useForm<ContributorFormValues>({
     resolver: zodResolver(contributorSchema),
     defaultValues: {
@@ -118,6 +139,63 @@ const Register = () => {
   });
 
   const onSubmit = (values: ContributorFormValues) => {
+    const { isValidNumber } = validatePhoneNumber(values.phoneNumber);
+    const isValidEmail = cleanEmail(values.email);
+    const { isValidNumber: isValidNumberForOwner } = validatePhoneNumber(
+      values.owner.phone
+    );
+    const isValidEmailForOwner = cleanEmail(values.owner.email);
+    if (!isValidNumber && !isValidNumberForOwner) {
+      toast({
+        title: 'Numéro de téléphone invalide',
+        description: 'Veuillez entrer un numéro de téléphone valide.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!isValidEmail && !isValidEmailForOwner) {
+      toast({
+        title: 'Email invalide',
+        description: 'Veuillez entrer une adresse email valide.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (files.length === 0) {
+      toast({
+        title: 'Attention',
+        description: 'Vous devez ajouter un logo pour votre profil.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (
+      !values.name ||
+      !values.description ||
+      !values.email ||
+      !values.phoneNumber
+    ) {
+      toast({
+        title: 'Attention',
+        description: 'Veuillez remplir tous les champs.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (
+      !values.address.country ||
+      !values.address.street ||
+      !values.address.postalCode ||
+      !values.address.city
+    ) {
+      toast({
+        title: 'Attention',
+        description: 'Veuillez remplir tous les champs.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     values.fieldOfActivity = value;
     mutation.mutate({ data: values, files });
     mutation.reset();
@@ -180,7 +258,7 @@ const Register = () => {
                     control={form.control}
                     name='name'
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className='mb-4'>
                         <FormLabel>Nom du l'organisation</FormLabel>
                         <FormControl>
                           <Input placeholder='Nom' {...field} />
@@ -194,7 +272,7 @@ const Register = () => {
                       Domaine d'activité
                     </label>
                     <Popover open={open} onOpenChange={setOpen}>
-                      <PopoverTrigger asChild>
+                      <PopoverTrigger asChild className='mb-4'>
                         <Button
                           variant='outline'
                           role='combobox'
@@ -247,11 +325,67 @@ const Register = () => {
                     control={form.control}
                     name='email'
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className='mb-4'>
                         <FormLabel>Email de l'organisation</FormLabel>
                         <FormControl>
-                          <Input type='email' placeholder='Email' {...field} />
+                          <Input
+                            type='email'
+                            placeholder='Email'
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const result = validateEmailComplete(
+                                e.target.value
+                              );
+                              setValidationContributor(result);
+                            }}
+                          />
                         </FormControl>
+                        <FormDescription>
+                          {validationContributor ? (
+                            <div
+                              className={`p-3 rounded-md ${
+                                validationContributor.isValid
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {validationContributor.isValid ? (
+                                <div>
+                                  <span className='font-medium'>
+                                    ✓ Email valide
+                                  </span>
+                                  {validationContributor.info.provider && (
+                                    <div className='mt-1 text-sm'>
+                                      Fournisseur:{' '}
+                                      {validationContributor.info.provider}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  <span className='font-medium'>
+                                    ✗ Email invalide
+                                  </span>
+                                  <div className='mt-1 text-sm'>
+                                    {validationContributor.suggestion}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className='mt-1 text-sm text-gray-600'>
+                              <h3 className='font-medium mb-2'>
+                                Exemples valides :
+                              </h3>
+                              <ul className='space-y-1'>
+                                <li>• utilisateur@exemple.com</li>
+                                <li>• jean.dupont@gmail.com</li>
+                                <li>• contact+info@entreprise.fr</li>
+                                <li>• test_123@domaine.co.uk</li>
+                              </ul>
+                            </div>
+                          )}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -260,15 +394,58 @@ const Register = () => {
                     control={form.control}
                     name='phoneNumber'
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className='mb-4'>
                         <FormLabel>Téléphone de l'organisation</FormLabel>
                         <FormControl>
                           <Input
                             type='tel'
                             placeholder='Exemple : +2250000000000'
-                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const { isValidNumber, formattedNumber } =
+                                validatePhoneNumber(e.target.value);
+                              setIsValidNumberContributor(isValidNumber);
+                              setFormattedNumberContributor(formattedNumber);
+                            }}
                           />
                         </FormControl>
+                        <FormDescription>
+                          {/* Exemples de formats acceptés */}
+                          {form.watch('phoneNumber') &&
+                          isValidNumberContributor ? (
+                            <div
+                              className={`p-3 rounded-md ${
+                                isValidNumberContributor
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              <div>
+                                <span className='font-medium'>
+                                  ✓ Numéro valide
+                                </span>
+                                {formattedNumberContributor && (
+                                  <div className='mt-1 text-sm'>
+                                    Format: {formattedNumberContributor}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className='mt-6 text-sm text-gray-600'>
+                              <h3 className='font-medium mb-2'>
+                                Formats acceptés :
+                              </h3>
+                              <ul className='space-y-1'>
+                                <li className='text-red'>• +2250123456789</li>
+                                <li className='text-red'>
+                                  • Préfixes: 01, 05, 07 (mobile), 27 (fixe
+                                  Abidjan)
+                                </li>
+                              </ul>
+                            </div>
+                          )}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -281,7 +458,7 @@ const Register = () => {
                     <input
                       type='file'
                       accept='image/*'
-                      className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none focus:ring-purple-500'
+                      className='w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:outline-none focus:ring-purple-500 mb-4'
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -402,8 +579,63 @@ const Register = () => {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input placeholder='Email' {...field} />
+                          <Input
+                            placeholder='Email'
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const result = validateEmailComplete(
+                                e.target.value
+                              );
+                              setValidationOwner(result);
+                            }}
+                          />
                         </FormControl>
+                        <FormDescription>
+                          {validationOwner ? (
+                            <div
+                              className={`p-3 rounded-md ${
+                                validationOwner.isValid
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {validationOwner.isValid ? (
+                                <div>
+                                  <span className='font-medium'>
+                                    ✓ Email valide
+                                  </span>
+                                  {validationOwner.info.provider && (
+                                    <div className='mt-1 text-sm'>
+                                      Fournisseur:{' '}
+                                      {validationOwner.info.provider}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  <span className='font-medium'>
+                                    ✗ Email invalide
+                                  </span>
+                                  <div className='mt-1 text-sm'>
+                                    {validationOwner.suggestion}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className='mt-1 text-sm text-gray-600'>
+                              <h3 className='font-medium mb-2'>
+                                Exemples valides :
+                              </h3>
+                              <ul className='space-y-1'>
+                                <li>• utilisateur@exemple.com</li>
+                                <li>• jean.dupont@gmail.com</li>
+                                <li>• contact+info@entreprise.fr</li>
+                                <li>• test_123@domaine.co.uk</li>
+                              </ul>
+                            </div>
+                          )}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -417,9 +649,51 @@ const Register = () => {
                         <FormControl>
                           <Input
                             placeholder='Exemple : +2250000000000'
-                            {...field}
+                            onChange={(e) => {
+                              const { isValidNumber, formattedNumber } =
+                                validatePhoneNumber(e.target.value);
+                              field.onChange(e);
+                              setIsValidNumberOwner(isValidNumber);
+                              setFormattedNumberOwner(formattedNumber);
+                            }}
                           />
                         </FormControl>
+                        <FormDescription>
+                          {/* Exemples de formats acceptés */}
+                          {form.watch('phoneNumber') && isValidNumberOwner ? (
+                            <div
+                              className={`p-3 rounded-md ${
+                                isValidNumberOwner
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              <div>
+                                <span className='font-medium'>
+                                  ✓ Numéro valide
+                                </span>
+                                {formattedNumberOwner && (
+                                  <div className='mt-1 text-sm'>
+                                    Format: {formattedNumberOwner}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className='mt-6 text-sm text-gray-600'>
+                              <h3 className='font-medium mb-2'>
+                                Formats acceptés :
+                              </h3>
+                              <ul className='space-y-1'>
+                                <li className='text-red'>• +2250123456789</li>
+                                <li className='text-red'>
+                                  • Préfixes: 01, 05, 07 (mobile), 27 (fixe
+                                  Abidjan)
+                                </li>
+                              </ul>
+                            </div>
+                          )}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

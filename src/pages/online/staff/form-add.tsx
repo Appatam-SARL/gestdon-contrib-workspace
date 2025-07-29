@@ -23,6 +23,7 @@ import { useCreateUser } from '@/hook/admin.hook';
 import { formAdminSchema, FormAdminValues } from '@/schema/admins.schema';
 import useContributorStore from '@/store/contributor.store';
 import { validatePhoneNumber } from '@/utils';
+import { cleanEmail, validateEmailComplete } from '@/utils/emailValidator';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Check, Loader2 } from 'lucide-react';
@@ -35,6 +36,7 @@ type FormFields = Path<FormAdminValues>[] | readonly Path<FormAdminValues>[];
 const AddStaffForm = withDashboard(() => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isValid, setIsValid] = useState<null | boolean>(null);
+  const [validation, setValidation] = useState<null | any>(null);
   const [formattedNumber, setFormattedNumber] = useState('');
 
   const { toast } = useToast();
@@ -60,12 +62,41 @@ const AddStaffForm = withDashboard(() => {
 
   const handleSubmit = (data: FormAdminValues) => {
     // setStaffMemberStore('staffMemberForm', data);
-    const { isValidNumber, formattedNumber } = validatePhoneNumber(data.phone);
-    console.log('🚀 ~ handleSubmit ~ isValidNumber:', formattedNumber);
+    const { isValidNumber } = validatePhoneNumber(data.phone);
+    const isValidEmail = cleanEmail(data.email);
     if (!isValidNumber) {
       toast({
         title: 'Numéro de téléphone invalide',
         description: 'Veuillez entrer un numéro de téléphone valide.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!isValidEmail) {
+      toast({
+        title: 'Email invalide',
+        description: 'Veuillez entrer une adresse email valide.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!data.firstName || !data.lastName) {
+      toast({
+        title: 'Nom invalide',
+        description: 'Veuillez entrer un nom valide.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (
+      !data.address.country &&
+      !data.address.street &&
+      !data.address.postalCode &&
+      !data.address.city
+    ) {
+      toast({
+        title: 'Adresse invalide',
+        description: 'Veuillez entrer une adresse valide.',
         variant: 'destructive',
       });
       return;
@@ -187,9 +218,61 @@ const AddStaffForm = withDashboard(() => {
                           id='email'
                           type='email'
                           placeholder='Email'
-                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            const result = validateEmailComplete(
+                              e.target.value
+                            );
+                            setValidation(result);
+                          }}
+                          // {...field}
                         />
                       </FormControl>
+                      <FormDescription>
+                        {validation ? (
+                          <div
+                            className={`p-3 rounded-md ${
+                              validation.isValid
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {validation.isValid ? (
+                              <div>
+                                <span className='font-medium'>
+                                  ✓ Email valide
+                                </span>
+                                {validation.info.provider && (
+                                  <div className='mt-1 text-sm'>
+                                    Fournisseur: {validation.info.provider}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div>
+                                <span className='font-medium'>
+                                  ✗ Email invalide
+                                </span>
+                                <div className='mt-1 text-sm'>
+                                  {validation.suggestion}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className='mt-6 text-sm text-gray-600'>
+                            <h3 className='font-medium mb-2'>
+                              Exemples valides :
+                            </h3>
+                            <ul className='space-y-1'>
+                              <li>• utilisateur@exemple.com</li>
+                              <li>• jean.dupont@gmail.com</li>
+                              <li>• contact+info@entreprise.fr</li>
+                              <li>• test_123@domaine.co.uk</li>
+                            </ul>
+                          </div>
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

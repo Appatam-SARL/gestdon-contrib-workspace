@@ -34,7 +34,10 @@ const representantBeneficiaireSchema = z.object({
 
 export const formBeneficiarySchema = z.object({
   fullName: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
-  type: z.string().nonempty('Le type est requis').min(2, 'Le type doit contenir au moins 2 caractères'),
+  type: z
+    .string()
+    .nonempty('Le type est requis')
+    .min(2, 'Le type doit contenir au moins 2 caractères'),
   description: z
     .string()
     .min(2, 'La description doit contenir au moins 2 caractères'),
@@ -58,14 +61,35 @@ export const formUpdateBeneficiarySchema = z.object({
 });
 
 export const formAddRepresentantBeneficiarySchema = z.object({
-  firstName: z.string(),
-  lastName: z.string(),
-  phone: z.string(),
+  firstName: z
+    .string()
+    .nonempty('Le prénom est requis')
+    .min(2, 'Le prénom doit contenir au moins 2 caractères'),
+  lastName: z
+    .string()
+    .nonempty('Le nom est requis')
+    .min(2, 'Le nom doit contenir au moins 2 caractères'),
+  phone: z
+    .string()
+    .nonempty('Le numéro de téléphone est requis')
+    .min(2, 'Le numéro de téléphone doit contenir au moins 2 caractères'),
   address: z.object({
-    country: z.string(),
-    street: z.string(),
-    postalCode: z.string(),
-    city: z.string(),
+    country: z
+      .string()
+      .nonempty('Le pays est requis')
+      .min(2, 'Le pays doit contenir au moins 2 caractères'),
+    street: z
+      .string()
+      .nonempty('La rue est requise')
+      .min(2, 'La rue doit contenir au moins 2 caractères'),
+    postalCode: z
+      .string()
+      .nonempty('Le code postal est requis')
+      .min(2, 'Le code postal doit contenir au moins 2 caractères'),
+    city: z
+      .string()
+      .nonempty('La ville est requise')
+      .min(2, 'La ville doit contenir au moins 2 caractères'),
   }),
 });
 

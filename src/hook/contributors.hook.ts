@@ -25,19 +25,17 @@ export const useCreateContributor = () => {
       data: ContributorFormValues;
       files: Array<File>;
     }) => {
-      try {
-        const formData = new FormData();
-        formData.append('file', files[0]);
-        const response = await uploadFile(formData, 'logo');
-        if (response.success) {
-          data.logo = {
-            fileId: response.filesData[0].fileId,
-            fileUrl: response.filesData[0].fileUrl,
-          };
+      const formData = new FormData();
+      formData.append('file', files[0]);
+      const response = await uploadFile(formData, 'logo');
+      if (response.success) {
+        data.logo = {
+          fileId: response.filesData[0].fileId,
+          fileUrl: response.filesData[0].fileUrl,
+        };
+        const responseAfterCreatingAccountContributor =
           await ContributorsAPI.createContributor(data);
-        }
-      } catch (error) {
-        console.error('Error creating contributor:', error);
+        return responseAfterCreatingAccountContributor;
       }
     },
     onMutate: () => {
@@ -47,10 +45,10 @@ export const useCreateContributor = () => {
         duration: 5000,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
-        title: 'Création réussie',
-        description: 'Merci de patienter...',
+        title: 'Message de confirmation',
+        description: data?.message,
         duration: 5000,
       });
       navigate('/register-successfull');
@@ -59,6 +57,7 @@ export const useCreateContributor = () => {
       toast({
         title: 'Erreur lors de la création',
         description: error.message,
+        variant: 'destructive',
         duration: 5000,
       });
     },
