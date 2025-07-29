@@ -3,7 +3,7 @@
 export const workSpaceEnvironnement: 'dev' | 'preprod' | 'prod' = 'preprod';
 
 const BASE_URL: Record<'prod' | 'dev' | 'preprod', string> = {
-  preprod: 'https://b7ca112edc25.ngrok-free.app',
+  preprod: 'https://b7ca112edc25.ngrok-free.app/',
   prod: 'https://api.valdeli.com/',
   dev: `http://localhost:5000/`,
 };
