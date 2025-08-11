@@ -49,10 +49,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { Switch } from '@/components/ui/switch';
 import {
   useCreateActivityType,
   useDeleteActivityType,
   useGetActivityType,
+  useToggleMenu,
   useUpdateActivityType,
 } from '@/hook/activity-type.hook';
 import useContributorStore from '@/store/contributor.store';
@@ -64,6 +66,7 @@ interface IActivityType {
   _id: string;
   label: string;
   createdAt: string;
+  addToMenu: boolean;
   // contributorId: string;
   // Ajoutez d'autres propriétés si votre type d'activité en a
 }
@@ -72,6 +75,7 @@ interface IActivityType {
 const activitySchema = z.object({
   _id: z.string().optional(), // Added _id as optional for creation, required for update
   label: z.string().min(1, "Le nom de l'activité est requis"),
+  addToMenu: z.boolean().default(false).optional(),
 });
 
 // Zod schema for filter form
@@ -83,25 +87,25 @@ export type ActivityFormValues = z.infer<typeof activitySchema>;
 type FilterFormValues = z.infer<typeof filterSchema>;
 
 const SettingActivity = () => {
+  const [openDialogTriggerMenu, setOpenDialogTriggerMenu] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingActivityId, setEditingActivityId] = useState<string | null>(
     null
   );
-
   const [activityToDeleteId, setActivityToDeleteId] = useState<string | null>(
     null
   );
-
   const [sortBy, setSortBy] = useState<string | null>('createdAt'); // Changé à createdAt
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(
     'asc'
   );
-
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // You can adjust this value
+  // Toggle menu
+  const [activitySelected, setActivitySelected] =
+    useState<IActivityType | null>(null);
 
   // store
   const contributorId = useContributorStore((state) => state.contributor?._id);
@@ -127,12 +131,14 @@ const SettingActivity = () => {
     refetchActivityTypes
   );
   const mutationDeleteActivityType = useDeleteActivityType();
+  const mutationToggleMenu = useToggleMenu();
 
   // React Hook Form setup for Add Dialog
   const addForm = useForm<ActivityFormValues>({
     resolver: zodResolver(activitySchema),
     defaultValues: {
       label: '',
+      addToMenu: false,
     },
   });
 
@@ -141,6 +147,7 @@ const SettingActivity = () => {
     resolver: zodResolver(activitySchema),
     defaultValues: {
       label: '',
+      addToMenu: false,
     },
   });
 
@@ -272,6 +279,11 @@ const SettingActivity = () => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
+  const handleAddToMenu = (activity: IActivityType) => {
+    console.log('activitySelected', activitySelected);
+    mutationToggleMenu.mutate(activity._id);
+  };
+
   return (
     <div className='p-6 space-y-4'>
       <h2 className='text-2xl font-bold'>Paramétrage des activités</h2>
@@ -300,7 +312,9 @@ const SettingActivity = () => {
                   name='label'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className='text-right'>Nom</FormLabel>
+                      <FormLabel className='text-right'>
+                        Nom du type d'activité
+                      </FormLabel>
                       <FormControl>
                         <Input
                           id='label'
@@ -312,7 +326,26 @@ const SettingActivity = () => {
                     </FormItem>
                   )}
                 />
-
+                {/* Radio ajouter aux menus */}
+                <FormField
+                  control={addForm.control}
+                  name='addToMenu'
+                  render={({ field }) => (
+                    <FormItem className='flex gap-4 cursor-pointer'>
+                      <FormLabel className='text-right'>
+                        Ajouter au menu de navigation
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          className='animate-bounce'
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage className='col-span-4 offset-col-span-1' />
+                    </FormItem>
+                  )}
+                />
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button
@@ -462,6 +495,7 @@ const SettingActivity = () => {
                   />
                 )}
               </TableHead>
+              <TableHead>Menu item</TableHead>
               <TableHead className='flex justify-end items-center'>
                 Actions
               </TableHead>
@@ -490,6 +524,60 @@ const SettingActivity = () => {
                   <TableCell>
                     {new Date(activity.createdAt).toLocaleDateString('fr-FR')}
                   </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={activity.addToMenu}
+                      onCheckedChange={(checked) => {
+                        setActivitySelected(activity);
+
+                        setOpenDialogTriggerMenu(true);
+                      }}
+                    />
+                  </TableCell>
+                  <AlertDialog
+                    open={openDialogTriggerMenu}
+                    onOpenChange={setOpenDialogTriggerMenu}
+                  >
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Êtes-vous absolument sûr ?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {activitySelected?.addToMenu
+                            ? "De retirer ce type d'activité du menu?"
+                            : 'De vouloir ajouter ce type activité au menu?'}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel
+                          onClick={() => setActivityToDeleteId(null)}
+                          disabled={mutationDeleteActivityType.isPending}
+                        >
+                          Annuler
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() =>
+                            handleAddToMenu(activitySelected as IActivityType)
+                          }
+                          disabled={mutationDeleteActivityType.isPending}
+                        >
+                          {mutationDeleteActivityType.isPending ? (
+                            <>
+                              <Loader2 className='animate-spin mr-2' />
+                              Suppression...
+                            </>
+                          ) : (
+                            <>
+                              {activitySelected?.addToMenu
+                                ? 'Retirer'
+                                : 'Ajouter'}
+                            </>
+                          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <TableCell className='flex justify-end gap-2'>
                     <Button
                       variant='outline'

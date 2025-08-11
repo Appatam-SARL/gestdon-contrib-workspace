@@ -35,6 +35,7 @@ export const useValidateActivity = (
       toast({
         title: 'Vous venez de valider une nouvelle activité.',
         variant: 'default',
+        duration: 1000,
       });
       setIsValidateDialogOpen(false);
     },
@@ -43,6 +44,7 @@ export const useValidateActivity = (
         title: 'Failed to validate activity.',
         description: error.message || 'An unexpected error occurred.',
         variant: 'destructive',
+        duration: 500,
       });
     },
   });

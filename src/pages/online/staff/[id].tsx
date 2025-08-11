@@ -63,7 +63,7 @@ import { useMfaStore } from '@/store/mfa.store';
 import useUserStore from '@/store/user.store';
 import { ILog, IlogFilter } from '@/types/log.type';
 import { StaffMemberForm } from '@/types/staff';
-import { helperUserPermission } from '@/utils';
+import { helperUserPermission, validatePhoneNumber } from '@/utils';
 import { getRoleLayout } from '@/utils/display-of-variable';
 import { DialogTrigger } from '@radix-ui/react-dialog';
 import {
@@ -79,6 +79,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
+import PhoneInput from 'react-phone-number-input';
 import QrCode from 'react-qr-code';
 import { Link, useParams } from 'react-router-dom';
 
@@ -98,6 +99,8 @@ const getActionBadgeVariant = (type: string) => {
 export const StaffDetailsPage = withDashboard(() => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const [isValid, setIsValid] = useState<null | boolean>(null);
+  const [formattedNumber, setFormattedNumber] = useState('');
 
   // state local
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -116,7 +119,13 @@ export const StaffDetailsPage = withDashboard(() => {
     newPassword: '',
     confirmPassword: '',
   });
-  const [infoForm, setInfoForm] = useState({
+  const [infoForm, setInfoForm] = useState<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    role: string;
+  }>({
     firstName: '',
     lastName: '',
     email: '',
@@ -1065,16 +1074,53 @@ export const StaffDetailsPage = withDashboard(() => {
             </div>
             <div>
               <Label htmlFor='phone'>Téléphone</Label>
-              <Input
-                id='phone'
+              <PhoneInput
+                international={false}
+                defaultCountry='CI'
                 value={infoForm.phone}
-                onChange={(e) =>
+                onChange={(e) => {
                   setInfoForm((prev) => ({
                     ...prev,
-                    phone: e.target.value,
-                  }))
+                    phone: e,
+                  }));
+
+                  const { isValidNumber, formattedNumber } =
+                    validatePhoneNumber(e ? e : '');
+                  setIsValid(isValidNumber);
+                  setFormattedNumber(formattedNumber);
+                }}
+                className={
+                  'flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
                 }
               />
+              {isValid ? (
+                <div
+                  className={`p-3 rounded-md ${
+                    isValid
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  <div>
+                    <span className='font-medium'>✓ Numéro valide</span>
+                    {formattedNumber && (
+                      <div className='mt-1 text-sm'>
+                        Format: {formattedNumber}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className='mt-6 text-sm text-gray-600'>
+                  <h3 className='font-medium mb-2'>Formats acceptés :</h3>
+                  <ul className='space-y-1'>
+                    <li className='text-red'>• +225 01 23 45 67 89</li>
+                    <li className='text-red'>
+                      • Préfixes: 01, 05, 07 (mobile), 27 (fixe Abidjan)
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
             {user?.role === 'MANAGER' ||
               (user?.role === 'COORDINATOR' && (

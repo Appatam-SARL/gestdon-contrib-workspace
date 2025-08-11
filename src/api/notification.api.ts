@@ -1,4 +1,5 @@
 // src/api/notifications.ts
+import { API_ROOT } from '@/config/app.config';
 import axios from 'axios';
 
 export interface Notification {
@@ -15,19 +16,13 @@ export interface NotificationListResponse {
   total: number;
 }
 
-const API_URL = 'http://localhost:5000/v1/api/notifications';
+const API_URL = API_ROOT.notifications;
 
 export const getNotifications = async (
-  token: string,
-  page = 1,
-  limit = 20
+  token: string
 ): Promise<NotificationListResponse> => {
   const res = await axios.get(`${API_URL}`, {
     headers: { Authorization: `Bearer ${token}` },
-    params: {
-      page,
-      limit,
-    },
   });
   return res.data;
 };

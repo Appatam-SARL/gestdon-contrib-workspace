@@ -28,6 +28,10 @@ import Conversation from '@/pages/auth/conversation';
 import Register from '@/pages/auth/register';
 import RegisterSuccessfull from '@/pages/auth/register-successfull';
 import { DonPage } from '@/pages/online/don';
+import Feeds from '@/pages/online/feeds';
+import FollowRequest from '@/pages/online/followRequest';
+import Followers from '@/pages/online/followers';
+import Following from '@/pages/online/following';
 import { PromisesPage } from '@/pages/online/promise';
 import RepportsPage from '@/pages/online/rapports';
 import ReportDetailsPage from '@/pages/online/rapports/[id]';
@@ -37,6 +41,7 @@ import SettingActivity from '@/pages/online/settings/setting-activity';
 import SettingBeneficiary from '@/pages/online/settings/setting-beneficiary';
 import SettingsActivityCustomizableForm from '@/pages/online/settings/settings-activity-customizable-form';
 import SettingsBeneficiaryCustomizableForm from '@/pages/online/settings/settings-beneficiary-customizable-form';
+import SocialContributorProfile from '@/pages/online/socialContributorProfile';
 import { StaffPage } from '@/pages/online/staff';
 import { StaffDetailsPage } from '@/pages/online/staff/[id]';
 import AddStaffForm from '@/pages/online/staff/form-add';
@@ -196,7 +201,14 @@ const AppRouter = () => {
           />
         </Route>
         {/* Add other routes here */}
-
+        <Route path='/feed' element={<Feeds />} />
+        <Route path='/followers' element={<Followers />} />
+        <Route path='/following' element={<Following />} />
+        <Route path='/follow-request' element={<FollowRequest />} />
+        <Route
+          path='/social-contributor-profile/:id'
+          element={<SocialContributorProfile />}
+        />
         <Route
           path='*'
           element={

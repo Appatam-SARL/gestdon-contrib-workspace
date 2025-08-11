@@ -37,6 +37,7 @@ export function useCreateActivityType(
         description: data.data.createdAt,
       });
       queryClient.invalidateQueries({ queryKey: ['activity-type'] });
+      queryClient.invalidateQueries({ queryKey: ['menus'] });
       setIsAddDialogOpen(false);
       refetchActivityTypes();
     },
@@ -113,6 +114,38 @@ export function useDeleteActivityType() {
       toast({
         title: error.message,
         description: 'Une erreur est survenue lors de la suppression.',
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+export function useToggleMenu() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => ActivityTypeApi.toggleMenu(id),
+    onMutate: () => {
+      // onMutate
+      toast({
+        title: 'Requête en cours',
+        description: 'Veuillez patienter...',
+      });
+    },
+    onSuccess: () => {
+      // onSuccess
+      queryClient.invalidateQueries({ queryKey: ['activity-type'] });
+      queryClient.invalidateQueries({ queryKey: ['menus'] });
+      toast({
+        title: 'Succès',
+        description: "Le type d'activité a été modifié avec succès.",
+      });
+    },
+    onError: (error) => {
+      // onError
+      toast({
+        title: error.message,
+        description: 'Une erreur est survenue lors de la modification.',
         variant: 'destructive',
       });
     },

@@ -121,3 +121,63 @@ export const validatePhoneNumber = (value: any) => {
 
   return { isValidNumber, formattedNumber: formatted };
 };
+
+export const verifyIfContributorExistsInFollowing = (
+  followerId: string,
+  following: string[]
+) => {
+  return following.some((followingId) => followingId === followerId);
+};
+
+export const verifyIfContributorLikeThePost = (
+  userId: string,
+  likes: any[]
+) => {
+  if (!likes || !Array.isArray(likes)) return false;
+
+  return likes.some((like) => {
+    // Gérer le cas où like est un objet avec une propriété user
+    if (typeof like === 'object' && like !== null && 'user' in like) {
+      return like.user === userId;
+    }
+    // Gérer le cas où like est directement l'ID de l'utilisateur
+    if (typeof like === 'string') {
+      return like === userId;
+    }
+    // Gérer le cas où like est un objet avec _id
+    if (typeof like === 'object' && like !== null && '_id' in like) {
+      return like._id === userId;
+    }
+    return false;
+  });
+};
+
+export const verifyIfContributorLikeTheComment = (
+  userId: string,
+  likes: any[]
+) => {
+  if (!likes || !Array.isArray(likes)) return false;
+
+  return likes.some((like) => {
+    // Gérer le cas où like est un objet avec une propriété user
+    if (typeof like === 'object' && like !== null && 'user' in like) {
+      return like.user === userId;
+    }
+    // Gérer le cas où like est directement l'ID de l'utilisateur
+    if (typeof like === 'string') {
+      return like === userId;
+    }
+    // Gérer le cas où like est un objet avec _id
+    if (typeof like === 'object' && like !== null && '_id' in like) {
+      return like._id === userId;
+    }
+    return false;
+  });
+};
+
+export const verifyIfContributorFollowsContributor = (
+  followerId: string,
+  following: string[]
+) => {
+  return following.some((followingId) => followingId === followerId);
+};

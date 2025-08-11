@@ -31,7 +31,7 @@ export const formActivitySchema = z.object({
     .string()
     .nonempty('Ce champ est requis')
     .min(10, 'Minimum 10 caractères'),
-  activityTypeId: z.string().nonempty('Ce champ est requis'),
+  activityTypeId: z.string().optional(),
   customFields: z.array(
     z.object({
       label: z.string(),

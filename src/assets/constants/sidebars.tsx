@@ -5,13 +5,16 @@ import {
   File,
   HeartHandshakeIcon,
   LayoutDashboard,
+  Rss,
   Users,
+  Users2,
 } from 'lucide-react';
 
 interface SidebarLink {
   icon: React.ReactNode;
   label: string;
   href: string;
+  submenu?: SidebarLink[];
 }
 
 const sidebarLinks: SidebarLink[] = [
@@ -19,6 +22,28 @@ const sidebarLinks: SidebarLink[] = [
     icon: <LayoutDashboard className='h-5 w-5' />,
     label: 'Tableau de bord',
     href: '/dashboard',
+  },
+  {
+    icon: <Rss className='h-5 w-5' />,
+    label: 'Réseau social',
+    href: '#',
+    submenu: [
+      {
+        icon: <Rss className='h-5 w-5' />,
+        label: "Fil d'actualités",
+        href: '/feed',
+      },
+      {
+        icon: <Users2 className='h-5 w-5' />,
+        label: 'Mes followers',
+        href: '/followers',
+      },
+      {
+        icon: <Users className='h-5 w-5' />,
+        label: "Mes j'aime",
+        href: '/following',
+      },
+    ],
   },
   {
     icon: <Activity className='h-5 w-5' />,

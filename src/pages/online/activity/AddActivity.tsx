@@ -37,13 +37,12 @@ import {
   FormActivitySchema,
 } from '@/schema/activity.schema';
 import useContributorStore from '@/store/contributor.store';
-import useUserStore from '@/store/user.store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, SaveIcon } from 'lucide-react';
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 export interface IFilterActivityType {
   activityTypeId?: string;
@@ -51,8 +50,10 @@ export interface IFilterActivityType {
 }
 
 const AddActivity = withDashboard(() => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activityTypeId = searchParams.get('type');
+  console.log('🚀 ~ activityTypeId:', activityTypeId);
   const contributorId = useContributorStore((s) => s.contributor?._id);
-  const user = useUserStore((s) => s.user);
 
   const [filterActivityType, setFilterActivityType] =
     useState<IFilterActivityType>({ activityTypeId: '', contributorId: '' });
@@ -68,7 +69,9 @@ const AddActivity = withDashboard(() => {
     useGetActivityType(filterActivityType);
   const { data: customFields, isLoading: isLoadingCustomFields } =
     useGetCustomFieldsByActivityType(filterCustomFields);
-  const mutationCreateActivity = useCreateActivity();
+  const mutationCreateActivity = useCreateActivity(
+    activityTypeId ? activityTypeId : ''
+  );
 
   const formAddActivity = useForm<FormActivitySchema>({
     resolver: zodResolver(formActivitySchema),
@@ -82,7 +85,7 @@ const AddActivity = withDashboard(() => {
   });
 
   // Initialisation des filtres au chargement du composant
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (filterActivityType.contributorId === '') {
       setFilterActivityType((prev) => ({
         ...prev,
@@ -91,19 +94,31 @@ const AddActivity = withDashboard(() => {
     }
   }, [filterActivityType, contributorId]);
 
-  useLayoutEffect(() => {
-    if (filterCustomFields.ownerId === '') {
+  useEffect(() => {
+    setFilterCustomFields((prev) => ({
+      ...prev,
+      ownerId: contributorId as string,
+      form: 'activity',
+      entityType: 'ACTIVITY',
+      entityId: activityTypeId ? activityTypeId : undefined,
+    }));
+    return () => {
       setFilterCustomFields((prev) => ({
         ...prev,
-        ownerId: contributorId as string,
+        ownerId: undefined,
         form: 'activity',
         entityType: 'ACTIVITY',
+        entityId: undefined,
       }));
-    }
-  }, [filterCustomFields, contributorId]);
+    };
+  }, [contributorId, activityTypeId]);
 
   // Mettre à jour les custom fields dans le formulaire à chaque changement de customFields (après chargement)
   useEffect(() => {
+    // formAddActivity.setValue(
+    //   'activityTypeId',
+    //   activityTypeId ? activityTypeId : ''
+    // );
     if (customFields?.data) {
       formAddActivity.setValue(
         'customFields',
@@ -143,7 +158,7 @@ const AddActivity = withDashboard(() => {
       title: data.title,
       description: data.description,
       contributorId,
-      activityTypeId: data.activityTypeId,
+      activityTypeId: activityTypeId ? activityTypeId : data.activityTypeId,
       customFields: customFieldsMap,
     };
     mutationCreateActivity.mutateAsync(payload);
@@ -218,14 +233,23 @@ const AddActivity = withDashboard(() => {
                   <FormField
                     control={formAddActivity.control}
                     name='activityTypeId'
-                    disabled={mutationCreateActivity.isPending}
+                    disabled={
+                      mutationCreateActivity.isPending || activityTypeId
+                        ? true
+                        : false
+                    }
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Type d'activité</FormLabel>
                         <FormControl>
                           <Select
-                            value={field.value}
+                            value={field.value || (activityTypeId as string)}
                             onValueChange={handleActivityTypeChange}
+                            disabled={
+                              mutationCreateActivity.isPending || activityTypeId
+                                ? true
+                                : false
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Sélectionnez un type d'activité" />
@@ -270,7 +294,7 @@ const AddActivity = withDashboard(() => {
               {isLoadingCustomFields ? (
                 <Skeleton count={3} className='h-10 w-full' />
               ) : (
-                filterActivityType.activityTypeId &&
+                (filterActivityType.activityTypeId || activityTypeId) &&
                 Number(customFields?.data?.length) > 0 &&
                 customFields?.data?.map((customField, index) => (
                   <FormField
