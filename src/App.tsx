@@ -3,6 +3,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import AppRouter from './router';
 
 import 'react-loading-skeleton/dist/skeleton.css';
+import 'react-phone-number-input/style.css';
 import { Toaster } from './components/ui/toaster';
 
 const queryClient = new QueryClient();

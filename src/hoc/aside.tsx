@@ -8,6 +8,8 @@ import {
 import { useLogout } from '@/hook/admin.hook';
 import { cn } from '@/lib/utils';
 import {
+  Activity,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -17,10 +19,180 @@ import {
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-function Aside() {
+export interface IProps {
+  menus?: {
+    _id: string;
+    label: string;
+    href: string;
+    contributorId: string;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+}
+
+function Aside({ menus }: IProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [expandedMenus, setExpandedMenus] = React.useState<Set<string>>(
+    new Set()
+  );
+
   const location = useLocation();
+
   const mutation = useLogout();
+
+  const toggleSubmenu = (href: string) => {
+    const newExpandedMenus = new Set(expandedMenus);
+    if (newExpandedMenus.has(href)) {
+      newExpandedMenus.delete(href);
+    } else {
+      newExpandedMenus.add(href);
+    }
+    setExpandedMenus(newExpandedMenus);
+  };
+
+  const isActive = (href: string) => {
+    return (
+      location.pathname === href || location.pathname.startsWith(href + '/')
+    );
+  };
+
+  const renderMenuItem = (link: any, level: number = 0) => {
+    const hasSubmenu = link.submenu && link.submenu.length > 0;
+    const isExpanded = expandedMenus.has(link.href);
+    const isLinkActive = isActive(link.href);
+    const hasActiveChild =
+      hasSubmenu && link.submenu.some((subLink: any) => isActive(subLink.href));
+
+    return (
+      <div key={link.href} className='space-y-1'>
+        <div className='flex items-center'>
+          {hasSubmenu ? (
+            <button
+              onClick={() => toggleSubmenu(link.href)}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200 group w-full',
+                isLinkActive || hasActiveChild
+                  ? 'bg-[#fff] text-[#6c2bd9] font-semibold'
+                  : 'text-white',
+                'hover:bg-[#fff] hover:text-[#6c2bd9]',
+                isCollapsed && 'justify-center'
+              )}
+            >
+              <span
+                className={cn(
+                  'h-5 w-5 transition-colors duration-200',
+                  isLinkActive || hasActiveChild ? 'text-[#000]' : 'text-white',
+                  'group-hover:text-[#000]'
+                )}
+              >
+                {link.icon}
+              </span>
+              {!isCollapsed && (
+                <>
+                  <span
+                    className={cn(
+                      'transition-colors duration-200 flex-1 text-left',
+                      isLinkActive || hasActiveChild
+                        ? 'text-[#000]'
+                        : 'text-white',
+                      'group-hover:text-[#000]'
+                    )}
+                  >
+                    {link.label}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 transition-transform duration-200',
+                      isExpanded ? 'rotate-180' : '',
+                      isLinkActive || hasActiveChild
+                        ? 'text-[#000]'
+                        : 'text-white',
+                      'group-hover:text-[#000]'
+                    )}
+                  />
+                </>
+              )}
+            </button>
+          ) : (
+            <Link
+              to={link.href}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200 group',
+                isLinkActive
+                  ? 'bg-[#fff] text-[#6c2bd9] font-semibold'
+                  : 'text-white',
+                'hover:bg-[#fff] hover:text-[#6c2bd9]',
+                isCollapsed && 'justify-center'
+              )}
+            >
+              <span
+                className={cn(
+                  'h-5 w-5 transition-colors duration-200',
+                  isLinkActive ? 'text-[#000]' : 'text-white',
+                  'group-hover:text-[#000]'
+                )}
+              >
+                {link.icon ? link.icon : <Activity className='h-5 w-5' />}
+              </span>
+              {!isCollapsed && (
+                <span
+                  className={cn(
+                    'transition-colors duration-200',
+                    isLinkActive ? 'text-[#000]' : 'text-white',
+                    'group-hover:text-[#000]'
+                  )}
+                >
+                  {link.label}
+                </span>
+              )}
+            </Link>
+          )}
+        </div>
+
+        {/* Sous-menus */}
+        {hasSubmenu && isExpanded && !isCollapsed && (
+          <div className='ml-6 space-y-1'>
+            {link.submenu.map((subLink: any) => {
+              const isSubLinkActive = isActive(subLink.href);
+              return (
+                <Link
+                  key={subLink.href}
+                  to={subLink.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200 group',
+                    isSubLinkActive
+                      ? 'bg-[#fff] text-[#6c2bd9] font-semibold'
+                      : 'text-white',
+                    'hover:bg-[#fff] hover:text-[#6c2bd9]'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'h-4 w-4 transition-colors duration-200',
+                      isSubLinkActive ? 'text-[#000]' : 'text-white',
+                      'group-hover:text-[#000]'
+                    )}
+                  >
+                    {subLink.icon}
+                  </span>
+                  <span
+                    className={cn(
+                      'transition-colors duration-200',
+                      isSubLinkActive ? 'text-[#000]' : 'text-white',
+                      'group-hover:text-[#000]'
+                    )}
+                  >
+                    {subLink.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <aside
       className={cn(
@@ -55,46 +227,11 @@ function Aside() {
 
       {/* Navigation */}
       <nav className='flex-1 pt-4 p-4 space-y-2 overflow-y-auto'>
-        {sidebarLinks.map((link) => {
-          const isActive = location.pathname === link.href;
-          // Liens normaux
-          return (
-            <Link
-              key={link.href}
-              to={link.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200 group',
-                isActive
-                  ? 'bg-[#fff] text-[#6c2bd9] font-semibold'
-                  : 'text-white',
-                'hover:bg-[#fff] hover:text-[#6c2bd9]',
-                isCollapsed && 'justify-center'
-              )}
-            >
-              <span
-                className={cn(
-                  'h-5 w-5 transition-colors duration-200',
-                  isActive ? 'text-[#000]' : 'text-white',
-                  'group-hover:text-[#000]'
-                )}
-              >
-                {link.icon}
-              </span>
-              {!isCollapsed && (
-                <span
-                  className={cn(
-                    'transition-colors duration-200',
-                    isActive ? 'text-[#000]' : 'text-white',
-                    'group-hover:text-[#000]'
-                  )}
-                >
-                  {link.label}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+        {[...sidebarLinks, ...(menus ?? [])].map((link) =>
+          renderMenuItem(link)
+        )}
       </nav>
+
       {/* Footer */}
       <div className='border-t border-white/10 p-4 space-y-2'>
         <Link
@@ -142,7 +279,6 @@ function Aside() {
           ) : (
             <ChevronLeft className='h-4 w-4' />
           )}
-          {/* </button> */}
         </TooltipTrigger>
         <TooltipContent>
           <p>{isCollapsed ? 'Ouvrir' : 'Fermer'} le menu</p>

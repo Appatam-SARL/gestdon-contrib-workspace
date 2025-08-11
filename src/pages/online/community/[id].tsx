@@ -1,3 +1,4 @@
+import countries from '@/assets/constants/country';
 import { UpdateRepresentantForm } from '@/components/community/UpdateRepresentantForm';
 import {
   AlertDialog,
@@ -15,6 +16,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -25,11 +33,17 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -53,6 +67,7 @@ import { IRepresentantBeneficiaire } from '@/interface/beneficiaire';
 import { IBeneficiaryType } from '@/interface/beneficiary-type';
 import { IDon } from '@/interface/don';
 import { tPromesse } from '@/interface/promesse';
+import { cn } from '@/lib/utils';
 import {
   formAddRepresentantBeneficiarySchema,
   FormAddRepresentantBeneficiarySchemaValue,
@@ -62,7 +77,12 @@ import {
   FormUpdateRepresentantBeneficiarySchemaValue,
 } from '@/schema/beneficiary.schema';
 import useContributorStore from '@/store/contributor.store';
-import { helperFullAddress, helperFullName, tAddress } from '@/utils';
+import {
+  helperFullAddress,
+  helperFullName,
+  tAddress,
+  validatePhoneNumber,
+} from '@/utils';
 import {
   displayStatusDon,
   displayStatusPromesse,
@@ -70,6 +90,8 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ArrowLeft,
+  Check,
+  ChevronsUpDown,
   Loader2,
   PenIcon,
   Save,
@@ -79,6 +101,7 @@ import {
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
+import PhoneInput from 'react-phone-number-input';
 import { Link, useParams } from 'react-router-dom';
 
 const DetailCommunity = withDashboard(() => {
@@ -98,6 +121,11 @@ const DetailCommunity = withDashboard(() => {
     isOpenAddRepresentantBeneficiary,
     setIsOpenAddRepresentantBeneficiary,
   ] = useState<boolean>(false);
+  const [isValid, setIsValid] = useState<null | boolean>(null);
+  const [formattedNumber, setFormattedNumber] = useState('');
+  const [open, setOpen] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+
   const [representantBeneficiary, setRepresentantBeneficiary] =
     useState<IRepresentantBeneficiaire>({
       _id: '',
@@ -613,8 +641,7 @@ const DetailCommunity = withDashboard(() => {
                             <td className='py-3 px-4 text-right text-sm font-medium'>
                               <Badge
                                 variant={
-                                  displayStatusDon(don.status ?? '') ===
-                                  'Validé'
+                                  displayStatusDon(don.status ?? '') === 'Reçu'
                                     ? 'success'
                                     : 'secondary'
                                 }
@@ -766,13 +793,56 @@ const DetailCommunity = withDashboard(() => {
                       Téléphone
                     </label>
                     <FormControl>
-                      <Input
-                        id='phone'
-                        type='text'
-                        placeholder='Téléphone'
-                        {...field}
+                      <PhoneInput
+                        international={false}
+                        defaultCountry='CI'
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          const { isValidNumber, formattedNumber } =
+                            validatePhoneNumber(e ? e : '');
+                          setIsValid(isValidNumber);
+                          setFormattedNumber(formattedNumber);
+                        }}
+                        className={
+                          'flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+                        }
                       />
                     </FormControl>
+                    <FormDescription>
+                      {/* Exemples de formats acceptés */}
+                      {formAddRepresentantBeneficiary.watch('phone') &&
+                      isValid ? (
+                        <div
+                          className={`p-3 rounded-md ${
+                            isValid
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          <div>
+                            <span className='font-medium'>✓ Numéro valide</span>
+                            {formattedNumber && (
+                              <div className='mt-1 text-sm'>
+                                Format: {formattedNumber}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className='mt-6 text-sm text-gray-600'>
+                          <h3 className='font-medium mb-2'>
+                            Formats acceptés :
+                          </h3>
+                          <ul className='space-y-1'>
+                            <li className='text-red'>• +225 01 23 45 67 89</li>
+                            <li className='text-red'>
+                              • Préfixes: 01, 05, 07 (mobile), 27 (fixe Abidjan)
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -784,7 +854,53 @@ const DetailCommunity = withDashboard(() => {
                   <FormItem>
                     <label className='block text-sm font-medium'>Pays</label>
                     <FormControl>
-                      <Input {...field} placeholder='Pays' />
+                      {/* <Input {...field} placeholder='Pays' /> */}
+                      <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant='outline'
+                            role='combobox'
+                            aria-expanded={open}
+                            className='w-[100%] justify-between'
+                          >
+                            {selectedCountry
+                              ? countries.find(
+                                  (country) => country.value === selectedCountry
+                                )?.label
+                              : 'Choisir un pays'}
+                            <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className='w-[100%] p-0'>
+                          <Command>
+                            <CommandInput placeholder='Rechercher un pays...' />
+                            <CommandEmpty>Aucun pays trouvé.</CommandEmpty>
+                            <CommandGroup>
+                              {countries.map((country) => (
+                                <CommandItem
+                                  key={country.value}
+                                  value={country.value}
+                                  onSelect={() => {
+                                    field.onChange(country.value);
+                                    setSelectedCountry(country.value);
+                                    setOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      selectedCountry === country.value
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                    )}
+                                  />
+                                  {country.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

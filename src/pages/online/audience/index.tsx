@@ -126,10 +126,6 @@ export const AudiencePage = withDashboard(() => {
     refetch();
   };
 
-  const handlePageChange = (page: number) => {
-    handleFilterChange('page', page);
-  };
-
   const handleViewAudience = (id: string) => {
     navigate(`/audiences/${id}`);
   };
@@ -162,7 +158,9 @@ export const AudiencePage = withDashboard(() => {
           <p className='text-muted-foreground'>Gestion des audiences</p>
         </div>
         <div className='flex gap-2'>
-          {(user?.role === 'AGENT' || user?.role === 'EDITOR') &&
+          {(user?.role === 'AGENT' ||
+            user?.role === 'EDITOR' ||
+            user?.role === 'MANAGER') &&
             helperUserPermission('Audience', 'create') && (
               <Button onClick={() => navigate('/audiences/create')}>
                 <UserPlus className='h-4 w-4 mr-2' />

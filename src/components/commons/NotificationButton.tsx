@@ -46,12 +46,13 @@ const notifications = [
 function NotificationButton() {
   // const unreadCount = notifications.filter((n) => n.section === 'NEW').length;
   const token = localStorage.getItem('token') as string;
-  const { data } = useNotification(token, 1, 20);
+  const { data } = useNotification(token);
 
   const mutationmarkAsRead = useMarkAsRead(token as string);
 
   const unreadCount = React.useMemo(() => {
-    return data?.notifications.filter((n) => n.read === false).length as number;
+    return data?.notifications?.filter((n) => n.read === false)
+      .length as number;
   }, [data]);
 
   return (
@@ -76,13 +77,13 @@ function NotificationButton() {
         </div>
         <div className='max-h-80 overflow-y-auto divide-y'>
           {/* Section NEW */}
-          {data?.notifications.some((n) => n.read === false) && (
+          {data?.notifications?.some((n) => n.read === false) && (
             <div>
               <div className='px-4 pt-3 pb-1 text-xs text-gray-500 font-semibold'>
                 NOUVEAU
               </div>
               {data.notifications
-                .filter((n) => n.read === false)
+                ?.filter((n) => n.read === false)
                 .map((n) => (
                   <div
                     key={n._id}
@@ -132,7 +133,7 @@ function NotificationButton() {
             </div>
           )}
           {/* Section EARLIER */}
-          {data?.notifications.some((n) => n.read === true) && (
+          {data?.notifications?.some((n) => n.read === true) && (
             <div>
               <div className='px-4 pt-3 pb-1 text-xs text-gray-500 font-semibold'>
                 LU

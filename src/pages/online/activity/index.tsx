@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { withDashboard } from '@/hoc/withDashboard';
+import { useGetActivityType } from '@/hook/activity-type.hook';
 import { useGetActivities, useGetActivityStats } from '@/hook/activity.hook';
 import { IActivity, IActivityFilterForm } from '@/interface/activity';
 import useContributorStore from '@/store/contributor.store';
@@ -40,10 +41,12 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import FilterActivityModal from './FilterActivityModal';
 
 const ActivityPage = withDashboard(() => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activityType = searchParams.get('type');
   const contributorId = useContributorStore((s) => s.contributor?._id);
   const { user } = useUserStore((s) => s);
 
@@ -65,13 +68,19 @@ const ActivityPage = withDashboard(() => {
     },
   });
 
-  const { data, isLoading, isRefetching, isError, refetch } =
-    useGetActivities(filters);
-  const {
-    data: stats,
-    isLoading: isLoadingStats,
-    isRefetching: isRefetchingStats,
-  } = useGetActivityStats(contributorId as string);
+  const { data, isLoading, isError, refetch } = useGetActivities(filters);
+  const { data: stats, isLoading: isLoadingStats } = useGetActivityStats(
+    contributorId as string
+  );
+  const { data: activityTypes, isLoading: isLoadingActivityTypes } =
+    useGetActivityType({
+      contributorId: contributorId as string,
+      activityTypeId: activityType as string,
+    });
+  // find type activity
+  const typeActivityLabel = activityTypes?.data.find(
+    (typeActivity) => (typeActivity._id as string) === activityType?.toString()
+  )?.label;
 
   const activities = data?.data || [];
   const totalPages = data?.metadata?.totalPages || 1;
@@ -81,8 +90,9 @@ const ActivityPage = withDashboard(() => {
       ...prevFilters,
       page: currentPage,
       contributorId,
+      activityTypeId: activityType ? activityType : undefined,
     }));
-  }, [currentPage, contributorId]);
+  }, [currentPage, contributorId, activityType]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -137,15 +147,25 @@ const ActivityPage = withDashboard(() => {
       {/* En-tête */}
       <div className='flex items-center justify-between'>
         <div>
-          <h4 className='text-3xl font-bold'>Activités</h4>
+          <h4 className='text-3xl font-bold bg-yellow-100 text-white px-2.5 py-1 rounded-md'>
+            {typeActivityLabel
+              ? `Activités de type ${typeActivityLabel}`
+              : 'Activités'}
+          </h4>
           <p className='text-muted-foreground'>
             Gestion des activités de l'espace administrateur
           </p>
         </div>
         <div className='flex gap-2'>
-          {(user?.role === 'AGENT' || user?.role === 'EDITOR') &&
+          {(user?.role === 'AGENT' ||
+            user?.role === 'EDITOR' ||
+            user?.role === 'MANAGER') &&
             helperUserPermission('Activités', 'create') && (
-              <Link to='/activity/create'>
+              <Link
+                to={`/activity/create${
+                  activityType ? '?type=' + activityType : ''
+                }`}
+              >
                 <Button>
                   <Activity />
                   <span>Ajouter une activité</span>

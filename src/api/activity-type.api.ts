@@ -59,6 +59,18 @@ class ActivityTypeApi {
       }
     }
   }
+  static async toggleMenu(id: string) {
+    try {
+      const response = await Axios.put(`${this.baseUrl}/${id}/toggle-menu`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
 }
 
 export default ActivityTypeApi;

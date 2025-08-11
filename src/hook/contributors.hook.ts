@@ -1,16 +1,18 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { ContributorsAPI } from '@/api/contributors.api';
 import { uploadFile } from '@/api/file.api';
 import { useToast } from '@/components/ui/use-toast';
-import { IContributor } from '@/interface/contributor';
+import { IContributor, IContributorFilters } from '@/interface/contributor';
 import { ContributorFormValues } from '@/pages/auth/register';
+import useContributorStore from '@/store/contributor.store';
 import { useNavigate } from 'react-router';
 // import { Contributor } from '@/interface/contributor';
 
 const contributorKeys = {
   all: ['contributors'] as const,
-  lists: () => [...contributorKeys.all, 'list'] as const,
+  lists: (filters: IContributorFilters) =>
+    [...contributorKeys.all, 'list', filters] as const,
   detail: (id: string) => [...contributorKeys.all, 'detail', id] as const,
 };
 
@@ -64,10 +66,10 @@ export const useCreateContributor = () => {
   });
 };
 
-export const useGetContributors = () => {
+export const useGetContributors = (filters: IContributorFilters) => {
   return useQuery({
-    queryKey: contributorKeys.lists(),
-    queryFn: () => ContributorsAPI.getContributors(),
+    queryKey: contributorKeys.lists(filters),
+    queryFn: () => ContributorsAPI.getContributors(filters),
   });
 };
 
@@ -119,5 +121,109 @@ export const useDeleteContributor = () => {
     onError: (error) => {
       console.error('Error deleting contributor:', error);
     },
+  });
+};
+
+export const useGetContributorFollowers = (id: string) => {
+  return useQuery({
+    queryKey: ['followers', id],
+    queryFn: () => ContributorsAPI.getContributorFollowers(id),
+  });
+};
+
+export const useGetContributorFollowing = (id: string) => {
+  return useQuery({
+    queryKey: ['following', id],
+    queryFn: () => ContributorsAPI.getContributorFollowing(id),
+  });
+};
+
+export const useFollowContributor = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const setContributorStore = useContributorStore((s) => s.setContributorStore);
+  return useMutation({
+    mutationFn: (data: { followerId: string; followedId: string }) =>
+      ContributorsAPI.followContributor(data),
+    onMutate: () => {
+      toast({
+        title: 'Suivi en cours',
+        description: 'Merci de patienter...',
+        duration: 5000,
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Suivi effectué',
+        description: 'Vous suivez maintenant ce compte',
+      });
+      queryClient.invalidateQueries({ queryKey: ['followers'] });
+      queryClient.invalidateQueries({ queryKey: ['following'] });
+      queryClient.invalidateQueries({ queryKey: ['contributors'] });
+      queryClient.invalidateQueries({
+        queryKey: ['contributors', 'detail'],
+      });
+      setContributorStore('contributor', data.data);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur lors du suivi',
+        description: error.message,
+        variant: 'destructive',
+        duration: 5000,
+      });
+    },
+  });
+};
+
+export const useUnfollowContributor = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const setContributorStore = useContributorStore((s) => s.setContributorStore);
+  return useMutation({
+    mutationFn: (data: { followerId: string; followedId: string }) =>
+      ContributorsAPI.unfollowContributor(data),
+    onMutate: () => {
+      toast({
+        title: 'Désabonnement en cours',
+        description: 'Merci de patienter...',
+        duration: 5000,
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Désabonnement effectué',
+        description: 'Vous ne suivez plus ce compte',
+      });
+      queryClient.invalidateQueries({ queryKey: ['followers'] });
+      queryClient.invalidateQueries({ queryKey: ['following'] });
+      queryClient.invalidateQueries({ queryKey: ['contributors'] });
+      queryClient.invalidateQueries({
+        queryKey: ['contributors', 'detail'],
+      });
+      setContributorStore('contributor', data.data);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur lors du désabonnement',
+        description: error.message,
+        variant: 'destructive',
+        duration: 5000,
+      });
+    },
+  });
+};
+
+export const useCountContributorFollowers = (id: string) => {
+  return useQuery({
+    queryKey: ['followers', id, 'count'],
+    queryFn: () => ContributorsAPI.countContributorFollowers(id),
+  });
+};
+
+export const useCountContributorFollowing = (id: string) => {
+  return useQuery({
+    queryKey: ['following', id, 'count'],
+    queryFn: () => ContributorsAPI.countContributorFollowing(id),
   });
 };

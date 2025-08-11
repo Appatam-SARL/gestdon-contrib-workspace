@@ -41,10 +41,10 @@ export function useNotificationSocket({
   }, [token, userId, onNotification]);
 }
 
-export const useNotification = (token: string, page: number, limit: number) => {
+export const useNotification = (token: string) => {
   return useQuery({
-    queryKey: ['notifications', page, limit],
-    queryFn: () => getNotifications(token, page, limit),
+    queryKey: ['notifications'],
+    queryFn: () => getNotifications(token),
     refetchOnWindowFocus: false,
   });
 };
