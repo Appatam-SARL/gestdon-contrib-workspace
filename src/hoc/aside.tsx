@@ -6,6 +6,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useLogout } from '@/hook/admin.hook';
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { cn } from '@/lib/utils';
 import {
   Activity,
@@ -37,8 +38,10 @@ function Aside({ menus }: IProps) {
   );
 
   const location = useLocation();
-
   const mutation = useLogout();
+
+  // Vérifier les permissions des packages
+  const { hasAccess, isLoading } = usePackagePermissions();
 
   const toggleSubmenu = (href: string) => {
     const newExpandedMenus = new Set(expandedMenus);
@@ -57,6 +60,11 @@ function Aside({ menus }: IProps) {
   };
 
   const renderMenuItem = (link: any, level: number = 0) => {
+    // Vérifier si l'utilisateur a accès au menu "Réseau social"
+    if (link.label === 'Réseau social' && !hasAccess('Accès réseau social')) {
+      return null; // Masquer complètement le menu si pas de permission
+    }
+
     const hasSubmenu = link.submenu && link.submenu.length > 0;
     const isExpanded = expandedMenus.has(link.href);
     const isLinkActive = isActive(link.href);
@@ -192,6 +200,25 @@ function Aside({ menus }: IProps) {
       </div>
     );
   };
+
+  // Afficher un indicateur de chargement si les permissions sont en cours de chargement
+  if (isLoading) {
+    return (
+      <aside className='bg-[#6c2bd9] border-r border-border h-screen sticky top-0 flex flex-col transition-all duration-300 shadow-md w-[280px]'>
+        <div className='h-20 flex items-center justify-center px-6'>
+          <div className='animate-pulse bg-white/20 rounded-lg w-32 h-8'></div>
+        </div>
+        <div className='flex-1 pt-4 p-4 space-y-2'>
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className='animate-pulse bg-white/20 rounded-lg h-10'
+            ></div>
+          ))}
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside

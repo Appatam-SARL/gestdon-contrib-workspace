@@ -20,14 +20,18 @@ import {
 import { getLogs } from '@/api/logs.api';
 import { toast, useToast } from '@/components/ui/use-toast';
 import { IContributor } from '@/interface/contributor';
+import { IPackage } from '@/interface/package.interface';
 import {
   FormInviteRegisterUserValues,
   FormInviteValues,
 } from '@/schema/admins.schema';
 import useContributorStore from '@/store/contributor.store';
 import { useMfaStore } from '@/store/mfa.store';
+import usePackageStore from '@/store/package.store';
+import { useSubscriptionStore } from '@/store/subscription.store';
 import useUserStore from '@/store/user.store';
 import { IlogFilter, ILogsResponse } from '@/types/log.type';
+import { tSubscription } from '@/types/souscription.type';
 import { StaffMemberForm } from '@/types/staff';
 import { IUser, IUserFilterForm } from '@/types/user';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -57,6 +61,9 @@ export function useLogin() {
       if (data?.requireMfa) {
         localStorage.setItem('userId', data?.userId as string);
         navigate('/mfa');
+      } else if (data?.isSubscribed === false) {
+        localStorage.setItem('contributorId', data?.contributor?.id as string);
+        navigate('/pricing');
       } else {
         localStorage.setItem('token', data?.token as string);
         setUserStore('user', data?.user as unknown as IUser);
@@ -549,6 +556,10 @@ export function useFindByToken() {
   const { toast } = useToast();
   const setUserStore = useUserStore((s) => s.setUserStore);
   const setContributorStore = useContributorStore((s) => s.setContributorStore);
+  const setSubscriptionStore = useSubscriptionStore(
+    (s) => s.setSubscriptionStore
+  );
+  const setPackageStore = usePackageStore((s) => s.setPackageStore);
   const handleCheckToken = React.useCallback(() => {
     (async () => {
       try {
@@ -574,6 +585,11 @@ export function useFindByToken() {
           'contributor',
           response.contributor as IContributor
         );
+        setSubscriptionStore(
+          'subscription',
+          response.subscription as tSubscription
+        );
+        setPackageStore('package', response.package as IPackage);
       } catch (error) {
         // Ne pas supprimer le token ici
         if (

@@ -38,4 +38,7 @@ export const API_ROOT = {
   staff: 'admins',
   users: 'users',
   partages: 'partages',
+  packages: 'packages',
+  subscriptions: 'subscriptions',
+  invoices: 'invoices',
 };

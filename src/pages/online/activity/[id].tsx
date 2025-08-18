@@ -28,7 +28,6 @@ const ActivityDetailsPage = withDashboard(() => {
 
   const navigate = useNavigate();
   const [activity, setActivity] = useState<IActivity>();
-
   const {
     data: activityResponse,
     isLoading,
@@ -99,6 +98,15 @@ const ActivityDetailsPage = withDashboard(() => {
         </div>
       </div>
       <ButtonGroupActionActivity id={id as string} reports={reports} />
+      <div className='bg-gray-200'>
+        <div className='flex items-center justify-center gap-4 p-4'>
+          <FaExclamationCircle className='h-6 w-6' />
+          <p className='text-sm font-medium'>
+            Vous n'avez pas encore créer de rapport pour cette audience. Cliquez
+            sur le bouton pour en créer un rapport.
+          </p>
+        </div>
+      </div>
       <Card>
         {reports?.metadata?.total === 1 &&
         reports.data[0].status === 'REFUSED' ? (

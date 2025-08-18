@@ -1,5 +1,6 @@
 import { API_ROOT } from '@/config/app.config';
 import { IContributor } from '@/interface/contributor';
+import { IPackage } from '@/interface/package.interface';
 import { IPermission } from '@/interface/permission';
 import {
   FormInviteRegisterUserValues,
@@ -7,6 +8,7 @@ import {
 } from '@/schema/admins.schema';
 import { Mfa } from '@/store/mfa.store';
 import { APIResponse } from '@/types/generic.type';
+import { tSubscription } from '@/types/souscription.type';
 import {
   ReponseLoginByStaffWithMfa,
   StaffMember,
@@ -315,6 +317,8 @@ export const findByToken = async (): Promise<{
   user: IUser;
   contributor: IContributor;
   permissions: IPermission[];
+  subscription: tSubscription;
+  package: IPackage;
 }> => {
   try {
     const response = await Axios.get(`${API_ROOT.users}/check-auth/by-token`);
