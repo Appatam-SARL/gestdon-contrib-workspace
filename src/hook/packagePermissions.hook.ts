@@ -2,11 +2,22 @@ import usePackageStore from '@/store/package.store';
 import {
   checkMultipleFeatures,
   getFeatureValue,
+  getMaxEntityLimit,
   getMaxUsersLimit,
+  getRemainingActivitiesCount as getRemainingActivitiesCountUtil,
+  getRemainingAudiencesCount as getRemainingAudiencesCountUtil,
+  getRemainingBeneficiariesCount as getRemainingBeneficiariesCountUtil,
+  getRemainingDonationsCount as getRemainingDonationsCountUtil,
+  getRemainingPromisesCount as getRemainingPromisesCountUtil,
   getRemainingUsersCount as getRemainingUsersCountUtil,
   hasAllFeaturesAccess,
   hasAnyFeatureAccess,
   hasFeatureAccessFromHook,
+  hasReachedMaxActivities,
+  hasReachedMaxAudiences,
+  hasReachedMaxBeneficiaries,
+  hasReachedMaxDonations,
+  hasReachedMaxPromises,
   hasReachedMaxUsers,
   PackageFeature,
 } from '@/utils/packagePermissions';
@@ -195,6 +206,178 @@ export const usePackagePermissions = () => {
     );
   };
 
+  /**
+   * Limites d'activités
+   */
+  const hasReachedActivityLimit = (currentActivityCount: number): boolean => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return true;
+    }
+    return hasReachedMaxActivities(
+      subscriptionData.data.subscription,
+      packages,
+      currentActivityCount
+    );
+  };
+
+  const getActivityLimit = (): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getMaxEntityLimit(subscriptionData.data.subscription, packages);
+  };
+
+  const getRemainingActivitiesCount = (
+    currentActivityCount: number
+  ): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getRemainingActivitiesCountUtil(
+      subscriptionData.data.subscription,
+      packages,
+      currentActivityCount
+    );
+  };
+
+  /**
+   * Limites de dons
+   */
+  const hasReachedDonationLimit = (currentDonationCount: number): boolean => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return true;
+    }
+    return hasReachedMaxDonations(
+      subscriptionData.data.subscription,
+      packages,
+      currentDonationCount
+    );
+  };
+
+  const getDonationLimit = (): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getMaxEntityLimit(subscriptionData.data.subscription, packages);
+  };
+
+  const getRemainingDonationsCount = (
+    currentDonationCount: number
+  ): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getRemainingDonationsCountUtil(
+      subscriptionData.data.subscription,
+      packages,
+      currentDonationCount
+    );
+  };
+
+  /**
+   * Limites d'audiences
+   */
+  const hasReachedAudienceLimit = (currentAudienceCount: number): boolean => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return true;
+    }
+    return hasReachedMaxAudiences(
+      subscriptionData.data.subscription,
+      packages,
+      currentAudienceCount
+    );
+  };
+
+  const getAudienceLimit = (): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getMaxEntityLimit(subscriptionData.data.subscription, packages);
+  };
+
+  const getRemainingAudiencesCount = (
+    currentAudienceCount: number
+  ): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getRemainingAudiencesCountUtil(
+      subscriptionData.data.subscription,
+      packages,
+      currentAudienceCount
+    );
+  };
+
+  /**
+   * Limites de promesses
+   */
+  const hasReachedPromiseLimit = (currentPromiseCount: number): boolean => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return true;
+    }
+    return hasReachedMaxPromises(
+      subscriptionData.data.subscription,
+      packages,
+      currentPromiseCount
+    );
+  };
+
+  const getPromiseLimit = (): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getMaxEntityLimit(subscriptionData.data.subscription, packages);
+  };
+
+  const getRemainingPromisesCount = (
+    currentPromiseCount: number
+  ): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getRemainingPromisesCountUtil(
+      subscriptionData.data.subscription,
+      packages,
+      currentPromiseCount
+    );
+  };
+
+  /**
+   * Limites de bénéficiaires
+   */
+  const hasReachedBeneficiaryLimit = (
+    currentBeneficiaryCount: number
+  ): boolean => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return true;
+    }
+    return hasReachedMaxBeneficiaries(
+      subscriptionData.data.subscription,
+      packages,
+      currentBeneficiaryCount
+    );
+  };
+
+  const getBeneficiaryLimit = (): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getMaxEntityLimit(subscriptionData.data.subscription, packages);
+  };
+
+  const getRemainingBeneficiariesCount = (
+    currentBeneficiaryCount: number
+  ): number | null => {
+    if (isLoading || error || !subscriptionData?.data?.subscription) {
+      return null;
+    }
+    return getRemainingBeneficiariesCountUtil(
+      subscriptionData.data.subscription,
+      packages,
+      currentBeneficiaryCount
+    );
+  };
+
   return {
     // État
     isLoading,
@@ -217,6 +400,31 @@ export const usePackagePermissions = () => {
     hasReachedUserLimit,
     getUserLimit,
     getRemainingUsersCount,
+
+    // Gestion des activités
+    hasReachedActivityLimit,
+    getActivityLimit,
+    getRemainingActivitiesCount,
+
+    // Gestion des dons
+    hasReachedDonationLimit,
+    getDonationLimit,
+    getRemainingDonationsCount,
+
+    // Gestion des audiences
+    hasReachedAudienceLimit,
+    getAudienceLimit,
+    getRemainingAudiencesCount,
+
+    // Gestion des promesses
+    hasReachedPromiseLimit,
+    getPromiseLimit,
+    getRemainingPromisesCount,
+
+    // Gestion des bénéficiaires
+    hasReachedBeneficiaryLimit,
+    getBeneficiaryLimit,
+    getRemainingBeneficiariesCount,
 
     // Données brutes (pour utilisation avancée)
     subscription: subscriptionData?.data?.subscription || null,

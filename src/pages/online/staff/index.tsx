@@ -184,7 +184,7 @@ export const StaffPage = withDashboard(() => {
   ).filter(Boolean).length;
 
   // Calculer le nombre actuel de membres du staff
-  const currentStaffCount = data?.data?.length || 0;
+  const currentStaffCount = data?.totalData || 0;
 
   // Vérifier si la limite d'utilisateurs est atteinte
   const hasReachedLimit = hasReachedUserLimit(currentStaffCount);

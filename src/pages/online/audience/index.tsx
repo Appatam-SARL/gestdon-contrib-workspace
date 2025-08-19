@@ -10,13 +10,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useAudiences, useStatsAudience } from '@/hook/audience.hook';
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { IAudienceFilterForm, IAudienceState } from '@/interface/audience';
 import useContributorStore from '@/store/contributor.store';
 import useUserStore from '@/store/user.store';
 import { helperUserPermission } from '@/utils';
 import { addDays } from 'date-fns';
 import fr from 'date-fns/locale/fr';
-import { Filter, RefreshCcw, Search, UserPlus } from 'lucide-react';
+import {
+  AlertTriangle,
+  Filter,
+  RefreshCcw,
+  Search,
+  UserPlus,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { DateRangePicker } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
@@ -150,22 +157,94 @@ export const AudiencePage = withDashboard(() => {
     ? Number(data.metadata.totalPages)
     : 1;
 
+  // Limites d'audience via package
+  const {
+    hasReachedAudienceLimit,
+    getAudienceLimit,
+    getRemainingAudiencesCount,
+  } = usePackagePermissions();
+  const currentAudienceCount = data?.totalData || 0;
+  const audienceLimit = getAudienceLimit();
+  const audienceLimitReached = hasReachedAudienceLimit(currentAudienceCount);
+  const remainingAudiences = getRemainingAudiencesCount(currentAudienceCount);
+
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+      <div className='flex items-start justify-between mt-4'>
         <div>
           <h4 className='text-3xl font-bold'>Audiences</h4>
           <p className='text-muted-foreground'>Gestion des audiences</p>
+
+          {audienceLimit && audienceLimit > 0 && (
+            <div className='mt-3 flex items-center gap-3'>
+              <div className='flex items-center gap-2 text-sm'>
+                <span className='text-gray-600'>
+                  {currentAudienceCount} / {audienceLimit} audiences
+                </span>
+              </div>
+              <div className='w-32 bg-gray-200 rounded-full h-2'>
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    audienceLimitReached
+                      ? 'bg-red-500'
+                      : currentAudienceCount / audienceLimit > 0.8
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      (currentAudienceCount / audienceLimit) * 100,
+                      100
+                    )}%`,
+                  }}
+                />
+              </div>
+              {/* Badge d'alerte si proche de la limite */}
+              {!audienceLimitReached &&
+                remainingAudiences !== null &&
+                remainingAudiences <= 2 && (
+                  <Badge
+                    variant='secondary'
+                    className='bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                  >
+                    <AlertTriangle className='h-3 w-3 mr-1' />
+                    {remainingAudiences === 1
+                      ? '1 audience restante'
+                      : `${remainingAudiences} audiences restantes`}
+                  </Badge>
+                )}
+
+              {audienceLimitReached && (
+                <Badge variant='destructive' className='hover:bg-red-200'>
+                  <AlertTriangle className='h-3 w-3 mr-1' />
+                  Limite atteinte
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <div className='flex gap-2'>
           {(user?.role === 'AGENT' ||
             user?.role === 'EDITOR' ||
             user?.role === 'MANAGER') &&
             helperUserPermission('Audience', 'create') && (
-              <Button onClick={() => navigate('/audiences/create')}>
-                <UserPlus className='h-4 w-4 mr-2' />
-                Nouvelle audience
-              </Button>
+              <>
+                <Button
+                  onClick={() => {
+                    if (audienceLimitReached) {
+                      return;
+                    }
+                    navigate('/audiences/create');
+                  }}
+                  disabled={audienceLimitReached}
+                  className={
+                    audienceLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+                  }
+                >
+                  <UserPlus className='h-4 w-4 mr-2' />
+                  Nouvelle audience
+                </Button>
+              </>
             )}
         </div>
       </div>

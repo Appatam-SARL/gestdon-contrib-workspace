@@ -138,16 +138,6 @@ const SettingsNav = () => {
         label={<>Statut de l'abonnement</>}
         isActive={false}
       />
-      <NavLink
-        href='subscription/subscription-history'
-        label={<>Historique des abonnements</>}
-        isActive={false}
-      />
-      <NavLink
-        href='subscription/pricing'
-        label={<>Tarifs et packages</>}
-        isActive={false}
-      />
     </nav>
   );
 };

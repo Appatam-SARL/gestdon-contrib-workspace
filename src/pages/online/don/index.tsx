@@ -45,6 +45,7 @@ import {
 import { withDashboard } from '@/hoc/withDashboard';
 import { useBeneficiaries } from '@/hook/beneficiaire.hook';
 import { useCreateDon, useDons, useStatsDon } from '@/hook/don.hook';
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { IDon, IDonFilterForm } from '@/interface/don';
 import { createDonSchema, FormCreateDonSchema } from '@/schema/don.schema';
 import useContributorStore from '@/store/contributor.store';
@@ -55,6 +56,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { addDays } from 'date-fns';
 import fr from 'date-fns/locale/fr';
 import {
+  AlertTriangle,
   Eye,
   Filter,
   Loader2,
@@ -123,6 +125,7 @@ export const DonPage = withDashboard(() => {
   const contributorId = useContributorStore((s) => s.contributor?._id);
   const { donFilterForm, setDonStore } = useDonStore((s) => s);
   const [isCreateDonOpen, setIsCreateDonOpen] = useState<boolean>(false);
+
   const { isLoading: isLoadingBeneficiaries, data: beneficiaries } =
     useBeneficiaries({
       limit: 100000,
@@ -159,6 +162,17 @@ export const DonPage = withDashboard(() => {
     donFilterForm as IDonFilterForm
   ).filter(Boolean).length;
 
+  // Limites de dons via package
+  const {
+    hasReachedDonationLimit,
+    getDonationLimit,
+    getRemainingDonationsCount,
+  } = usePackagePermissions();
+  const currentDonationCount = data?.totalData || 0;
+  const donationLimit = getDonationLimit();
+  const donationLimitReached = hasReachedDonationLimit(currentDonationCount);
+  const remainingDonations = getRemainingDonationsCount(currentDonationCount);
+
   const onSubmit = async (data: FormCreateDonSchema) => {
     const payload = {
       ...data,
@@ -182,16 +196,80 @@ export const DonPage = withDashboard(() => {
 
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+      <div className='flex items-start justify-between mt-4'>
         <div>
           <h4 className='text-3xl font-bold'>Dons</h4>
           <p className='text-muted-foreground'>Gestion des dons</p>
+
+          {donationLimit && donationLimit > 0 && (
+            <div className='mt-3 flex items-center gap-3'>
+              <div className='flex items-center gap-2 text-sm'>
+                <span className='text-gray-600'>
+                  {currentDonationCount} / {donationLimit} dons
+                </span>
+              </div>
+              <div className='w-32 bg-gray-200 rounded-full h-2'>
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    donationLimitReached
+                      ? 'bg-red-500'
+                      : currentDonationCount / donationLimit > 0.8
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      (currentDonationCount / donationLimit) * 100,
+                      100
+                    )}%`,
+                  }}
+                />
+              </div>
+              {/* Badge d'alerte si proche de la limite */}
+              {!donationLimitReached &&
+                remainingDonations !== null &&
+                remainingDonations <= 2 && (
+                  <Badge
+                    variant='secondary'
+                    className='bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                  >
+                    <AlertTriangle className='h-3 w-3 mr-1' />
+                    {remainingDonations === 1
+                      ? '1 don restant'
+                      : `${remainingDonations} dons restants`}
+                  </Badge>
+                )}
+
+              {donationLimitReached && (
+                <Badge variant='destructive' className='hover:bg-red-200'>
+                  <AlertTriangle className='h-3 w-3 mr-1' />
+                  Limite atteinte
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <div className='flex gap-2'>
           {helperUserPermission('don', 'create') && (
-            <Button onClick={() => setIsCreateDonOpen(true)}>
+            <Button
+              onClick={() => {
+                if (donationLimitReached) {
+                  return;
+                }
+                setIsCreateDonOpen(true);
+              }}
+              disabled={donationLimitReached}
+              className={
+                donationLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+              }
+            >
               <UserPlus className='h-4 w-4 mr-2' />
               Enregistrer un don
+              {donationLimitReached && (
+                <span className='ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full'>
+                  Limite atteinte
+                </span>
+              )}
             </Button>
           )}
           {/* Dialog create don */}
@@ -720,7 +798,7 @@ const DonDetailModal = ({
             </span>
             <span
               className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                displayStatusDon(don.status as string) === 'Validé'
+                displayStatusDon(don.status as string) === 'Reçu'
                   ? 'bg-green-100 text-green-700'
                   : displayStatusDon(don.status as string) === 'En attente'
                   ? 'bg-yellow-100 text-yellow-700'

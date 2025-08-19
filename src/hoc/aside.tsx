@@ -65,6 +65,10 @@ function Aside({ menus }: IProps) {
       return null; // Masquer complètement le menu si pas de permission
     }
 
+    if (link.label === 'Agenda' && !hasAccess("Accéder à l'agenda")) {
+      return null;
+    }
+
     const hasSubmenu = link.submenu && link.submenu.length > 0;
     const isExpanded = expandedMenus.has(link.href);
     const isLinkActive = isActive(link.href);

@@ -1,16 +1,4 @@
 import { getFileUrl } from '@/api/file.api';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   useDeleteContributor,
@@ -58,7 +46,7 @@ const Settings = () => {
             {/* Contributor Information */}
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
               <div>
-                <Label className='block text-sm font-medium text-gray-700'>
+                <Label className='block text-sm font-semibold text-gray-700'>
                   Nom de l'organisation
                 </Label>
                 <p className='mt-1 text-gray-900'>
@@ -66,7 +54,7 @@ const Settings = () => {
                 </p>
               </div>
               <div>
-                <Label className='block text-sm font-medium text-gray-700'>
+                <Label className='block text-sm font-semibold text-gray-700'>
                   Projet ID
                 </Label>
                 <p className='mt-1 text-gray-900 break-all'>
@@ -75,7 +63,7 @@ const Settings = () => {
               </div>
               {contributorData?.email && (
                 <div>
-                  <Label className='block text-sm font-medium text-gray-700'>
+                  <Label className='block text-sm font-semibold text-gray-700'>
                     Adresse email
                   </Label>
                   <p className='mt-1 text-gray-900'>{contributorData.email}</p>
@@ -83,7 +71,7 @@ const Settings = () => {
               )}
               {contributorData?.phoneNumber && (
                 <div>
-                  <Label className='block text-sm font-medium text-gray-700'>
+                  <Label className='block text-sm font-semibold text-gray-700'>
                     Téléphone
                   </Label>
                   <p className='mt-1 text-gray-900'>
@@ -96,7 +84,7 @@ const Settings = () => {
               {contributorData?.address && (
                 <div className='col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <Label className='block text-sm font-medium text-gray-700'>
+                    <Label className='block text-sm font-semibold text-gray-700'>
                       Pays
                     </Label>
                     <p className='mt-1 text-gray-900'>
@@ -104,7 +92,7 @@ const Settings = () => {
                     </p>
                   </div>
                   <div>
-                    <Label className='block text-sm font-medium text-gray-700'>
+                    <Label className='block text-sm font-semibold text-gray-700'>
                       Rue
                     </Label>
                     <p className='mt-1 text-gray-900'>
@@ -112,7 +100,7 @@ const Settings = () => {
                     </p>
                   </div>
                   <div>
-                    <Label className='block text-sm font-medium text-gray-700'>
+                    <Label className='block text-sm font-semibold text-gray-700'>
                       Code Postal
                     </Label>
                     <p className='mt-1 text-gray-900'>
@@ -120,7 +108,7 @@ const Settings = () => {
                     </p>
                   </div>
                   <div>
-                    <Label className='block text-sm font-medium text-gray-700'>
+                    <Label className='block text-sm font-semibold text-gray-700'>
                       Ville
                     </Label>
                     <p className='mt-1 text-gray-900'>
@@ -153,40 +141,6 @@ const Settings = () => {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Restart Project Section */}
-      <div className='bg-white p-6 rounded-lg shadow mb-8'>
-        <h2 className='text-xl font-semibold mb-4'>Suprimer votre compte</h2>
-        <p className='text-gray-700 mb-4'>
-          En supprimant votre compte, vous perdrez toutes les données associées
-          à votre compte.
-        </p>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant='destructive'>Supprimer mon compte</Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous absolument sûr?</AlertDialogTitle>
-              <AlertDialogDescription>
-                En supprimant votre compte, vous perdrez toutes les données
-                associées à votre compte.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction
-                style={{
-                  backgroundColor: 'oklch(0.577 0.245 27.325)',
-                }}
-                onClick={() => mutationDelete.mutate(contributorId as string)}
-              >
-                Confirmer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </>
   );

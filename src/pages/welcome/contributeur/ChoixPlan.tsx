@@ -165,18 +165,12 @@ const ChoixPlan = () => {
                   </div>
 
                   <PricingItemCard
-                    title={plan.name}
-                    description={plan.description}
-                    price={plan.price}
-                    avantages={plan.features}
                     selected={isSelected}
                     onClick={() => {
                       setSelectedPlan(plan);
                       setPackageStore('package', plan);
                     }}
-                    isPopular={plan.isPopular}
-                    maxUsers={plan.maxUsers}
-                    maxFollowing={plan.maxFollowing}
+                    {...plan}
                   />
 
                   {isSelected && (

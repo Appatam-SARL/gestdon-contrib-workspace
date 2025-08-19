@@ -91,6 +91,10 @@ export const hasReachedMaxUsers = (
     return true;
   }
 
+  // Limite illimitée
+  if (userPackage.maxUsers === 'infinite') {
+    return false;
+  }
   // Vérifier si le nombre actuel d'utilisateurs a atteint ou dépassé la limite
   return currentUserCount >= userPackage.maxUsers;
 };
@@ -128,6 +132,10 @@ export const getMaxUsersLimit = (
     return null;
   }
 
+  // Si illimité, retourner null pour signifier "sans limite"
+  if (userPackage.maxUsers === 'infinite') {
+    return null;
+  }
   return userPackage.maxUsers;
 };
 
@@ -170,20 +178,114 @@ export const hasUserLimitAccess = (
 };
 
 /**
- * Vérifie si le package de l'utilisateur a le droit d'accéder à une fonctionnalité spécifique
- * en utilisant le store des packages
- *
- * @param subscription - L'abonnement actuel de l'utilisateur
- * @param packages - La liste des packages depuis le store
- * @param featureName - Le nom de la fonctionnalité à vérifier
- * @returns true si l'utilisateur a accès à la fonctionnalité, false sinon
+ * Limites génériques (activités, promesses, dons) basées sur maxUsers
+ * NOTE: Par choix produit, on réutilise la même limite maxUsers pour ces entités
  */
-export const hasFeatureAccessFromStore = (
+export const getMaxEntityLimit = (
+  subscription: tSubscription | null,
+  packages: IPackage[]
+): number | null => getMaxUsersLimit(subscription, packages);
+
+export const hasReachedMaxActivities = (
   subscription: tSubscription | null,
   packages: IPackage[],
-  featureName: string
+  currentActivityCount: number
 ): boolean => {
-  return hasFeatureAccess(subscription, packages, featureName);
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return false; // illimité
+  return currentActivityCount >= limit;
+};
+
+export const hasReachedMaxPromises = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentPromiseCount: number
+): boolean => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return false; // illimité
+  return currentPromiseCount >= limit;
+};
+
+export const hasReachedMaxDonations = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentDonationCount: number
+): boolean => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return false; // illimité
+  return currentDonationCount >= limit;
+};
+
+// Audiences
+export const hasReachedMaxAudiences = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentAudienceCount: number
+): boolean => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return false; // illimité
+  return currentAudienceCount >= limit;
+};
+
+export const getRemainingAudiencesCount = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentAudienceCount: number
+): number | null => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return null;
+  return Math.max(0, limit - currentAudienceCount);
+};
+
+export const getRemainingActivitiesCount = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentActivityCount: number
+): number | null => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return null;
+  return Math.max(0, limit - currentActivityCount);
+};
+
+export const getRemainingPromisesCount = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentPromiseCount: number
+): number | null => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return null;
+  return Math.max(0, limit - currentPromiseCount);
+};
+
+export const getRemainingDonationsCount = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentDonationCount: number
+): number | null => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return null;
+  return Math.max(0, limit - currentDonationCount);
+};
+
+// Bénéficiaires
+export const hasReachedMaxBeneficiaries = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentBeneficiaryCount: number
+): boolean => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return false; // illimité
+  return currentBeneficiaryCount >= limit;
+};
+
+export const getRemainingBeneficiariesCount = (
+  subscription: tSubscription | null,
+  packages: IPackage[],
+  currentBeneficiaryCount: number
+): number | null => {
+  const limit = getMaxUsersLimit(subscription, packages);
+  if (limit === null) return null;
+  return Math.max(0, limit - currentBeneficiaryCount);
 };
 
 /**

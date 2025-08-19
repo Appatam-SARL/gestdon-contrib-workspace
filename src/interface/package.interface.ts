@@ -1,3 +1,5 @@
+export type TUnlimitedNumber = number | 'infinite';
+
 export interface IPackage {
   _id?: string;
   name: string;
@@ -8,15 +10,19 @@ export interface IPackage {
     value: string;
     enable: boolean;
   }[];
-  highlight?: boolean;
   type: 'FREE' | 'PAID' | 'CONTACT_REQUIRED';
-  maxUsers: number;
-  maxFollowing: number;
+  maxUsers: TUnlimitedNumber;
+  maxFollowing: TUnlimitedNumber;
+  maxActivity: TUnlimitedNumber;
+  maxAudience: TUnlimitedNumber;
+  maxDon: TUnlimitedNumber;
+  maxPromesse: TUnlimitedNumber;
+  maxReport: TUnlimitedNumber;
+  maxBeneficiary: TUnlimitedNumber;
   isPopular: boolean;
   isFree: boolean;
   duration?: number;
   durationUnit?: string;
-  currency?: string;
   isActive?: boolean;
   createdAt?: Date;
   updatedAt?: Date;

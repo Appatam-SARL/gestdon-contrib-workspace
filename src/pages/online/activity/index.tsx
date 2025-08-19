@@ -22,6 +22,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useGetActivityType } from '@/hook/activity-type.hook';
 import { useGetActivities, useGetActivityStats } from '@/hook/activity.hook';
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { IActivity, IActivityFilterForm } from '@/interface/activity';
 import useContributorStore from '@/store/contributor.store';
 import useUserStore from '@/store/user.store';
@@ -29,6 +30,7 @@ import { helperUserPermission } from '@/utils';
 import { displayStatusActivity } from '@/utils/display-of-variable';
 import {
   Activity,
+  AlertTriangle,
   Edit,
   EyeIcon,
   Filter,
@@ -41,10 +43,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import FilterActivityModal from './FilterActivityModal';
 
 const ActivityPage = withDashboard(() => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activityType = searchParams.get('type');
   const contributorId = useContributorStore((s) => s.contributor?._id);
@@ -54,6 +57,8 @@ const ActivityPage = withDashboard(() => {
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isActivityLimitAlertOpen, setIsActivityLimitAlertOpen] =
+    useState(false);
 
   const [filters, setFilters] = useState<IActivityFilterForm>({
     search: '',
@@ -84,6 +89,17 @@ const ActivityPage = withDashboard(() => {
 
   const activities = data?.data || [];
   const totalPages = data?.metadata?.totalPages || 1;
+
+  // Limites d'activités via package
+  const {
+    hasReachedActivityLimit,
+    getActivityLimit,
+    getRemainingActivitiesCount,
+  } = usePackagePermissions();
+  const currentActivityCount = data?.totalData || 0;
+  const activityLimit = getActivityLimit();
+  const activityLimitReached = hasReachedActivityLimit(currentActivityCount);
+  const remainingActivities = getRemainingActivitiesCount(currentActivityCount);
 
   useEffect(() => {
     setFilters((prevFilters) => ({
@@ -145,7 +161,7 @@ const ActivityPage = withDashboard(() => {
   return (
     <div className=''>
       {/* En-tête */}
-      <div className='flex items-center justify-between'>
+      <div className='flex items-start justify-between  mt-4'>
         <div>
           <h4 className='text-3xl font-bold bg-yellow-100 text-white px-2.5 py-1 rounded-md'>
             {typeActivityLabel
@@ -155,22 +171,88 @@ const ActivityPage = withDashboard(() => {
           <p className='text-muted-foreground'>
             Gestion des activités de l'espace administrateur
           </p>
+
+          {activityLimit && activityLimit > 0 && (
+            <div className='mt-3 flex items-center gap-3'>
+              <div className='flex items-center gap-2 text-sm'>
+                <span className='text-gray-600'>
+                  {currentActivityCount} / {activityLimit} activités
+                </span>
+              </div>
+              <div className='w-32 bg-gray-200 rounded-full h-2'>
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    activityLimitReached
+                      ? 'bg-red-500'
+                      : currentActivityCount / activityLimit > 0.8
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      (currentActivityCount / activityLimit) * 100,
+                      100
+                    )}%`,
+                  }}
+                />
+              </div>
+
+              {/* Badge d'alerte si proche de la limite */}
+              {!activityLimitReached &&
+                remainingActivities !== null &&
+                remainingActivities <= 2 && (
+                  <Badge
+                    variant='secondary'
+                    className='bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                  >
+                    <AlertTriangle className='h-3 w-3 mr-1' />
+                    {remainingActivities === 1
+                      ? '1 activité restante'
+                      : `${remainingActivities} activités restantes`}
+                  </Badge>
+                )}
+
+              {activityLimitReached && (
+                <Badge variant='destructive'>
+                  <AlertTriangle className='h-3 w-3 mr-1' />
+                  Limite atteinte
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <div className='flex gap-2'>
           {(user?.role === 'AGENT' ||
             user?.role === 'EDITOR' ||
             user?.role === 'MANAGER') &&
             helperUserPermission('Activités', 'create') && (
-              <Link
-                to={`/activity/create${
-                  activityType ? '?type=' + activityType : ''
-                }`}
-              >
-                <Button>
+              <>
+                <Button
+                  onClick={() => {
+                    if (activityLimitReached) {
+                      setIsActivityLimitAlertOpen(true);
+                      return;
+                    }
+                    navigate(
+                      `/activity/create${
+                        activityType ? '?type=' + activityType : ''
+                      }`
+                    );
+                  }}
+                  disabled={activityLimitReached}
+                  className={
+                    activityLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+                  }
+                >
                   <Activity />
                   <span>Ajouter une activité</span>
+                  {activityLimitReached && (
+                    <span className='ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full'>
+                      Limite atteinte
+                    </span>
+                  )}
                 </Button>
-              </Link>
+              </>
             )}
         </div>
       </div>
