@@ -288,7 +288,7 @@ export const PromisesPage = withDashboard(() => {
   // Limites de promesses via package
   const { hasReachedPromiseLimit, getPromiseLimit, getRemainingPromisesCount } =
     usePackagePermissions();
-  const currentPromiseCount = Number(promesses?.data?.length || 0);
+  const currentPromiseCount = promesses?.totalData || 0;
   const promiseLimit = getPromiseLimit();
   const promiseLimitReached = hasReachedPromiseLimit(currentPromiseCount);
   const remainingPromises = getRemainingPromisesCount(currentPromiseCount);

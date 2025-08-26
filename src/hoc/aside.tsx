@@ -129,7 +129,7 @@ function Aside({ menus }: IProps) {
             <Link
               to={link.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200 group',
+                'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200 group w-full',
                 isLinkActive
                   ? 'bg-[#fff] text-[#6c2bd9] font-semibold'
                   : 'text-white',
