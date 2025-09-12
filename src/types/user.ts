@@ -1,3 +1,5 @@
+import { IContributor } from '@/interface/contributor';
+
 interface IAddress {
   street: string;
   city: string;
@@ -101,6 +103,8 @@ export interface ReponseLoginByStaffWithMfa {
 
 export interface ReponseLoginByUser extends ReponseLoginByStaffWithMfa {
   token?: string;
+  isSubscribed?: boolean;
+  contributor?: IContributor;
   readonly user?: {
     id: string;
     email: string;

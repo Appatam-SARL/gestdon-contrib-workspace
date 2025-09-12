@@ -50,6 +50,7 @@ import {
   useValidateActivity,
 } from '@/hook/activity.hook';
 import { useGetStaffMembers } from '@/hook/admin.hook';
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { useCreateReport } from '@/hook/report.hook';
 import { IActivity } from '@/interface/activity';
 import { IReport } from '@/interface/report';
@@ -148,6 +149,8 @@ function ButtonGroupActionActivity({
     id as string,
     setIsReporterDialogOpen
   );
+
+  const { hasAccess: hasAccessCreateActivityReport } = usePackagePermissions();
   const createReportMutation = useCreateReport(() => navigate('/activity'));
   const deleteMutation = useDeleteActivity(id as string, setIsDeleteDialogOpen);
   const validateMutation = useValidateActivity(
@@ -846,23 +849,26 @@ function ButtonGroupActionActivity({
               </AlertDialogContent>
             </AlertDialog>
           ) : null}
-          {Number(reports?.metadata?.total) === 0 ? (
-            <Button
-              variant={'outline'}
-              onClick={() => setIsAddReportDialogOpen(true)}
-            >
-              <StickyNote />
-              <span>Créer un rapport</span>
-            </Button>
-          ) : (
-            <Button
-              variant={'outline'}
-              onClick={() => navigate(`/repport/${reports?.data?.[0]?._id}`)}
-            >
-              <Eye />
-              <span>Voir le rapport</span>
-            </Button>
-          )}
+          {hasAccessCreateActivityReport(
+            "Créer des rapports d'activités (don, audience, etc.)"
+          ) &&
+            (Number(reports?.metadata?.total) === 0 ? (
+              <Button
+                variant={'outline'}
+                onClick={() => setIsAddReportDialogOpen(true)}
+              >
+                <StickyNote />
+                <span>Créer un rapport</span>
+              </Button>
+            ) : (
+              <Button
+                variant={'outline'}
+                onClick={() => navigate(`/repport/${reports?.data?.[0]?._id}`)}
+              >
+                <Eye />
+                <span>Voir le rapport</span>
+              </Button>
+            ))}
           <Dialog
             open={isAddReportDialogOpen}
             onOpenChange={setIsAddReportDialogOpen}

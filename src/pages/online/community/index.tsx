@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/table';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useBeneficiaries } from '@/hook/beneficiaire.hook';
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import {
   IBeneficiaire,
   IBeneficiaireFilterForm,
@@ -40,6 +41,7 @@ import { helperUserPermission } from '@/utils';
 import { addDays } from 'date-fns';
 import fr from 'date-fns/locale/fr';
 import {
+  AlertTriangle,
   Eye,
   EyeOff,
   Filter,
@@ -128,6 +130,8 @@ export const CommunityPage = withDashboard(() => {
   });
 
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
+  const [isBeneficiaryLimitAlertOpen, setIsBeneficiaryLimitAlertOpen] =
+    useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<IBeneficiaireFilterForm>({
     period: {
@@ -136,6 +140,22 @@ export const CommunityPage = withDashboard(() => {
     },
     search: '',
   });
+
+  // Limites de bénéficiaires via package
+  const {
+    hasReachedBeneficiaryLimit,
+    getBeneficiaryLimit,
+    getRemainingBeneficiariesCount,
+  } = usePackagePermissions();
+
+  const currentBeneficiaryCount = data?.totalData || 0;
+  const beneficiaryLimit = getBeneficiaryLimit();
+  const beneficiaryLimitReached = hasReachedBeneficiaryLimit(
+    currentBeneficiaryCount
+  );
+  const remainingBeneficiaries = getRemainingBeneficiariesCount(
+    currentBeneficiaryCount
+  );
 
   const activeFiltersCount = Object.values(filters).filter(Boolean).length;
 
@@ -148,16 +168,77 @@ export const CommunityPage = withDashboard(() => {
 
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+      <div className='flex items-start justify-between mt-4'>
         <div>
           <h4 className='text-3xl font-bold'>Bénéficiaires</h4>
           <p className='text-muted-foreground'>Gestion des bénéficiaires</p>
+          {beneficiaryLimit && beneficiaryLimit > 0 && (
+            <div className='mt-3 flex items-center gap-3'>
+              <div className='flex items-center gap-2 text-sm'>
+                <span className='text-gray-600'>
+                  {currentBeneficiaryCount} / {beneficiaryLimit} bénéficiaires
+                </span>
+              </div>
+              <div className='w-32 bg-gray-200 rounded-full h-2'>
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    beneficiaryLimitReached
+                      ? 'bg-red-500'
+                      : currentBeneficiaryCount / beneficiaryLimit > 0.8
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      (currentBeneficiaryCount / beneficiaryLimit) * 100,
+                      100
+                    )}%`,
+                  }}
+                />
+              </div>
+              {!beneficiaryLimitReached &&
+                remainingBeneficiaries !== null &&
+                remainingBeneficiaries <= 2 && (
+                  <Badge
+                    variant='secondary'
+                    className='bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                  >
+                    <AlertTriangle className='h-3 w-3 mr-1' />
+                    {remainingBeneficiaries === 1
+                      ? '1 bénéficiaire restant'
+                      : `${remainingBeneficiaries} bénéficiaires restants`}
+                  </Badge>
+                )}
+              {beneficiaryLimitReached && (
+                <Badge variant='destructive' className='hover:bg-red-200'>
+                  <AlertTriangle className='h-3 w-3 mr-1' />
+                  Limite atteinte
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <div className='flex gap-2'>
           {helperUserPermission('Bénéficiaires', 'create') && (
-            <Button onClick={() => navigate('/community/create')}>
+            <Button
+              onClick={() => {
+                if (beneficiaryLimitReached) {
+                  return;
+                }
+                navigate('/community/create');
+              }}
+              disabled={beneficiaryLimitReached}
+              className={
+                beneficiaryLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+              }
+            >
               <UserPlus className='h-4 w-4 mr-2' />
               Enregistrer une bénéficiaire
+              {beneficiaryLimitReached && (
+                <span className='ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full'>
+                  Limite atteinte
+                </span>
+              )}
             </Button>
           )}
         </div>

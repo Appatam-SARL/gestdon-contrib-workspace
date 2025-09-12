@@ -56,6 +56,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useBeneficiaries } from '@/hook/beneficiaire.hook';
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import {
   useCreatePromesse,
   useDeletePromesse,
@@ -70,6 +71,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
+  AlertTriangle,
   Eye,
   Filter,
   Loader2,
@@ -253,6 +255,8 @@ export const PromisesPage = withDashboard(() => {
   const contributorId = useContributorStore((s) => s.contributor?._id);
 
   const [openAddPromise, setOpenAddPromise] = useState<boolean>(false);
+  const [isPromiseLimitAlertOpen, setIsPromiseLimitAlertOpen] =
+    useState<boolean>(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [filters, setFilters] =
     useState<IPromesseFilters>(INIT_FILTER_PROMESSE);
@@ -281,6 +285,14 @@ export const PromisesPage = withDashboard(() => {
 
   const activeFiltersCount = Object.values(filters).filter(Boolean).length;
 
+  // Limites de promesses via package
+  const { hasReachedPromiseLimit, getPromiseLimit, getRemainingPromisesCount } =
+    usePackagePermissions();
+  const currentPromiseCount = promesses?.totalData || 0;
+  const promiseLimit = getPromiseLimit();
+  const promiseLimitReached = hasReachedPromiseLimit(currentPromiseCount);
+  const remainingPromises = getRemainingPromisesCount(currentPromiseCount);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -306,22 +318,88 @@ export const PromisesPage = withDashboard(() => {
 
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+      <div className='flex items-start justify-between mt-4'>
         <div>
           <h4 className='text-3xl font-bold'>Promesses</h4>
           <p className='text-muted-foreground'>Gérer vos promesses ici.</p>
+
+          {promiseLimit && promiseLimit > 0 && (
+            <div className='mt-3 flex items-center gap-3'>
+              <div className='flex items-center gap-2 text-sm'>
+                <span className='text-gray-600'>
+                  {currentPromiseCount} / {promiseLimit} promesses
+                </span>
+              </div>
+              <div className='w-32 bg-gray-200 rounded-full h-2'>
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    promiseLimitReached
+                      ? 'bg-red-500'
+                      : currentPromiseCount / promiseLimit > 0.8
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      (currentPromiseCount / promiseLimit) * 100,
+                      100
+                    )}%`,
+                  }}
+                />
+              </div>
+              {/* Badge d'alerte si proche de la limite */}
+              {!promiseLimitReached &&
+                remainingPromises !== null &&
+                remainingPromises <= 2 && (
+                  <Badge
+                    variant='secondary'
+                    className='bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                  >
+                    <AlertTriangle className='h-3 w-3 mr-1' />
+                    {remainingPromises === 1
+                      ? '1 promesse restante'
+                      : `${remainingPromises} promesses restantes`}
+                  </Badge>
+                )}
+
+              {promiseLimitReached && (
+                <Badge variant='destructive' className='hover:bg-red-200'>
+                  <AlertTriangle className='h-3 w-3 mr-1' />
+                  Limite atteinte
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <div>
           {helperUserPermission('promesse', 'create') ? (
-            <Button onClick={() => setOpenAddPromise(true)}>
+            <Button
+              onClick={() => {
+                if (promiseLimitReached) {
+                  setIsPromiseLimitAlertOpen(true);
+                  return;
+                }
+                setOpenAddPromise(true);
+              }}
+              disabled={promiseLimitReached}
+              className={
+                promiseLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+              }
+            >
               <ScrollTextIcon />
               <span>Ajouter une promesse</span>
+              {promiseLimitReached && (
+                <span className='ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full'>
+                  Limite atteinte
+                </span>
+              )}
             </Button>
           ) : (
             <div className='text-muted-foreground'>
               Vous n'avez pas les permissions pour créer une promesses.
             </div>
           )}
+
           {/* Modal pour ajouter une promesse */}
           <Dialog open={openAddPromise} onOpenChange={setOpenAddPromise}>
             <DialogContent className='overflow-y-auto max-h-[80vh]'>

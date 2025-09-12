@@ -6,6 +6,7 @@ import React from 'react';
 // import { NotificationButton } from '@/components/commons/NotificationButton';
 import NotificationButton from '@/components/commons/NotificationButton';
 import ProfilButton from '@/components/commons/ProfilButton';
+import SubscriptionBanner from '@/components/commons/SubscriptionBanner';
 import { useGetMenus } from '@/hook/menu.hook';
 import { useGetPermissionByAdminId } from '@/hook/permission.hook';
 import { IPermission } from '@/interface/permission';
@@ -56,6 +57,7 @@ export function withDashboard<P extends object>(
             <SupportButton />
             <ProfilButton mutation={mutation} user={user as Partial<IUser>} />
           </div>
+          <SubscriptionBanner />
           <WrappedComponent {...props} />
         </main>
       </div>

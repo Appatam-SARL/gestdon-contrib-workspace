@@ -41,6 +41,8 @@ import SettingActivity from '@/pages/online/settings/setting-activity';
 import SettingBeneficiary from '@/pages/online/settings/setting-beneficiary';
 import SettingsActivityCustomizableForm from '@/pages/online/settings/settings-activity-customizable-form';
 import SettingsBeneficiaryCustomizableForm from '@/pages/online/settings/settings-beneficiary-customizable-form';
+import SubscriptionManagement from '@/pages/online/settings/subscription-management';
+import SubscriptionStatus from '@/pages/online/settings/subscription-status';
 import SocialContributorProfile from '@/pages/online/socialContributorProfile';
 import { StaffPage } from '@/pages/online/staff';
 import { StaffDetailsPage } from '@/pages/online/staff/[id]';
@@ -70,6 +72,9 @@ const AppRouter = () => {
         <Route path='/conversation/:id' element={<Conversation />} />
         <Route path='/register' element={<Register />} />
         <Route path='/register-successfull' element={<RegisterSuccessfull />} />
+        <Route path='/pricing' element={<ChoixPlan />} />
+        <Route path='/paiement/:idPackage' element={<PaiementPage />} />
+        <Route path='/paiement-success' element={<PaiementSuccessPage />} />
 
         <Route
           path='/'
@@ -199,6 +204,17 @@ const AppRouter = () => {
             path='beneficiary-customizable-form'
             element={<SettingsBeneficiaryCustomizableForm />}
           />
+          <Route path='subscription' element={<SubscriptionStatus />} />
+          <Route path='subscription/status' element={<SubscriptionStatus />} />
+          <Route
+            path='subscription/management'
+            element={<SubscriptionManagement />}
+          />
+          {/* <Route
+            path='subscription/history'
+            element={<SubscriptionHistory />}
+          />
+          <Route path='subscription/pricing' element={<Pricing />} /> */}
         </Route>
         {/* Add other routes here */}
         <Route path='/feed' element={<Feeds />} />

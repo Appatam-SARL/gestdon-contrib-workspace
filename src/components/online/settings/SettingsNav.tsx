@@ -1,5 +1,6 @@
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { cn } from '@/lib/utils';
-import { Activity, NotebookPen, Settings2, Users } from 'lucide-react';
+import { Activity, Loader2, NotebookPen, Settings2, Users } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -38,6 +39,25 @@ const NavLink: React.FC<NavLinkProps> = ({ href, label, isActive, badge }) => (
 );
 
 const SettingsNav = () => {
+  // Vérifier les permissions des packages
+  const { hasAccess, isLoading } = usePackagePermissions();
+
+  // Afficher un indicateur de chargement si les permissions sont en cours de chargement
+  if (isLoading) {
+    return (
+      <nav className='space-y-1 border-r border-t border-border bg-white'>
+        <div className='p-4'>
+          <div className='flex items-center justify-center'>
+            <Loader2 className='h-6 w-6 animate-spin text-gray-400' />
+            <span className='ml-2 text-sm text-gray-500'>
+              Chargement des permissions...
+            </span>
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className='space-y-1 border-r border-t border-border bg-white'>
       <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2.5'>
@@ -53,52 +73,70 @@ const SettingsNav = () => {
         }
         isActive={true}
       />
-      {/* <NavLink href='#' label='API Keys' badge='NEW' />
-      <NavLink href='#' label='Add Ons' />
-      <NavLink href='#' label='Vault' badge='Alpha' /> */}
+
+      {/* Section Configuration - Conditionnée par les permissions */}
+      {hasAccess("Ajout de type d'activité et bénéficiaire") && (
+        <>
+          <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
+            Configuration
+          </h3>
+          <NavLink
+            href='activity'
+            label={
+              <>
+                <Activity className='mr-2 h-4 w-4' />
+                Type d'activités
+              </>
+            }
+          />
+          <NavLink
+            href='beneficiary'
+            label={
+              <>
+                <Users className='mr-2 h-4 w-4' />
+                Type Bénéficiaires
+              </>
+            }
+          />
+        </>
+      )}
+
+      {/* Section Personnalisations des formulaires - Conditionnée par les permissions */}
+      {hasAccess(
+        'Personnalisation des champs formulaire (activité, bénéficiaire)'
+      ) && (
+        <>
+          <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
+            Personnalisations des formulaires
+          </h3>
+          <NavLink
+            href='activity-customizable-form'
+            label={
+              <>
+                <NotebookPen className='mr-2 h-4 w-4' />
+                Activités
+              </>
+            }
+          />
+          <NavLink
+            href='beneficiary-customizable-form'
+            label={
+              <>
+                <NotebookPen className='mr-2 h-4 w-4' />
+                Bénéficiaires
+              </>
+            }
+          />
+        </>
+      )}
 
       <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
-        Configuration
+        Abonnement
       </h3>
       <NavLink
-        href='activity'
-        label={
-          <>
-            <Activity className='mr-2 h-4 w-4' />
-            Type d'activités
-          </>
-        }
-      />
-      <NavLink
-        href='beneficiary'
-        label={
-          <>
-            <Users className='mr-2 h-4 w-4' />
-            Type Bénéficiaires
-          </>
-        }
-      />
-
-      <h3 className='px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-8'>
-        Personnalisations des formulaires
-      </h3>
-      <NavLink
-        href='activity-customizable-form'
-        label={
-          <>
-            <NotebookPen className='mr-2 h-4 w-4' />
-            Activités
-          </>
-        }
-      />
-      <NavLink
-        href='beneficiary-customizable-form'
-        label={
-          <>
-            <NotebookPen className='mr-2 h-4 w-4' />
-            Bénéficiaires
-          </>
-        }
+        href='subscription/status'
+        label={<>Statut de l'abonnement</>}
+        isActive={false}
       />
     </nav>
   );

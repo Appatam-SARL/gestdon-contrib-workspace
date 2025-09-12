@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { withDashboard } from '@/hoc/withDashboard';
+import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { formInviteSchema, FormInviteValues } from '@/schema/admins.schema';
 // import useStaffStore, { INIT_MEMBER_FILTER } from '@/stores/staff.store';
 import {
@@ -59,12 +60,15 @@ import { getRoleLayout } from '@/utils/display-of-variable';
 import { cleanEmail, validateEmailComplete } from '@/utils/emailValidator';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  AlertTriangle,
   Eye,
   Filter,
+  Info,
   Loader2,
   RefreshCcw,
   Search,
   UserPlus,
+  Users,
   X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -140,10 +144,17 @@ const FilterModal = ({
 export const StaffPage = withDashboard(() => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Hook pour vérifier les permissions et limites d'utilisateurs
+  const { hasReachedUserLimit, getUserLimit, getRemainingUsersCount } =
+    usePackagePermissions();
+
   // state local
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState<boolean>(false);
+  const [isUserLimitAlertOpen, setIsUserLimitAlertOpen] =
+    useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [responseServerSuccess, setResponseServerSuccess] =
     useState<boolean>(false);
@@ -172,9 +183,37 @@ export const StaffPage = withDashboard(() => {
     userFilterForm as IUserFilterForm
   ).filter(Boolean).length;
 
+  // Calculer le nombre actuel de membres du staff
+  const currentStaffCount = data?.totalData || 0;
+
+  // Vérifier si la limite d'utilisateurs est atteinte
+  const hasReachedLimit = hasReachedUserLimit(currentStaffCount);
+
+  // Récupérer les informations de limite
+  const maxUsers = getUserLimit();
+  const remainingUsers = getRemainingUsersCount(currentStaffCount);
+
   const handleStatusChange = (memberId: string, isActive: boolean) => {
     // À implémenter: mise à jour du statut
     console.log('Status changed:', memberId, isActive);
+  };
+
+  // Fonction pour gérer l'ajout de membre avec vérification de limite
+  const handleAddMember = () => {
+    if (hasReachedLimit) {
+      setIsUserLimitAlertOpen(true);
+      return;
+    }
+    navigate('/staff/create');
+  };
+
+  // Fonction pour gérer l'invitation avec vérification de limite
+  const handleInviteMember = () => {
+    if (hasReachedLimit) {
+      setIsUserLimitAlertOpen(true);
+      return;
+    }
+    setIsInviteModalOpen(true);
   };
 
   const handleInvite = async (data: FormInviteValues) => {
@@ -222,20 +261,223 @@ export const StaffPage = withDashboard(() => {
           <p className='text-muted-foreground'>
             Gestion des membres du personnel
           </p>
+
+          {/* Indicateur de limite d'utilisateurs */}
+          {maxUsers && maxUsers > 0 && (
+            <div className='mt-3 flex items-center gap-3'>
+              <div className='flex items-center gap-2 text-sm'>
+                <Users className='h-4 w-4 text-gray-500' />
+                <span className='text-gray-600'>
+                  {currentStaffCount} / {maxUsers} membres
+                </span>
+              </div>
+
+              {/* Barre de progression compacte */}
+              <div className='w-32 bg-gray-200 rounded-full h-2'>
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    hasReachedLimit
+                      ? 'bg-red-500'
+                      : currentStaffCount / maxUsers > 0.8
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      (currentStaffCount / maxUsers) * 100,
+                      100
+                    )}%`,
+                  }}
+                />
+              </div>
+
+              {/* Badge d'alerte si proche de la limite */}
+              {!hasReachedLimit &&
+                remainingUsers !== null &&
+                remainingUsers <= 2 && (
+                  <Badge
+                    variant='secondary'
+                    className='bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                  >
+                    <AlertTriangle className='h-3 w-3 mr-1' />
+                    {remainingUsers === 1
+                      ? '1 place restante'
+                      : `${remainingUsers} places restantes`}
+                  </Badge>
+                )}
+
+              {/* Badge si limite atteinte */}
+              {hasReachedLimit && (
+                <Badge variant='destructive'>
+                  <AlertTriangle className='h-3 w-3 mr-1' />
+                  Limite atteinte
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         <div className='flex gap-2'>
           {helperUserPermission('staff', 'create') && (
-            <Button onClick={() => navigate('/staff/create')}>
+            <Button
+              onClick={handleAddMember}
+              disabled={hasReachedLimit}
+              className={hasReachedLimit ? 'opacity-50 cursor-not-allowed' : ''}
+            >
               <UserPlus className='h-4 w-4 mr-2' />
               Ajouter un membre
+              {hasReachedLimit && (
+                <span className='ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full'>
+                  Limite atteinte
+                </span>
+              )}
             </Button>
           )}
           {helperUserPermission('staff', 'create_by_invitation') && (
-            <Button onClick={() => setIsInviteModalOpen(true)}>
+            <Button
+              onClick={handleInviteMember}
+              disabled={hasReachedLimit}
+              className={hasReachedLimit ? 'opacity-50 cursor-not-allowed' : ''}
+            >
               <UserPlus className='h-4 w-4 mr-2' />
               Ajouter un membre par invitation
+              {hasReachedLimit && (
+                <span className='ml-2 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full'>
+                  Limite atteinte
+                </span>
+              )}
             </Button>
           )}
+          {/* Modal d'alerte pour limite d'utilisateurs */}
+          <Dialog
+            open={isUserLimitAlertOpen}
+            onOpenChange={setIsUserLimitAlertOpen}
+          >
+            <DialogContent className='sm:max-w-[500px]'>
+              <DialogHeader>
+                <div className='flex items-center gap-3'>
+                  <div className='p-2 bg-red-100 rounded-full'>
+                    <AlertTriangle className='h-6 w-6 text-red-600' />
+                  </div>
+                  <div>
+                    <DialogTitle className='text-red-800'>
+                      Limite d'utilisateurs atteinte
+                    </DialogTitle>
+                    <DialogDescription className='text-red-600'>
+                      Vous avez atteint le nombre maximal de membres de staff
+                      autorisés par votre package.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className='space-y-4'>
+                {/* Informations sur la limite */}
+                <div className='p-4 bg-gray-50 rounded-lg'>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Utilisateurs actuels
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {currentStaffCount}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Limite maximale
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {maxUsers || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Barre de progression */}
+                  {maxUsers && maxUsers > 0 && (
+                    <div className='mt-4'>
+                      <div className='flex justify-between text-sm text-gray-600 mb-2'>
+                        <span>Utilisation</span>
+                        <span>
+                          {Math.round((currentStaffCount / maxUsers) * 100)}%
+                        </span>
+                      </div>
+                      <div className='w-full bg-gray-200 rounded-full h-2'>
+                        <div
+                          className='h-2 bg-red-500 rounded-full transition-all duration-300'
+                          style={{
+                            width: `${Math.min(
+                              (currentStaffCount / maxUsers) * 100,
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Message d'information */}
+                <div className='flex items-start gap-3 p-3 bg-blue-50 rounded-lg'>
+                  <Info className='h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0' />
+                  <div className='text-sm text-blue-800'>
+                    <p className='font-medium mb-1'>Pourquoi cette limite ?</p>
+                    <p>
+                      Votre package d'abonnement actuel limite le nombre de
+                      membres de staff que vous pouvez ajouter. Pour ajouter
+                      plus de membres, vous devez mettre à niveau votre package.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions suggérées */}
+                <div className='space-y-3'>
+                  <h4 className='font-medium text-gray-900'>
+                    Que pouvez-vous faire ?
+                  </h4>
+                  <div className='space-y-2'>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Gérer les membres existants (modifier, désactiver)
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Mettre à niveau votre package pour plus d'utilisateurs
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Contacter le support pour des options personnalisées
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className='flex gap-3'>
+                <Button
+                  variant='outline'
+                  onClick={() => setIsUserLimitAlertOpen(false)}
+                >
+                  Fermer
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsUserLimitAlertOpen(false);
+                    navigate('/settings/subscription/pricing');
+                  }}
+                  className='bg-blue-600 hover:bg-blue-700'
+                >
+                  <Users className='h-4 w-4 mr-2' />
+                  Voir les packages
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {/* Modal d'invitation */}
           <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
             <DialogContent>
