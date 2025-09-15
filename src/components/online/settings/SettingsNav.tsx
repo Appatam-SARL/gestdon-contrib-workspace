@@ -1,6 +1,6 @@
 import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { cn } from '@/lib/utils';
-import { Activity, Loader2, NotebookPen, Settings2, Users } from 'lucide-react';
+import { Activity, Banknote, Loader2, NotebookPen, Settings2, Users } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -95,6 +95,24 @@ const SettingsNav = () => {
               <>
                 <Users className='mr-2 h-4 w-4' />
                 Type Bénéficiaires
+              </>
+            }
+          />
+          <NavLink
+            href='type-mouvement-checkout'
+            label={
+              <>
+                <Banknote className='mr-2 h-4 w-4' />
+                Type opération de caisse
+              </>
+            }
+          />
+          <NavLink
+            href='categorie-mouvement-checkout'
+            label={
+              <>
+                <Banknote className='mr-2 h-4 w-4' />
+                Catégorie de mouvement
               </>
             }
           />

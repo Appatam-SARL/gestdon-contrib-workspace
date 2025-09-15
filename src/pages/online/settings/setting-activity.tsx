@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 import { Button } from '@/components/ui/button'; // Assuming the button component path
 import { Card } from '@/components/ui/card';
 import {
@@ -514,7 +515,10 @@ const SettingActivity = () => {
             ) : sortedAndFilteredActivities.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className='h-24 text-center'>
-                  Aucune activité trouvée.
+                  <div className='flex flex-col items-center justify-center'>
+                    <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                    <p className='text-gray-500'>Aucune activité trouvée.</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

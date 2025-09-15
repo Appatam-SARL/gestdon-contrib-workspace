@@ -11,6 +11,7 @@ export interface IActivity {
     phone?: string;
     email?: string;
   };
+  budget?: number;
   title: string;
   locationOfActivity: string;
   description: string;
@@ -37,4 +38,51 @@ export interface IActivityFilterForm {
     from?: string;
     to?: string;
   };
+}
+
+export interface IMouvementCheckout {
+  _id: string;
+  typeMouvementCheckout: string | ITypeMouvementCheckout;
+  categoryMouvementCheckout: string | ICategorieMouvementCheckout;
+  description: string;
+  amount: number;
+  activityId: string;
+  contributorId: string;
+  beneficiaryId?: string;
+  document: Array<{
+    fileId: string;
+    type: string;
+    fileUrl: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ITypeMouvementCheckout {
+  _id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
+export interface ISummaryMouvementCheckout {
+  activityId: string;
+  contributorId: string;
+  totalExpenses: number;
+  totalIncomes: number;
+  balance: number;
+  budget: number;
+  budgetRemaining: number;
+  movementsCount: number;
+}
+
+export interface ICategorieMouvementCheckout {
+  _id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  // Optionnels côté API pour indiquer l'utilisation et la suppression possible
+  isDeletable?: boolean;
+  usagesCount?: number;
 }

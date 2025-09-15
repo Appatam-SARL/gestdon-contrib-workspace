@@ -63,6 +63,27 @@ export const formAssignRepresentative = z.object({
   }),
 });
 
+export const formMouvementCheckoutSchema = z.object({
+  typeMouvementCheckout: z.string().nonempty('Ce champ est requis'),
+  categoryMouvementCheckout: z.string().nonempty('Ce champ est requis'),
+  description: z.string().nonempty('Ce champ est requis'),
+  amount: z.coerce.number().min(1, 'Le budget doit être supérieur à 0'),
+  document: z.array(
+    z.object({
+      fileId: z.string().nonempty('Ce champ est requis'),
+      type: z.string().nonempty('Ce champ est requis'),
+      fileUrl: z.string().nonempty('Ce champ est requis'),
+    })
+  ),
+});
+
+export const formBudgetSchema = z.object({
+  budget: z
+    .coerce
+    .number()
+    .min(1, 'Le budget doit être supérieur à 0'),
+});
+
 export type FormActivitySchema = z.infer<typeof formActivitySchema>;
 export type FormValidateActivitySchema = z.infer<
   typeof formActivityValidateSchema
@@ -72,3 +93,5 @@ export type FormRejectSchema = z.infer<typeof formRejectSchema>;
 export type FormAssignRepresentativeSchema = z.infer<
   typeof formAssignRepresentative
 >;
+export type FormBudgetSchema = z.infer<typeof formBudgetSchema>;
+export type FormMouvementCheckoutSchema = z.infer<typeof formMouvementCheckoutSchema>;

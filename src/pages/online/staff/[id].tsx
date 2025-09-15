@@ -4,6 +4,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -741,7 +742,10 @@ export const StaffDetailsPage = withDashboard(() => {
                               colSpan={3}
                               className='text-sm text-muted-foreground text-center p-2'
                             >
-                              Aucun historique de logs disponible.
+                              <div className='flex flex-col items-center justify-center'>
+                                <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                                <p className='text-gray-500'>Aucun historique de logs disponible.</p>
+                              </div>
                             </td>
                           </tr>
                         )}

@@ -1,23 +1,35 @@
-import { getFileUrl } from '@/api/file.api';
+import { getFileUrl, uploadFile } from '@/api/file.api';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   useDeleteContributor,
   useGetContributorById,
+  useUpdateContributor,
 } from '@/hook/contributors.hook';
 import { IContributor } from '@/interface/contributor';
 import useContributorStore from '@/store/contributor.store';
 import { useEffect, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
+import Dropzone from 'shadcn-dropzone';
 
 const Settings = () => {
   const contributorId = useContributorStore((state) => state.contributor?._id);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
 
   const { isLoading, isRefetching, data } = useGetContributorById(
     contributorId as string
   );
 
   const mutationDelete = useDeleteContributor();
+  const updateContributorMutation = useUpdateContributor();
 
   const contributorData: IContributor | undefined = data?.data as
     | IContributor
@@ -27,6 +39,33 @@ const Settings = () => {
     if (!contributorData?.logo) return;
     getFileUrl(contributorData?.logo.fileId as string).then(setLogoUrl);
   }, [contributorData]);
+
+  const handleDropLogo = async (acceptedFiles: File[]) => {
+    try {
+      if (!acceptedFiles || acceptedFiles.length === 0) return;
+      const formData = new FormData();
+      formData.append('file', acceptedFiles[0]);
+      const res = await uploadFile(formData, 'logo');
+      if (res.success && res.filesData.length > 0) {
+        const { fileId, fileUrl } = res.filesData[0];
+        // Mettre à jour le contributor avec le nouveau logo (si API dispo)
+        if (contributorId) {
+          updateContributorMutation.mutate({
+            id: contributorId,
+            contributor: {
+              logo: { fileId, fileUrl },
+            },
+          });
+        }
+        // Mettre à jour l'aperçu local
+        const previewUrl = await getFileUrl(fileId);
+        setLogoUrl(previewUrl);
+        setIsLogoModalOpen(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <>
@@ -137,6 +176,21 @@ const Settings = () => {
                     No Logo
                   </div>
                 )}
+                <Dialog open={isLogoModalOpen} onOpenChange={setIsLogoModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button className='ml-2' variant='outline'>
+                      Ajouter le logo
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Uploader le logo</DialogTitle>
+                    </DialogHeader>
+                    <div>
+                      <Dropzone onDrop={handleDropLogo} />
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </div>

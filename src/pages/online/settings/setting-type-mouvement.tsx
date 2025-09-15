@@ -1,15 +1,3 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import imgArrayEmpty from '@/assets/img/activityempty.png';
 import { Button } from '@/components/ui/button'; // Assuming the button component path
 import { Card } from '@/components/ui/card';
 import {
@@ -31,15 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'; // Assuming the table component path
-import {
-  ArrowUpDown,
-  CirclePlus,
-  Loader2,
-  Pencil,
-  RefreshCcw,
-  Save,
-  Trash,
-} from 'lucide-react';
+import { ArrowUpDown, Loader2, RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
@@ -58,27 +38,22 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import {
-  useCreateBeneficiaryType,
-  useDeleteBeneficiaryType,
-  useGetBeneficiaryType,
-  useUpdateBeneficiaryType,
-} from '@/hook/beneficiary-type.hook';
+
 import useContributorStore from '@/store/contributor.store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { ITypeMouvementCheckout } from '@/interface/activity';
+import { 
+  useCreateMouvementCheckoutType, 
+  useGetTypesMouvementCheckouts, 
+  useUpdateMouvementCheckoutType 
+} from '@/hook/mouvement-checkout-type.hook';
 
-interface IBeneficiaryType {
-  _id: string;
-  label: string;
-  createdAt: string;
-}
-
-// Zod schema for beneficiary validation
-const beneficiarySchema = z.object({
+// Zod schema for activity validation
+const typeMouvementCheckoutSchema = z.object({
   _id: z.string().optional(), // Added _id as optional for creation, required for update
-  label: z.string().min(1, 'Le nom du bénéficiaire est requis'),
+  name: z.string().min(1, "Le nom de l'activité est requis"),
 });
 
 // Zod schema for filter form
@@ -86,57 +61,57 @@ const filterSchema = z.object({
   search: z.string().optional(),
 });
 
-export type BeneficiaryFormValues = z.infer<typeof beneficiarySchema>;
+export type ActivityFormValues = z.infer<typeof typeMouvementCheckoutSchema>;
 type FilterFormValues = z.infer<typeof filterSchema>;
 
-const SettingBeneficiary = () => {
+const SettingTypeMouvement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingActivityId, setEditingActivityId] = useState<string | null>(
     null
   );
-
-  const [activityToDeleteId, setActivityToDeleteId] = useState<string | null>(
-    null
-  );
-
-  const [sortBy, setSortBy] = useState<string | null>('createdAt'); // Changed to createdAt
+  const [sortBy, setSortBy] = useState<string | null>('createdAt'); // Changé à createdAt
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(
     'asc'
   );
-
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // You can adjust this value
 
-  // store zustand
+  // store
   const contributorId = useContributorStore((state) => state.contributor?._id);
 
   // hook react query
   const {
-    data: beneficiaryTypes,
+    data: activityTypes,
     isLoading,
     isRefetching,
-    refetch: refetchBeneficiaryTypes,
-  } = useGetBeneficiaryType({ contributorId }); // Added refetch
-  const mutationCreateBeneficiaryType = useCreateBeneficiaryType();
-  const mutationUpdateBeneficiaryType = useUpdateBeneficiaryType();
-  const mutationDeleteBeneficiaryType = useDeleteBeneficiaryType();
+    refetch: refetchActivityTypes,
+    } = useGetTypesMouvementCheckouts(contributorId as string);
+  const mutationCreateActivityType = useCreateMouvementCheckoutType(
+    setIsAddDialogOpen
+  );
+  // Supposons que vous avez des hooks de mutation pour la mise à jour et la suppression
+  // Vous devrez implémenter useUpdateActivityType et useDeleteActivityType dans activity-type.hook.ts
+  const mutationUpdateActivityType = useUpdateMouvementCheckoutType(
+    setIsEditDialogOpen,
+    setEditingActivityId,
+    refetchActivityTypes
+  );
 
   // React Hook Form setup for Add Dialog
-  const addForm = useForm<BeneficiaryFormValues>({
-    resolver: zodResolver(beneficiarySchema),
+  const addForm = useForm<ActivityFormValues>({
+    resolver: zodResolver(typeMouvementCheckoutSchema),
     defaultValues: {
-      label: '',
+      name: '',
     },
   });
 
   // React Hook Form setup for Edit Dialog
-  const editForm = useForm<BeneficiaryFormValues>({
-    resolver: zodResolver(beneficiarySchema),
+  const editForm = useForm<ActivityFormValues>({
+    resolver: zodResolver(typeMouvementCheckoutSchema),
     defaultValues: {
-      label: '',
+      name: '',
     },
   });
 
@@ -150,17 +125,17 @@ const SettingBeneficiary = () => {
 
   // Effect to populate the edit form when editingActivityId changes
   useEffect(() => {
-    if (editingActivityId !== null && beneficiaryTypes?.data) {
-      const beneficiaryToEdit = beneficiaryTypes.data.find(
-        (beneficiary: IBeneficiaryType) => beneficiary._id === editingActivityId
+    if (editingActivityId !== null && activityTypes?.data) {
+      const activityToEdit = activityTypes.data.find(
+        (activity: ITypeMouvementCheckout) => activity._id === editingActivityId
       );
-      if (beneficiaryToEdit) {
-        editForm.reset({ label: beneficiaryToEdit.label });
+      if (activityToEdit) {
+        editForm.reset({ name: activityToEdit.name }); // Réinitialiser avec le label de l'activité
       }
     } else {
       editForm.reset(); // Reset form when not editing
     }
-  }, [editingActivityId, beneficiaryTypes?.data, editForm]);
+  }, [editingActivityId, activityTypes?.data, editForm]);
 
   // Effect to close edit dialog when editingActivityId is null
   useEffect(() => {
@@ -171,51 +146,25 @@ const SettingBeneficiary = () => {
     }
   }, [editingActivityId]);
 
-  const handleAddBeneficiaryClick = () => {
+  const handleAddActivityClick = () => {
     addForm.reset(); // Reset form when opening add dialog
     setIsAddDialogOpen(true);
   };
 
-  const handleSaveNewBeneficiary = (values: BeneficiaryFormValues) => {
+  const handleSaveNewActivity = (values: ActivityFormValues) => {
     const payload = {
       ...values,
       contributorId: contributorId as string,
     };
-    mutationCreateBeneficiaryType.mutate(payload, {
-      onSuccess: () => {
-        setIsAddDialogOpen(false); // Close the dialog on success
-        refetchBeneficiaryTypes(); // Refetch data after successful creation
-      },
-    });
+    mutationCreateActivityType.mutate(payload as unknown as ITypeMouvementCheckout);
   };
 
-  const handleEditClick = (beneficiary: IBeneficiaryType) => {
-    setEditingActivityId(beneficiary._id);
-  };
-
-  const handleSaveEditedBeneficiary = (values: BeneficiaryFormValues) => {
+  const handleSaveEditedActivity = (values: ActivityFormValues) => {
     if (editingActivityId !== null) {
-      mutationUpdateBeneficiaryType.mutate(
-        { id: editingActivityId, label: values.label },
-        {
-          onSuccess: () => {
-            setIsEditDialogOpen(false);
-            setEditingActivityId(null);
-            refetchBeneficiaryTypes(); // Refetch data after successful update
-          },
-        }
-      );
-    }
-  };
-
-  const handleDeleteBeneficiary = () => {
-    if (activityToDeleteId !== null) {
-      mutationDeleteBeneficiaryType.mutate(activityToDeleteId, {
-        onSuccess: () => {
-          setActivityToDeleteId(null);
-          refetchBeneficiaryTypes(); // Refetch data after successful deletion
-        },
-      });
+      mutationUpdateActivityType.mutate({
+        // _id: editingActivityId,
+          name: values.name,
+      } as unknown as ITypeMouvementCheckout);
     }
   };
 
@@ -228,48 +177,48 @@ const SettingBeneficiary = () => {
     }
   };
 
-  const filteredBeneficiaries = useMemo(() => {
+  // Utiliser activityTypes?.data pour le filtrage et le tri
+  const filteredActivities = useMemo(() => {
     const search = filterForm?.watch('search', '')?.toLowerCase();
-    const data = beneficiaryTypes?.data || [];
+    const data = activityTypes?.data || [];
     if (!search) return data;
 
-    return data.filter((beneficiary: IBeneficiaryType) =>
-      beneficiary.label.toLowerCase().includes(search)
+    return data.filter((activity: ITypeMouvementCheckout) =>
+      activity.name.toLowerCase().includes(search)
     );
-  }, [beneficiaryTypes?.data, filterForm.watch('search')]);
+  }, [activityTypes?.data, filterForm.watch('search')]);
 
-  const sortedAndFilteredBeneficiaries = useMemo(() => {
-    if (!sortBy)
-      return Array.isArray(filteredBeneficiaries) ? filteredBeneficiaries : [];
+  const sortedAndFilteredActivities = useMemo(() => {
+    if (!sortBy) return filteredActivities;
 
-    return [
-      ...(Array.isArray(filteredBeneficiaries) ? filteredBeneficiaries : []),
-    ].sort((a: any, b: any) => {
-      let valueA, valueB;
+    return [...filteredActivities].sort(
+      (a: ITypeMouvementCheckout, b: ITypeMouvementCheckout) => {
+        let valueA, valueB;
 
-      if (sortBy === 'createdAt') {
-        valueA = new Date(a.createdAt).getTime();
-        valueB = new Date(b.createdAt).getTime();
-      } else {
-        valueA = a[sortBy];
-        valueB = b[sortBy];
+        if (sortBy === 'createdAt') {
+          valueA = new Date(a.createdAt).getTime();
+          valueB = new Date(b.createdAt).getTime();
+        } else {
+          valueA = a[sortBy as keyof ITypeMouvementCheckout];
+          valueB = b[sortBy as keyof ITypeMouvementCheckout];
+        }
+
+        if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+        if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
       }
-
-      if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
-      if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [filteredBeneficiaries, sortBy, sortDirection]);
+    );
+  }, [filteredActivities, sortBy, sortDirection]);
 
   // Pagination logic
   const totalPages = Math.ceil(
-    sortedAndFilteredBeneficiaries.length / itemsPerPage
+    sortedAndFilteredActivities.length / itemsPerPage
   );
   const currentItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return sortedAndFilteredBeneficiaries.slice(startIndex, endIndex);
-  }, [sortedAndFilteredBeneficiaries, currentPage, itemsPerPage]);
+    return sortedAndFilteredActivities.slice(startIndex, endIndex);
+  }, [sortedAndFilteredActivities, currentPage, itemsPerPage]);
 
   const handlePreviousPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -281,73 +230,67 @@ const SettingBeneficiary = () => {
 
   return (
     <div className='p-6 space-y-4'>
-      <h2 className='text-2xl font-bold'>Paramétrage des bénéficiaires</h2>
+      <h2 className='text-2xl font-bold'>Paramétrage des types de mouvements</h2>
 
       <div className='flex justify-end'>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleAddBeneficiaryClick}>
-              <CirclePlus />
-              <span>Ajouter un type de bénéficiaire</span>
+            <Button onClick={handleAddActivityClick}>
+              Ajouter un type de mouvement
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Ajouter un nouveau type bénéficiaire</DialogTitle>
+              <DialogTitle>Ajouter un nouveau type de mouvement</DialogTitle>
               <DialogDescription>
-                Entrez les détails du type bénéficiaire.
+                Entrez les détails de la nouvelle activité.
               </DialogDescription>
             </DialogHeader>
             <Form {...addForm}>
               <form
-                onSubmit={addForm.handleSubmit(handleSaveNewBeneficiary)}
+                onSubmit={addForm.handleSubmit(handleSaveNewActivity)}
                 className='grid gap-4 py-4'
               >
                 <FormField
                   control={addForm.control}
-                  name='label'
+                  name='name'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className='text-right'>
-                        Type bénéficiaire
+                      <FormLabel className='text-right mb-4'>
+                        Nom du type de mouvement
                       </FormLabel>
                       <FormControl>
                         <Input
-                          id='type'
-                          placeholder='Nom du type bénéficiaire'
+                          id='name'
                           {...field}
-                          disabled={mutationCreateBeneficiaryType.isPending}
+                          disabled={mutationCreateActivityType.isPending}
                         />
                       </FormControl>
                       <FormMessage className='col-span-4 offset-col-span-1' />
                     </FormItem>
                   )}
                 />
-
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button
                       type='button'
                       variant='outline'
-                      disabled={mutationCreateBeneficiaryType.isPending}
+                      disabled={mutationCreateActivityType.isPending}
                     >
                       Annuler
                     </Button>
                   </DialogClose>
                   <Button
                     type='submit'
-                    disabled={mutationCreateBeneficiaryType.isPending}
+                      disabled={mutationCreateActivityType.isPending}
                   >
-                    {mutationCreateBeneficiaryType.isPending ? (
+                    {mutationCreateActivityType.isPending ? (
                       <>
                         <Loader2 className='animate-spin mr-2' />
                         Ajout en cours
                       </>
                     ) : (
-                      <>
-                        <Save />
-                        <span>Ajouter</span>
-                      </>
+                      'Ajouter'
                     )}
                   </Button>
                 </DialogFooter>
@@ -360,28 +303,28 @@ const SettingBeneficiary = () => {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Modifier bénéficiaire</DialogTitle>
+              <DialogTitle>Modifier le type de mouvement</DialogTitle>
               <DialogDescription>
-                Modifiez les détails du bénéficiaire.
+                Modifiez les détails de l'activité.
               </DialogDescription>
             </DialogHeader>
             <Form {...editForm}>
               <form
-                onSubmit={editForm.handleSubmit(handleSaveEditedBeneficiary)}
+                onSubmit={editForm.handleSubmit(handleSaveEditedActivity)}
                 className='grid gap-4 py-4'
               >
                 <FormField
                   control={editForm.control}
-                  name='label'
+                  name='name'
                   render={({ field }) => (
                     <FormItem className='grid grid-cols-4 items-center gap-4'>
                       <FormLabel className='text-right'>Nom</FormLabel>
                       <FormControl>
                         <Input
-                          id='edit-label'
+                          id='edit-name'
                           className='col-span-3'
                           {...field}
-                          disabled={mutationUpdateBeneficiaryType.isPending}
+                          disabled={mutationUpdateActivityType.isPending}
                         />
                       </FormControl>
                       <FormMessage className='col-span-4 offset-col-span-1' />
@@ -394,16 +337,16 @@ const SettingBeneficiary = () => {
                     <Button
                       type='button'
                       variant='secondary'
-                      disabled={mutationUpdateBeneficiaryType.isPending}
+                      disabled={mutationUpdateActivityType.isPending}
                     >
                       Annuler
                     </Button>
                   </DialogClose>
                   <Button
                     type='submit'
-                    disabled={mutationUpdateBeneficiaryType.isPending}
+                    disabled={mutationUpdateActivityType.isPending}
                   >
-                    {mutationUpdateBeneficiaryType.isPending ? (
+                    {mutationUpdateActivityType.isPending ? (
                       <>
                         <Loader2 className='animate-spin mr-2' />
                         Enregistrement...
@@ -420,9 +363,9 @@ const SettingBeneficiary = () => {
       </div>
 
       {/* Filtres */}
-      <Card className='p-4'>
+      <Card className='p-4 bg-white'>
         <Form {...filterForm}>
-          <form className='flex gap-4'>
+          <form className='flex gap-4 bg-white'>
             <FormField
               control={filterForm.control}
               name='search'
@@ -430,7 +373,7 @@ const SettingBeneficiary = () => {
                 <FormItem className='flex-1'>
                   <FormControl>
                     <Input
-                      placeholder='Rechercher un bénéficiaire ...'
+                      placeholder='Rechercher un type de mouvement ...'
                       {...field}
                       onChange={(e) => {
                         field.onChange(e);
@@ -445,13 +388,13 @@ const SettingBeneficiary = () => {
               variant='outline'
               onClick={() => {
                 filterForm.reset();
-                refetchBeneficiaryTypes(); // Refetch data on refresh
+                refetchActivityTypes(); // Refetch data on refresh
               }}
               className='relative'
               type='button'
             >
               <RefreshCcw className='h-4 w-4 mr-2' />
-              Actualiser {isRefetching && '(Actualisation...)'}
+              Actualiser
             </Button>
           </form>
         </Form>
@@ -467,7 +410,7 @@ const SettingBeneficiary = () => {
                 onClick={() => handleSort('createdAt')}
                 className='cursor-pointer'
               >
-                Date de création
+                Date
                 {sortBy === 'createdAt' && (
                   <ArrowUpDown
                     className={`ml-2 h-4 w-4 ${
@@ -487,86 +430,24 @@ const SettingBeneficiary = () => {
                 <TableCell colSpan={3} className='h-24 text-center'>
                   <div className='flex items-center justify-center text-gray-500'>
                     <Loader2 className='animate-spin h-5 w-5 mr-3' />
-                    Chargement des bénéficiaires...
+                    Chargement des types de mouvements...
                   </div>
                 </TableCell>
               </TableRow>
-            ) : currentItems.length === 0 ? (
+            ) : sortedAndFilteredActivities.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className='h-24 text-center'>
-                  <div className='flex flex-col items-center justify-center'>
-                    <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
-                    <p className='text-gray-500'>Aucun bénéficiaire trouvé.</p>
-                  </div>
+                  Aucun type de mouvement trouvé.
                 </TableCell>
               </TableRow>
             ) : (
-              currentItems.map((beneficiary: IBeneficiaryType) => (
-                <TableRow key={beneficiary._id}>
-                  <TableCell>{beneficiary.label}</TableCell>
+              currentItems.map((activity: ITypeMouvementCheckout) => (
+                <TableRow key={activity._id}>
+                  <TableCell>{activity.name}</TableCell>
                   <TableCell>
-                    {new Date(beneficiary.createdAt).toLocaleDateString(
-                      'fr-FR'
-                    )}
+                    {new Date(activity.createdAt).toLocaleDateString('fr-FR')}
                   </TableCell>
-                  <TableCell className='flex justify-end gap-2'>
-                    <Button
-                      variant='outline'
-                      size='icon'
-                      onClick={() => handleEditClick(beneficiary)}
-                    >
-                      <Pencil className='h-4 w-4' />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger
-                        asChild
-                        onClick={() => setActivityToDeleteId(beneficiary._id)}
-                      >
-                        <Button
-                          variant='destructive'
-                          size='icon'
-                          disabled={mutationDeleteBeneficiaryType.isPending}
-                        >
-                          <Trash className='h-4 w-4' />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Êtes-vous absolument sûr ?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Cette action est irréversible. Elle supprimera
-                            définitivement ce bénéficiaire.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel
-                            onClick={() => setActivityToDeleteId(null)}
-                            disabled={mutationDeleteBeneficiaryType.isPending}
-                          >
-                            Annuler
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            style={{
-                              backgroundColor: 'oklch(0.577 0.245 27.325)',
-                            }}
-                            onClick={handleDeleteBeneficiary}
-                            disabled={mutationDeleteBeneficiaryType.isPending}
-                          >
-                            {mutationDeleteBeneficiaryType.isPending ? (
-                              <>
-                                <Loader2 className='animate-spin mr-2' />
-                                Suppression...
-                              </>
-                            ) : (
-                              'Confirmer'
-                            )}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
+                  
                 </TableRow>
               ))
             )}
@@ -609,4 +490,4 @@ const SettingBeneficiary = () => {
   );
 };
 
-export default SettingBeneficiary;
+export default SettingTypeMouvement;

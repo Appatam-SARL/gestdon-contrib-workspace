@@ -52,6 +52,9 @@ import OrganisationForm from '@/pages/welcome/contributeur/OrganisationForm';
 import PaiementPage from '@/pages/welcome/contributeur/PaiementPage';
 import PaiementSuccessPage from '@/pages/welcome/contributeur/PaiementSuccessPage';
 import React from 'react';
+import SettingTypeMouvement from '@/pages/online/settings/setting-type-mouvement';
+import SettingCategorieMouvement from '@/pages/online/settings/setting-categorie-mouvement-checkout';
+import MouvementCheckoutsPage from '@/pages/online/mouvementCheckouts';
 
 const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
 const Dashboard = React.lazy(() => import('@/pages/online/dashboard'));
@@ -191,9 +194,14 @@ const AppRouter = () => {
             <Route path=':id/edit' element={<StaffPage />} />
             <Route path='create' element={<AddStaffForm />} />
           </Route>
+          <Route path='/mouvement-checkout'>
+            <Route index element={<MouvementCheckoutsPage />} />
+          </Route>
         </Route>
         <Route path='/settings' element={<SettingsLayout />}>
           <Route index element={<Settings />} />
+          <Route path='type-mouvement-checkout' element={<SettingTypeMouvement />} />
+          <Route path='categorie-mouvement-checkout' element={<SettingCategorieMouvement />} />
           <Route path='activity' element={<SettingActivity />} />
           <Route path='beneficiary' element={<SettingBeneficiary />} />
           <Route

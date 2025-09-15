@@ -18,7 +18,6 @@ import {
 } from '@/hook/dashboard.hook';
 import { useReports } from '@/hook/report.hook';
 import { IBeneficiaire } from '@/interface/beneficiaire';
-import { IReport } from '@/interface/report';
 import useContributorStore from '@/store/contributor.store';
 import { helperUserPermission } from '@/utils';
 import { displayStatusReport } from '@/utils/display-of-variable';
@@ -39,17 +38,35 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
+import { useGetMouvementCheckouts } from '@/hook/mouvement-checkout.hook';
+import { IMouvementCheckout } from '@/interface/activity';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
+import { IReport } from '@/interface/report';
 
 const chartConfig = {
   deliveries: {
     label: 'Nombre',
     color: 'hsl(var(--chart-1))',
   },
+};
+
+const CustomizedLabelLineChart = (props: any) => {
+  const { x, y, value, stroke } = props;
+  if (y == null || x == null) return null;
+  return (
+    <g>
+      <text x={x} y={y - 8} textAnchor='middle' fill={stroke} fontSize={10}>
+        {Number(value).toLocaleString('fr-FR')}
+      </text>
+    </g>
+  );
 };
 
 const Dashboard = withDashboard(() => {
@@ -65,11 +82,9 @@ const Dashboard = withDashboard(() => {
     isLoading: isLoadingActivityByType,
     refetch: refetchActivitiesByType,
   } = useDashboardActivitiesByType(selectedFilter);
-  const {
-    data: beneficiaryDistribution,
-    refetch: refetchBeneficiaryDistribution,
-  } = useDashboardBeneficiaryDistribution(selectedFilter);
-  const { data: reports, isLoading: isLoadingReports } = useReports({
+  const { refetch: refetchBeneficiaryDistribution } =
+    useDashboardBeneficiaryDistribution(selectedFilter);
+  const { data: reports, isLoading: isLoadingReports, isRefetching: isRefetchingReports } = useReports({
     contributorId: contributorId,
     limit: 15,
     page: 1,
@@ -80,6 +95,92 @@ const Dashboard = withDashboard(() => {
       page: 1,
       contributorId: contributorId,
     });
+
+  // Données des mouvements pour le graphique ligne
+  const { data: mouvementsData, isLoading: isLoadingMouvementsData, isRefetching: isRefetchingMouvementsData } = useGetMouvementCheckouts({
+    contributorId: (contributorId as string) || '',
+  });
+
+  const lineChartData = React.useMemo(() => {
+    const items: IMouvementCheckout[] = mouvementsData?.data || [];
+    const period = selectedFilter.period; // 'day' | 'week' | 'month' | 'year'
+    const now = new Date();
+
+    type Bucket = { label: string; keyDate: Date; incomes: number; expenses: number };
+    const buckets: Bucket[] = [];
+
+    const seedDay = () => {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      for (let h = 0; h < 24; h++) {
+        const d = new Date(start);
+        d.setHours(h);
+        buckets.push({ label: `${h.toString().padStart(2, '0')}h`, keyDate: d, incomes: 0, expenses: 0 });
+      }
+      return { start, end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59) };
+    };
+    const seedWeek = () => {
+      const day = now.getDay() || 7; // Lundi=1
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - (day - 1));
+      monday.setHours(0, 0, 0, 0);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        buckets.push({ label: d.toLocaleDateString('fr-FR', { weekday: 'short' }), keyDate: d, incomes: 0, expenses: 0 });
+      }
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      return { start: monday, end: sunday };
+    };
+    const seedMonth = () => {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      for (let d = 1; d <= end.getDate(); d++) {
+        const dt = new Date(now.getFullYear(), now.getMonth(), d);
+        buckets.push({ label: d.toString().padStart(2, '0'), keyDate: dt, incomes: 0, expenses: 0 });
+      }
+      return { start, end };
+    };
+    const seedYear = () => {
+      const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+      const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+      for (let m = 0; m < 12; m++) {
+        const dt = new Date(now.getFullYear(), m, 1);
+        buckets.push({ label: dt.toLocaleDateString('fr-FR', { month: 'short' }), keyDate: dt, incomes: 0, expenses: 0 });
+      }
+      return { start, end };
+    };
+
+    let range: { start: Date; end: Date };
+    if (period === 'day') range = seedDay();
+    else if (period === 'week') range = seedWeek();
+    else if (period === 'month') range = seedMonth();
+    else range = seedYear();
+
+    const isIncome = (m: IMouvementCheckout) => {
+      const label = typeof m.typeMouvementCheckout === 'object' ? m.typeMouvementCheckout.name : m.typeMouvementCheckout;
+      return (label || '').toLowerCase().includes('recette') || (label || '').toLowerCase().includes('income');
+    };
+
+    items.forEach(m => {
+      const d = new Date(m.createdAt);
+      if (d < range.start || d > range.end) return;
+      let idx = -1;
+      if (period === 'day') {
+        idx = d.getHours();
+      } else if (period === 'week' || period === 'month') {
+        idx = buckets.findIndex(b => b.keyDate.getFullYear() === d.getFullYear() && b.keyDate.getMonth() === d.getMonth() && b.keyDate.getDate() === d.getDate());
+      } else {
+        idx = d.getMonth();
+      }
+      if (idx >= 0) {
+        if (isIncome(m)) buckets[idx].incomes += m.amount || 0; else buckets[idx].expenses += m.amount || 0;
+      }
+    });
+
+    return buckets;
+  }, [mouvementsData, selectedFilter.period]);
 
   React.useEffect(() => {
     if (!contributorId) return;
@@ -351,7 +452,13 @@ const Dashboard = withDashboard(() => {
                   <CardTitle>Liste des Bénéficiaires</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {beneficiaries?.data.map((beneficiary: IBeneficiaire) => (
+                  {beneficiaries?.data.length === 0 ? (
+                    <div className='flex flex-col items-center justify-center'>
+                      <img src={imgArrayEmpty} alt='empty' className='w-full h-full object-cover' />
+                      <p className='text-gray-500'>Aucun bénéficiaire trouvé.</p>
+                    </div>
+                  ) : (
+                    beneficiaries?.data.map((beneficiary: IBeneficiaire) => (
                     <div
                       key={beneficiary._id}
                       className='group flex items-center gap-4 mb-4 rounded-lg bg-white dark:bg-muted/60 transition-all duration-300 shadow-sm hover:shadow-lg hover:bg-blue-50 dark:hover:bg-blue-950 hover:scale-[1.025] cursor-pointer relative overflow-hidden'
@@ -391,7 +498,7 @@ const Dashboard = withDashboard(() => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )))}
                 </CardContent>
               </Card>
             )}
@@ -402,6 +509,37 @@ const Dashboard = withDashboard(() => {
           </div>
         )}
       </div>
+
+      {/* Statistiques des mouvements de caisse */}
+      {isLoadingMouvementsData || isRefetchingMouvementsData ? (
+        <div className='h-[320px]'>
+          <Skeleton className='h-[320px] w-full' count={1} />
+        </div>
+      ) : (
+      <Card>
+        <CardHeader className='flex items-center justify-between flex-row space-y-0'>
+          <CardTitle>Statistiques des mouvements de caisse</CardTitle>
+          <div className='text-sm text-muted-foreground'>
+            Période: {selectedFilter.period === 'day' ? 'Jour' : selectedFilter.period === 'week' ? 'Semaine' : selectedFilter.period === 'month' ? 'Mois' : 'Année'}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className='h-[320px]'>
+            <ResponsiveContainer width='100%' height='100%'>
+              <LineChart data={lineChartData} margin={{ top: 16, right: 24, left: 8, bottom: 8 }}>
+                <CartesianGrid strokeDasharray='3 3' />
+                <XAxis dataKey='label' tickMargin={8} />
+                <YAxis tickFormatter={(v: number) => `${v.toLocaleString('fr-FR')}`} width={80} />
+                <Tooltip formatter={(v: any) => [`${Number(v).toLocaleString('fr-FR')} FCFA`, '']} />
+                <Legend />
+                <Line type='monotone' dataKey='incomes' name='Recettes' stroke='#059669' strokeWidth={2} dot={{ r: 3 }} label={<CustomizedLabelLineChart stroke='#059669' />} />
+                <Line type='monotone' dataKey='expenses' name='Dépenses' stroke='#dc2626' strokeWidth={2} dot={{ r: 3 }} label={<CustomizedLabelLineChart stroke='#dc2626' />} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tableau des rapports récents */}
       {helperUserPermission('dashboard', 'read_reports') ? (
@@ -445,14 +583,24 @@ const Dashboard = withDashboard(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  {isLoadingReports ? (
+                  {isLoadingReports || isRefetchingReports ? (
                     <tr style={{ height: '100px' }}>
                       <td colSpan={6}>
                         <Skeleton count={1} style={{ height: '100px' }} />
                       </td>
                     </tr>
                   ) : (
-                    reports?.data?.map((report: IReport) => (
+                    reports?.data.length === 0 ? (
+                      <tr className='border-b'>
+                        <td colSpan={6}>
+                          <div className='flex flex-col items-center justify-center'>
+                            <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                          <p className='text-gray-500'>Aucun rapport trouvé.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    reports?.data.map((report: IReport) => (
                       <tr className='border-b' key={report._id}>
                         <td className='py-3 px-4 text-sm font-medium'>
                           {report.entityType === 'ACTIVITY'
@@ -532,7 +680,7 @@ const Dashboard = withDashboard(() => {
                         </td>
                       </tr>
                     ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>

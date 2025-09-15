@@ -65,6 +65,7 @@ import {
   Filter,
   Info,
   Loader2,
+  Package,
   RefreshCcw,
   Search,
   UserPlus,
@@ -320,8 +321,8 @@ export const StaffPage = withDashboard(() => {
           {helperUserPermission('staff', 'create') && (
             <Button
               onClick={handleAddMember}
-              disabled={hasReachedLimit}
-              className={hasReachedLimit ? 'opacity-50 cursor-not-allowed' : ''}
+              // disabled={hasReachedLimit}
+              // className={hasReachedLimit ? 'opacity-50 cursor-not-allowed' : ''}
             >
               <UserPlus className='h-4 w-4 mr-2' />
               Ajouter un membre
@@ -335,8 +336,8 @@ export const StaffPage = withDashboard(() => {
           {helperUserPermission('staff', 'create_by_invitation') && (
             <Button
               onClick={handleInviteMember}
-              disabled={hasReachedLimit}
-              className={hasReachedLimit ? 'opacity-50 cursor-not-allowed' : ''}
+              // disabled={hasReachedLimit}
+              // className={hasReachedLimit ? 'opacity-50 cursor-not-allowed' : ''}
             >
               <UserPlus className='h-4 w-4 mr-2' />
               Ajouter un membre par invitation
@@ -467,11 +468,11 @@ export const StaffPage = withDashboard(() => {
                 <Button
                   onClick={() => {
                     setIsUserLimitAlertOpen(false);
-                    navigate('/settings/subscription/pricing');
+                    navigate('/pricing');
                   }}
                   className='bg-blue-600 hover:bg-blue-700'
                 >
-                  <Users className='h-4 w-4 mr-2' />
+                  <Package className='h-4 w-4 mr-2' />
                   Voir les packages
                 </Button>
               </DialogFooter>

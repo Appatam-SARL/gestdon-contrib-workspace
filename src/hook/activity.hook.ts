@@ -1,6 +1,6 @@
 // import { ActivityApi } from '@/api/activity.api';
 import ActivityApi from '@/api/activity.api';
-import { useToast } from '@/components/ui/use-toast';
+import { toast, useToast } from '@/components/ui/use-toast';
 import { IActivityFilterForm } from '@/interface/activity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
@@ -276,5 +276,32 @@ export const useGetActivityStats = (contributorId: string) => {
     queryKey: ['activityStats', contributorId],
     queryFn: () => ActivityApi.getActivityStats({ contributorId }),
     enabled: !!contributorId,
+  });
+};
+
+export const useBudgetActivity = (
+  id: string,
+  setIsBudgetDialogOpen: (val: boolean) => void
+) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+      mutationFn: (data: { budget: number }) => ActivityApi.budgetActivity(id, data),
+  onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activities'] });
+      queryClient.invalidateQueries({ queryKey: ['activity', id] });
+      toast({
+        title: 'Vous venez de définir un budget pour cette activité.',
+        variant: 'default',
+      });
+      setIsBudgetDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to define budget for activity.',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    },
   });
 };

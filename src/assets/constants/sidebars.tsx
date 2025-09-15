@@ -2,7 +2,8 @@ import {
   Activity,
   Banknote,
   CalendarDays,
-  File,
+  FileText,
+  Heart,
   HeartHandshakeIcon,
   LayoutDashboard,
   Rss,
@@ -39,7 +40,7 @@ const sidebarLinks: SidebarLink[] = [
         href: '/followers',
       },
       {
-        icon: <Users className='h-5 w-5' />,
+        icon: <Heart className='h-5 w-5' />,
         label: "Mes j'aime",
         href: '/following',
       },
@@ -76,7 +77,7 @@ const sidebarLinks: SidebarLink[] = [
     href: '/community',
   },
   {
-    icon: <File className='h-5 w-5' />,
+    icon: <FileText className='h-5 w-5' />,
     label: 'Rapports',
     href: '/repport',
   },
@@ -84,6 +85,11 @@ const sidebarLinks: SidebarLink[] = [
     icon: <Users className='h-5 w-5' />,
     label: 'Staff',
     href: '/staff',
+  },
+  {
+    icon: <Banknote className='h-5 w-5' />,
+    label: 'Finances',
+    href: '/mouvement-checkout',
   },
 ];
 
