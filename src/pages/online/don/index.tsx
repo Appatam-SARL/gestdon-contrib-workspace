@@ -1,4 +1,5 @@
 import { DON_FILTER_FORM_INITIAL_STATE } from '@/assets/constants/don';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 // import StatsDons from '@/components/Dons/Stats';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Pagination,
   PaginationContent,
@@ -57,9 +59,11 @@ import { addDays } from 'date-fns';
 import fr from 'date-fns/locale/fr';
 import {
   AlertTriangle,
+  Info,
   Eye,
   Filter,
   Loader2,
+  Package,
   RefreshCcw,
   Search,
   UserPlus,
@@ -68,6 +72,8 @@ import React, { Suspense, useState } from 'react';
 import { DateRangePicker } from 'react-date-range';
 import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
 const StatsDons = React.lazy(() => import('@/components/Dons/Stats'));
 
 const FilterModal = ({
@@ -123,16 +129,18 @@ const FilterModal = ({
 
 export const DonPage = withDashboard(() => {
   const contributorId = useContributorStore((s) => s.contributor?._id);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const { donFilterForm, setDonStore } = useDonStore((s) => s);
   const [isCreateDonOpen, setIsCreateDonOpen] = useState<boolean>(false);
-
+  const [isDonLimitAlertOpen, setIsDonLimitAlertOpen] = useState<boolean>(false);
   const { isLoading: isLoadingBeneficiaries, data: beneficiaries } =
     useBeneficiaries({
       limit: 100000,
       page: 1,
       contributorId,
     });
-  const { data, isLoading, refetch } = useDons({
+  const { data, isLoading, refetch, isRefetching } = useDons({
     ...donFilterForm,
     contributorId: contributorId as string,
   } as IDonFilterForm);
@@ -174,6 +182,14 @@ export const DonPage = withDashboard(() => {
   const remainingDonations = getRemainingDonationsCount(currentDonationCount);
 
   const onSubmit = async (data: FormCreateDonSchema) => {
+    if (data.title === '' || data.beneficiaire === '' || data.montant === '0') {
+      toast({
+        title: 'Erreur',
+        description: 'Le titre et le bénéficiaire et le montant sont requis',
+        variant: 'destructive',
+      });
+      return;
+    }
     const payload = {
       ...data,
       contributorId: contributorId as string,
@@ -254,14 +270,15 @@ export const DonPage = withDashboard(() => {
             <Button
               onClick={() => {
                 if (donationLimitReached) {
+                  setIsDonLimitAlertOpen(true);
                   return;
                 }
                 setIsCreateDonOpen(true);
               }}
-              disabled={donationLimitReached}
-              className={
-                donationLimitReached ? 'opacity-50 cursor-not-allowed' : ''
-              }
+              // disabled={donationLimitReached}
+              // className={
+              //   donationLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+              // }
             >
               <UserPlus className='h-4 w-4 mr-2' />
               Enregistrer un don
@@ -272,6 +289,136 @@ export const DonPage = withDashboard(() => {
               )}
             </Button>
           )}
+           {/* Modal d'alerte pour limite d'utilisateurs */}
+           <Dialog
+            open={isDonLimitAlertOpen}
+            onOpenChange={setIsDonLimitAlertOpen}
+          >
+            <DialogContent className='sm:max-w-[500px]'>
+              <DialogHeader>
+                <div className='flex items-center gap-3'>
+                  <div className='p-2 bg-red-100 rounded-full'>
+                    <AlertTriangle className='h-6 w-6 text-red-600' />
+                  </div>
+                  <div>
+                    <DialogTitle className='text-red-800'>
+                      Limite d'dons atteinte
+                    </DialogTitle>
+                    <DialogDescription className='text-red-600'>
+                      Vous avez atteint le nombre maximal de dons
+                      autorisés par votre package.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className='space-y-4'>
+                {/* Informations sur la limite */}
+                <div className='p-4 bg-gray-50 rounded-lg'>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Dons actuels
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {currentDonationCount}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Limite maximale
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {donationLimit || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Barre de progression */}
+                  {donationLimit && donationLimit > 0 && (
+                    <div className='mt-4'>
+                      <div className='flex justify-between text-sm text-gray-600 mb-2'>
+                        <span>Utilisation</span>
+                        <span>
+                          {Math.round((currentDonationCount / donationLimit) * 100)}%
+                        </span>
+                      </div>
+                      <div className='w-full bg-gray-200 rounded-full h-2'>
+                        <div
+                          className='h-2 bg-red-500 rounded-full transition-all duration-300'
+                          style={{
+                            width: `${Math.min(
+                              (currentDonationCount / donationLimit) * 100,
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Message d'information */}
+                <div className='flex items-start gap-3 p-3 bg-blue-50 rounded-lg'>
+                  <Info className='h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0' />
+                  <div className='text-sm text-blue-800'>
+                    <p className='font-medium mb-1'>Pourquoi cette limite ?</p>
+                    <p>
+                      Votre package d'abonnement actuel limite le nombre de
+                      dons que vous pouvez ajouter. Pour ajouter
+                      plus de dons, vous devez mettre à niveau votre package.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions suggérées */}
+                <div className='space-y-3'>
+                  <h4 className='font-medium text-gray-900'>
+                    Que pouvez-vous faire ?
+                  </h4>
+                  <div className='space-y-2'>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Gérer les dons existants (modifier, désactiver)
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Mettre à niveau votre package pour plus d'dons
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Contacter le support pour des options personnalisées
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className='flex gap-3'>
+                <Button
+                  variant='outline'
+                  onClick={() => setIsDonLimitAlertOpen(false)}
+                >
+                  Fermer
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsDonLimitAlertOpen(false);
+                    navigate('/pricing');
+                  }}
+                  className='bg-blue-600 hover:bg-blue-700'
+                >
+                  <Package className='h-4 w-4 mr-2' />
+                  Voir les packages
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           {/* Dialog create don */}
           <Dialog open={isCreateDonOpen} onOpenChange={setIsCreateDonOpen}>
             <DialogContent className='sm:max-w-[630px] sm:max-h-[700px] overflow-auto'>
@@ -582,7 +729,7 @@ export const DonPage = withDashboard(() => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isLoading || isRefetching ? (
                 <TableRow className='p-8'>
                   <TableCell colSpan={7}>
                     <Skeleton
@@ -594,7 +741,17 @@ export const DonPage = withDashboard(() => {
                   </TableCell>
                 </TableRow>
               ) : (
-                data?.data?.map((donation: IDon) => (
+                data?.data.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7}>
+                      <div className='flex flex-col items-center justify-center'>
+                        <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                        <p className='text-gray-500'>Aucun don trouvé.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  data?.data.map((donation: IDon) => (
                   <TableRow
                     key={donation._id}
                     className='cursor-pointer hover:bg-gray-100'
@@ -637,19 +794,12 @@ export const DonPage = withDashboard(() => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-              {!isLoading && (data?.data?.length === 0 || !data?.data) && (
-                <TableRow>
-                  <TableCell colSpan={6} className='text-center py-8'>
-                    Aucun don trouvé.
-                  </TableCell>
-                </TableRow>
+                )))
               )}
             </TableBody>
           </Table>
           {/* Pagination */}
-          {isLoading ? (
+          {isLoading || isRefetching ? (
             <Skeleton
               count={1}
               width='100%'
@@ -677,7 +827,7 @@ export const DonPage = withDashboard(() => {
                     size='sm'
                   />
                 </PaginationItem>
-                {isLoading ? (
+                {isLoading || isRefetching ? (
                   <Skeleton className='h-4 w-4' count={1} />
                 ) : (
                   [...Array(Math.min(Number(data?.metadata?.totalPages)))].map(

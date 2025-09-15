@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/table';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useReports, useStatsReport } from '@/hook/report.hook';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 import {
   IReport,
   IReportFilterForm,
@@ -160,11 +161,6 @@ export const RepportsPage = withDashboard(() => {
 
   const activeFiltersCount =
     Object.values(reportFilterForm).filter(Boolean).length;
-
-  const handleRowClick = (reportId: string) => {
-    // Navigate to report details page - adjust the route as needed
-    navigate(`/repport/${reportId}`);
-  };
 
   return (
     <div className='space-y-6'>
@@ -352,8 +348,11 @@ export const RepportsPage = withDashboard(() => {
                 (reportsResponse?.data?.length === 0 ||
                   !reportsResponse?.data) && (
                   <TableRow>
-                    <TableCell colSpan={4} className='text-center py-8'>
-                      Aucun rapport trouvé.
+                    <TableCell colSpan={6} className='text-center py-8'>
+                      <div className='flex flex-col items-center justify-center'>
+                      <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                      <p className='text-gray-500'>Aucun rapport trouvé.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}

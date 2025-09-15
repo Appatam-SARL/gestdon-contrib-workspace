@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 import { ICustomFieldOption } from '@/interface/custom-field';
 import { PencilIcon, TrashIcon } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
@@ -93,7 +94,10 @@ export const CustomFieldTable = ({
         ) : (
           <TableRow>
             <TableCell colSpan={hasOptions ? 6 : 5} className='text-center'>
-              Aucun champ personnalisé n'a encore été ajouté.
+              <div className='flex flex-col items-center justify-center'>
+                <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                <p className='text-gray-500'>Aucun champ personnalisé n'a encore été ajouté.</p>
+              </div>
             </TableCell>
           </TableRow>
         )}

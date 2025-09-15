@@ -3,9 +3,9 @@
 export const workSpaceEnvironnement: 'dev' | 'preprod' | 'prod' = 'dev';
 
 const BASE_URL: Record<'prod' | 'dev' | 'preprod', string> = {
-  preprod: 'https://b7ca112edc25.ngrok-free.app/',
+  preprod: 'https://2c6bbe3e8ce3.ngrok-free.app/',
   prod: 'https://api.contrib.com/',
-  dev: `http://localhost:5000/`,
+  dev: `https://8fcfb5eeb6c8.ngrok-free.app/`,
 };
 
 export const env = {
@@ -30,6 +30,7 @@ export const API_ROOT = {
   files: 'files',
   logs: 'logs',
   menus: 'menus',
+  media: 'media',
   notifications: 'notifications',
   permissions: 'permissions',
   posts: 'posts',
@@ -41,4 +42,7 @@ export const API_ROOT = {
   packages: 'packages',
   subscriptions: 'subscriptions',
   invoices: 'invoices',
+  mouvementCheckout: 'mouvements',
+  typesMouvementCheckout: 'type-mouvement-checkouts',
+  categoriesMouvementCheckout: 'category-mouvement-checkouts',
 };

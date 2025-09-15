@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference path="./types/lottie.d.ts" />
 
 declare module '*.png' {
   const value: string;

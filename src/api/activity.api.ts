@@ -187,6 +187,19 @@ class ActivityApi {
       }
     }
   }
+
+  static async budgetActivity(id: string, data: any): Promise<any> {
+    try {
+      const response = await Axios.patch(`${this.BASE_URL}/${id}/define-budget`, data);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
 }
 
 export default ActivityApi;

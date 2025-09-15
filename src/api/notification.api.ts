@@ -1,6 +1,6 @@
 // src/api/notifications.ts
 import { API_ROOT } from '@/config/app.config';
-import axios from 'axios';
+import { Axios } from '@/config/axiosInstance';
 
 export interface Notification {
   _id: string;
@@ -21,7 +21,7 @@ const API_URL = API_ROOT.notifications;
 export const getNotifications = async (
   token: string
 ): Promise<NotificationListResponse> => {
-  const res = await axios.get(`${API_URL}`, {
+  const res = await Axios.get(`${API_URL}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
@@ -31,7 +31,7 @@ export const markAsRead = async (
   token: string,
   notificationId: string
 ): Promise<void> => {
-  await axios.put(
+  await Axios.put(
     `${API_URL}/${notificationId}/read`,
     {},
     { headers: { Authorization: `Bearer ${token}` } }
@@ -42,7 +42,7 @@ export const updatePreferences = async (
   token: string,
   prefs: any
 ): Promise<void> => {
-  await axios.put(`${API_URL}/preferences`, prefs, {
+  await Axios.put(`${API_URL}/preferences`, prefs, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };

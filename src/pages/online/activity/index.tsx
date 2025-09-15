@@ -36,6 +36,7 @@ import {
   Filter,
   Grid,
   List,
+  Package,
   PencilIcon,
   RefreshCcw,
   Search,
@@ -45,6 +46,9 @@ import { useEffect, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import FilterActivityModal from './FilterActivityModal';
+import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Info } from 'lucide-react';
 
 const ActivityPage = withDashboard(() => {
   const navigate = useNavigate();
@@ -239,10 +243,10 @@ const ActivityPage = withDashboard(() => {
                       }`
                     );
                   }}
-                  disabled={activityLimitReached}
-                  className={
-                    activityLimitReached ? 'opacity-50 cursor-not-allowed' : ''
-                  }
+                  // disabled={activityLimitReached}
+                  // className={
+                  //   activityLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+                  // }
                 >
                   <Activity />
                   <span>Ajouter une activité</span>
@@ -256,6 +260,137 @@ const ActivityPage = withDashboard(() => {
             )}
         </div>
       </div>
+
+       {/* Modal d'alerte pour limite d'utilisateurs */}
+       <Dialog
+            open={isActivityLimitAlertOpen}
+            onOpenChange={setIsActivityLimitAlertOpen}
+          >
+            <DialogContent className='sm:max-w-[500px]'>
+              <DialogHeader>
+                <div className='flex items-center gap-3'>
+                  <div className='p-2 bg-red-100 rounded-full'>
+                    <AlertTriangle className='h-6 w-6 text-red-600' />
+                  </div>
+                  <div>
+                    <DialogTitle className='text-red-800'>
+                      Limite d'activités atteinte
+                    </DialogTitle>
+                    <DialogDescription className='text-red-600'>
+                      Vous avez atteint le nombre maximal de activités
+                      autorisés par votre package.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className='space-y-4'>
+                {/* Informations sur la limite */}
+                <div className='p-4 bg-gray-50 rounded-lg'>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Activités actuels
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {currentActivityCount}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Limite maximale
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {activityLimit || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Barre de progression */}
+                  {activityLimit && activityLimit > 0 && (
+                    <div className='mt-4'>
+                      <div className='flex justify-between text-sm text-gray-600 mb-2'>
+                        <span>Utilisation</span>
+                        <span>
+                          {Math.round((currentActivityCount / activityLimit) * 100)}%
+                        </span>
+                      </div>
+                      <div className='w-full bg-gray-200 rounded-full h-2'>
+                        <div
+                          className='h-2 bg-red-500 rounded-full transition-all duration-300'
+                          style={{
+                            width: `${Math.min(
+                              (currentActivityCount / activityLimit) * 100,
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Message d'information */}
+                <div className='flex items-start gap-3 p-3 bg-blue-50 rounded-lg'>
+                  <Info className='h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0' />
+                  <div className='text-sm text-blue-800'>
+                    <p className='font-medium mb-1'>Pourquoi cette limite ?</p>
+                    <p>
+                      Votre package d'abonnement actuel limite le nombre de
+                      activités que vous pouvez ajouter. Pour ajouter
+                      plus de membres, vous devez mettre à niveau votre package.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions suggérées */}
+                <div className='space-y-3'>
+                  <h4 className='font-medium text-gray-900'>
+                    Que pouvez-vous faire ?
+                  </h4>
+                  <div className='space-y-2'>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Gérer les activités existants (modifier, désactiver)
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Mettre à niveau votre package pour plus d'activités
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Contacter le support pour des options personnalisées
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className='flex gap-3'>
+                <Button
+                  variant='outline'
+                  onClick={() => setIsActivityLimitAlertOpen(false)}
+                >
+                  Fermer
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsActivityLimitAlertOpen(false);
+                    navigate('/pricing');
+                  }}
+                  className='bg-blue-600 hover:bg-blue-700'
+                >
+                  <Package className='h-4 w-4 mr-2' />
+                  Voir les packages
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
       <Stats
         data={stats?.data}

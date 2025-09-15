@@ -58,6 +58,7 @@
     "react-router-dom": "^7.4.1",
     "react-share": "^5.2.2",
     "recharts": "^2.15.3",
+    "shadcn-dropzone": "^0.2.1",
     "socket.io-client": "^4.8.1",
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.3.1",

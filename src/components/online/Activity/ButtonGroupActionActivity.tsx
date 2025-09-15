@@ -44,16 +44,20 @@ import {
   useAssignActivity,
   useDeleteActivity,
   useDraftActivity,
+  useBudgetActivity,
   useRejectActivity,
   useReportActivity,
   useRepresentant,
   useValidateActivity,
 } from '@/hook/activity.hook';
 import { useGetStaffMembers } from '@/hook/admin.hook';
+import { useCreateMouvementCheckout } from '@/hook/mouvement-checkout.hook';
 import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { useCreateReport } from '@/hook/report.hook';
-import { IActivity } from '@/interface/activity';
+import { useGetCategoriesMouvementCheckouts } from '@/hook/categorie-mouvement-checkout';
+import { IActivity, ICategorieMouvementCheckout } from '@/interface/activity';
 import { IReport } from '@/interface/report';
+import { ITypeMouvementCheckout } from '@/interface/activity';
 import {
   FormActivityAssignByMemberSchema,
   formActivityValidateSchema,
@@ -63,6 +67,10 @@ import {
   formRejectSchema,
   FormRejectSchema,
   FormValidateActivitySchema,
+  formBudgetSchema,
+  FormBudgetSchema,
+  FormMouvementCheckoutSchema,
+  formMouvementCheckoutSchema,
 } from '@/schema/activity.schema';
 import {
   FormReportAudienceSchema,
@@ -94,6 +102,7 @@ import {
 import { useLayoutEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
+import { useGetTypesMouvementCheckouts } from '@/hook/mouvement-checkout-type.hook';
 
 function ButtonGroupActionActivity({
   id,
@@ -134,6 +143,9 @@ function ButtonGroupActionActivity({
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState<boolean>(false);
   const [isRepresentantDialogOpen, setIsRepresentantDialogOpen] =
     useState<boolean>(false);
+  const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState<boolean>(false);
+  const [isMouvementCheckoutDialogOpen, setIsMouvementCheckoutDialogOpen] = useState<boolean>(false);
+
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   const [activity, setActivity] = useState<IActivity>();
@@ -143,6 +155,7 @@ function ButtonGroupActionActivity({
   const { data: members } = useGetStaffMembers({
     contributorId: contributorId,
   });
+  const { data: mouvementTypes } = useGetTypesMouvementCheckouts(contributorId as string);
 
   // hook de mutation
   const reportMutation = useReportActivity(
@@ -168,6 +181,8 @@ function ButtonGroupActionActivity({
     id as string,
     setIsRepresentantDialogOpen
   );
+  const budgetMutation = useBudgetActivity(id as string, setIsBudgetDialogOpen);
+  const mouvementCheckoutMutation = useCreateMouvementCheckout(setIsMouvementCheckoutDialogOpen);
 
   useLayoutEffect(() => {
     if (activityResponse?.data) {
@@ -233,6 +248,26 @@ function ButtonGroupActionActivity({
       },
     },
   });
+
+  const formBudget = useForm<FormBudgetSchema>({
+    resolver: zodResolver(formBudgetSchema),
+    defaultValues: {
+      budget: 0,
+    },
+  });
+
+  const formMouvementCheckout = useForm<FormMouvementCheckoutSchema>({
+    resolver: zodResolver(formMouvementCheckoutSchema),
+    defaultValues: {
+      typeMouvementCheckout: '',
+      categoryMouvementCheckout: '',
+      description: '',
+      amount: 0,
+      document: [],
+    },
+  });
+
+  const { data: categoriesMouvementCheckout } = useGetCategoriesMouvementCheckouts(contributorId as string);
 
   const onSubmitReport = async (data: FormReportAudienceSchema) => {
     const payload = {
@@ -329,6 +364,31 @@ function ButtonGroupActionActivity({
     }
   };
 
+  const handleBudget = (data: FormBudgetSchema) => {
+    if (id) {
+      budgetMutation.mutate(data);
+    }
+  };
+
+  const handleMouvementCheckout = (data: FormMouvementCheckoutSchema) => {
+    if (id) {
+      const payload = {
+        ...data,
+        activityId: id as string,
+        contributorId: contributorId as string,
+        beneficiaryId:
+          typeof activity?.beneficiaryId === 'string'
+            ? (activity?.beneficiaryId as string)
+            : undefined,
+        document: data.document ?? [],
+      } as any;
+      mouvementCheckoutMutation.mutate(payload);
+      if (mouvementCheckoutMutation.isSuccess) {
+        formMouvementCheckout.reset();
+      }
+    }
+  };
+
   return (
     <ScrollArea className='w-full'>
       <div className='flex flex-wrap gap-3 items-center py-4 px-4 border border-dashed border-gray-300 rounded-lg bg-white'>
@@ -340,6 +400,8 @@ function ButtonGroupActionActivity({
           activity?.status !== 'Rejected' ? (
             <Button
               variant={'outline'}
+              size='sm'
+              className='gap-2'
               onClick={() => navigate(`/activity/${activity?._id}/edit`)}
             >
               <Edit className='h-4 w-4' />
@@ -355,6 +417,8 @@ function ButtonGroupActionActivity({
             <>
               <Button
                 variant={'outline'}
+                size='sm'
+                className='gap-2'
                 onClick={() => setIsValidateDialogOpen(true)}
               >
                 <Check className='h-4 w-4' />
@@ -369,8 +433,8 @@ function ButtonGroupActionActivity({
                     <DialogTitle>Êtes-vous absolument sûr ?</DialogTitle>
                     <DialogDescription>
                       <span className='text-sm text-center'>
-                        Cette action ne peut pas être annulée. Cela validera
-                        définitivement cette audience de nos serveurs.
+                        Cette action ne peut pas être annulée. Elle validera définitivement
+                        cette audience sur nos serveurs.
                       </span>
                     </DialogDescription>
                   </DialogHeader>
@@ -417,6 +481,7 @@ function ButtonGroupActionActivity({
                       <DialogFooter className='mt-4'>
                         <Button
                           variant='outline'
+                          size='sm'
                           onClick={() => setIsValidateDialogOpen(false)}
                         >
                           Non, j'annule
@@ -424,7 +489,8 @@ function ButtonGroupActionActivity({
                         <Button
                           type='submit'
                           disabled={validateMutation.isPending}
-                          className='flex items-center justify-center bg-primary text-white px-4 rounded-md'
+                          className='flex items-center justify-center bg-primary text-white px-4 rounded-md gap-2'
+                          size='sm'
                         >
                           {validateMutation.isPending ? (
                             <>
@@ -448,7 +514,8 @@ function ButtonGroupActionActivity({
           {user?.role === 'MANAGER' && activity?.status === 'Approved' ? (
             <Button
               variant={'outline'}
-              className='text-yellow-400'
+              size='sm'
+              className='text-yellow-600 gap-2'
               onClick={() => setIsReporterDialogOpen(true)}
             >
               <CalendarDays className='h-4 w-4' />
@@ -527,6 +594,8 @@ function ButtonGroupActionActivity({
             !(activity?.assigneeId || activity?.representative)) ? (
             <Button
               variant={'outline'}
+              size='sm'
+              className='gap-2'
               onClick={() => setIsAssignDialogOpen(true)}
             >
               <UserPlus />
@@ -586,7 +655,7 @@ function ButtonGroupActionActivity({
                       )}
                     />
                     <DialogFooter className='mt-4'>
-                      <Button type='submit' disabled={assignMutation.isPending}>
+                      <Button type='submit' disabled={assignMutation.isPending} size='sm'>
                         {assignMutation.isPending ? (
                           <>
                             <Loader2 className='animate-spin' />
@@ -615,6 +684,8 @@ function ButtonGroupActionActivity({
             !(activity?.assigneeId || activity?.representative)) ? (
             <Button
               variant={'outline'}
+              size='sm'
+              className='gap-2'
               onClick={() => setIsRepresentantDialogOpen(true)}
             >
               <UserPlus className='h-4 w-4' />
@@ -727,6 +798,7 @@ function ButtonGroupActionActivity({
                     <DialogFooter>
                       <Button
                         variant='outline'
+                        size='sm'
                         onClick={() => setIsRepresentantDialogOpen(false)}
                       >
                         Annuler
@@ -734,6 +806,7 @@ function ButtonGroupActionActivity({
                       <Button
                         type='submit'
                         disabled={representativeMutation.isPending}
+                        size='sm'
                       >
                         {representativeMutation.isPending ? (
                           <>
@@ -766,7 +839,7 @@ function ButtonGroupActionActivity({
               onOpenChange={setIsArchiveDialogOpen}
             >
               <AlertDialogTrigger asChild>
-                <Button variant='outline'>
+                <Button variant='outline' size='sm' className='gap-2'>
                   <Archive />
                   <span>Archiver</span>
                 </Button>
@@ -786,7 +859,7 @@ function ButtonGroupActionActivity({
                   <AlertDialogAction
                     onClick={handleArchive}
                     disabled={archiveMutation.isPending}
-                    className='flex items-center justify-center bg-destructive text-white px-4 rounded-md'
+                    className='flex items-center justify-center bg-destructive text-white px-4 rounded-md gap-2'
                   >
                     {archiveMutation.isPending ? (
                       'Archivage en cours...'
@@ -814,7 +887,7 @@ function ButtonGroupActionActivity({
               onOpenChange={setIsDraftDialogOpen}
             >
               <AlertDialogTrigger asChild>
-                <Button variant={'outline'}>
+                <Button variant={'outline'} size='sm' className='gap-2'>
                   <PencilLineIcon />
                   Brouillon
                 </Button>
@@ -834,7 +907,7 @@ function ButtonGroupActionActivity({
                   <AlertDialogAction
                     onClick={handleDraft}
                     disabled={draftMutation.isPending}
-                    className='flex items-center justify-center bg-destructive text-white px-4 rounded-md'
+                    className='flex items-center justify-center bg-destructive text-white px-4 rounded-md gap-2'
                   >
                     {draftMutation.isPending ? (
                       'Enregistrement...'
@@ -855,6 +928,8 @@ function ButtonGroupActionActivity({
             (Number(reports?.metadata?.total) === 0 ? (
               <Button
                 variant={'outline'}
+                size='sm'
+                className='gap-2'
                 onClick={() => setIsAddReportDialogOpen(true)}
               >
                 <StickyNote />
@@ -863,6 +938,8 @@ function ButtonGroupActionActivity({
             ) : (
               <Button
                 variant={'outline'}
+                size='sm'
+                className='gap-2'
                 onClick={() => navigate(`/repport/${reports?.data?.[0]?._id}`)}
               >
                 <Eye />
@@ -875,7 +952,7 @@ function ButtonGroupActionActivity({
           >
             <DialogContent className='sm:max-w-[1000px]'>
               <DialogHeader>
-                <DialogTitle>Ecrivez le rapport de l'audience</DialogTitle>
+                <DialogTitle>Écrire le rapport de l'audience</DialogTitle>
                 <DialogDescription>
                   Remplissez les étapes pour créer le rapport.
                 </DialogDescription>
@@ -1083,6 +1160,7 @@ function ButtonGroupActionActivity({
                           <Button
                             type='button'
                             variant='outline'
+                            size='sm'
                             onClick={() => setCurrentStep((prev) => prev - 1)}
                           >
                             Précédent
@@ -1093,6 +1171,7 @@ function ButtonGroupActionActivity({
                             type='submit'
                             className='ml-auto'
                             disabled={createReportMutation.isPending}
+                            size='sm'
                           >
                             {createReportMutation.isPending
                               ? 'En cours...'
@@ -1103,6 +1182,7 @@ function ButtonGroupActionActivity({
                             type='button'
                             className='ml-auto'
                             onClick={() => setCurrentStep((prev) => prev + 1)}
+                            size='sm'
                           >
                             Suivant
                           </Button>
@@ -1127,7 +1207,7 @@ function ButtonGroupActionActivity({
               onOpenChange={setIsDeleteDialogOpen}
             >
               <AlertDialogTrigger asChild>
-                <Button variant='destructive'>
+                <Button variant='destructive' size='sm' className='gap-2'>
                   <Trash2 className='h-4 w-4' />
                   <span>Supprimer</span>
                 </Button>
@@ -1147,7 +1227,7 @@ function ButtonGroupActionActivity({
                   <AlertDialogAction
                     onClick={handleDelete}
                     disabled={deleteMutation.isPending}
-                    className='flex items-center justify-center bg-destructive text-white px-4 rounded-md'
+                    className='flex items-center justify-center bg-destructive text-white px-4 rounded-md gap-2'
                   >
                     {deleteMutation.isPending ? (
                       'Suppression...'
@@ -1165,6 +1245,8 @@ function ButtonGroupActionActivity({
           {user?.role === 'MANAGER' && activity?.status === 'Waiting' && (
             <Button
               variant={'outline'}
+              size='sm'
+              className='gap-2'
               onClick={() => setIsRejectDialogOpen(true)}
             >
               <CircleSlash className='text-red h-4 w-4' />
@@ -1206,7 +1288,7 @@ function ButtonGroupActionActivity({
                     <Button
                       type='submit'
                       disabled={rejectMutation.isPending}
-                      className='flex items-center justify-center bg-destructive text-white px-4 rounded-md'
+                      className='flex items-center justify-center bg-destructive text-white px-4 rounded-md gap-2'
                     >
                       {rejectMutation.isPending ? (
                         'En cours de rejet...'
@@ -1222,6 +1304,161 @@ function ButtonGroupActionActivity({
               </Form>
             </DialogContent>
           </Dialog>
+          {/* Définir un budget */}
+          {user?.role === 'MANAGER' && activity?.status === 'Approved' && (
+            <Button
+              variant={'outline'}
+              size='sm'
+              className='gap-2'
+              onClick={() => setIsBudgetDialogOpen(true)}
+            >
+              <Archive className='h-4 w-4' />
+              <span>Définir un budget</span>
+            </Button>
+          )}
+          <Dialog
+            open={isBudgetDialogOpen}
+            onOpenChange={setIsBudgetDialogOpen}
+          >
+            <DialogContent className='sm:max-w-[500px] bg-white'>
+              <DialogHeader>
+                <DialogTitle>Définir un budget</DialogTitle>
+                <DialogDescription>Définir un budget pour cette activité.</DialogDescription>
+              </DialogHeader>
+              <Form {...formBudget}>
+                <form onSubmit={formBudget.handleSubmit(handleBudget)}>
+                  <FormField control={formBudget.control} name='budget' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Budget</FormLabel>
+                      <FormControl>
+                        <Input type='number' inputMode='numeric' min={1} step='1' placeholder='Budget' aria-label='Budget en FCFA' {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <DialogFooter>
+                    <Button type='submit' disabled={budgetMutation.isPending} size='sm'>
+                      {budgetMutation.isPending ? 'En cours de définition...' : 'Définir un budget'}
+                    </Button>
+                    <Button type='button' variant='outline' onClick={() => setIsBudgetDialogOpen(false)} size='sm'>
+                      Non, j'annule
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+          {/* Opération de caisse */}
+          {user?.role === 'MANAGER' && activity?.status === 'Approved' && (
+            <Button
+              variant={'outline'}
+              size='sm'
+              className='gap-2'
+              onClick={() => setIsMouvementCheckoutDialogOpen(true)}
+            >
+              <Archive className='h-4 w-4' />
+              <span>Opération de caisse</span>
+            </Button>
+          )}
+          <Dialog
+            open={isMouvementCheckoutDialogOpen}
+            onOpenChange={setIsMouvementCheckoutDialogOpen}
+          >
+            <DialogContent className='sm:max-w-[500px] bg-white'>
+              <DialogHeader>
+                <DialogTitle>Opération de caisse</DialogTitle>
+                <DialogDescription>Enregistrer une opération de caisse liée à cette activité.</DialogDescription>
+              </DialogHeader>
+              <Form {...formMouvementCheckout}>
+                <form onSubmit={formMouvementCheckout.handleSubmit(handleMouvementCheckout)}>
+                  <FormField control={formMouvementCheckout.control} name='typeMouvementCheckout' render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Type d'opération de caisse</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className='w-full' aria-label="Type d'opération de caisse">
+                            <SelectValue placeholder='Sélectionnez un type' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mouvementTypes?.data?.map((t: ITypeMouvementCheckout) => (
+                              <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={formMouvementCheckout.control} name='categoryMouvementCheckout' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Catégorie de mouvement de caisse</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger className='w-full' aria-label="Catégorie de mouvement de caisse">
+                            <SelectValue placeholder='Sélectionnez une catégorie' />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categoriesMouvementCheckout?.data?.map((c: ICategorieMouvementCheckout) => (
+                              <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={formMouvementCheckout.control} name='description' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder='Description' {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={formMouvementCheckout.control} name='amount' render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Montant</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type='number' 
+                          inputMode='numeric' 
+                          min={1} step='1' 
+                          placeholder='Montant' 
+                          aria-label='Montant' {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={formMouvementCheckout.control} name='document' render={() => (
+                    <FormItem>
+                      <FormLabel>Documents</FormLabel>
+                      <FormControl>
+                        <div className='flex items-center gap-4'>
+                          <Input type='file' multiple onChange={(e) => setFiles(e.target.files as FileList)} />
+                          <Button type='button' variant='outline' onClick={() => {}}>
+                            <Upload className='h-4 w-4' />
+                            <span>Uploader un document</span>
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <DialogFooter className='mt-4'>
+                    <Button type='submit' disabled={mouvementCheckoutMutation.isPending} size='sm'>
+                      {mouvementCheckoutMutation.isPending ? 'En cours de définition...' : 'Définir un mouvement de caisse'}
+                    </Button>
+                    <Button type='button' variant='outline' onClick={() => setIsMouvementCheckoutDialogOpen(false)} size='sm'>
+                      Non, j'annule
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+          
         </div>
       </div>
       {/* Ajout de la barre de scroll horizontale si besoin */}

@@ -1,4 +1,5 @@
 import { INIT_FILTER_PROMESSE } from '@/assets/constants/promesse';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Pagination,
   PaginationContent,
@@ -72,9 +74,11 @@ import { addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
   AlertTriangle,
+  Info,
   Eye,
   Filter,
   Loader2,
+  Package,
   RefreshCcw,
   ScrollTextIcon,
   Search,
@@ -85,6 +89,7 @@ import { useState } from 'react';
 import { DateRangePicker } from 'react-date-range';
 import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 const formSchema = z.object({
@@ -253,7 +258,7 @@ const PromesseDetailModal = ({
 
 export const PromisesPage = withDashboard(() => {
   const contributorId = useContributorStore((s) => s.contributor?._id);
-
+  const navigate = useNavigate();
   const [openAddPromise, setOpenAddPromise] = useState<boolean>(false);
   const [isPromiseLimitAlertOpen, setIsPromiseLimitAlertOpen] =
     useState<boolean>(false);
@@ -269,6 +274,7 @@ export const PromisesPage = withDashboard(() => {
     data: promesses,
     isLoading,
     refetch,
+    isRefetching,
   } = usePromesse({
     ...filters,
     contributorId: contributorId as string,
@@ -381,10 +387,10 @@ export const PromisesPage = withDashboard(() => {
                 }
                 setOpenAddPromise(true);
               }}
-              disabled={promiseLimitReached}
-              className={
-                promiseLimitReached ? 'opacity-50 cursor-not-allowed' : ''
-              }
+              // disabled={promiseLimitReached}
+              // className={
+              //   promiseLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+              // }
             >
               <ScrollTextIcon />
               <span>Ajouter une promesse</span>
@@ -399,6 +405,137 @@ export const PromisesPage = withDashboard(() => {
               Vous n'avez pas les permissions pour créer une promesses.
             </div>
           )}
+
+          {/* Modal d'alerte pour limite de promesses */}
+          <Dialog
+            open={isPromiseLimitAlertOpen}
+            onOpenChange={setIsPromiseLimitAlertOpen}
+          >
+            <DialogContent className='sm:max-w-[500px]'>
+              <DialogHeader>
+                <div className='flex items-center gap-3'>
+                  <div className='p-2 bg-red-100 rounded-full'>
+                    <AlertTriangle className='h-6 w-6 text-red-600' />
+                  </div>
+                  <div>
+                    <DialogTitle className='text-red-800'>
+                    Limite de promesses atteinte
+                    </DialogTitle>
+                    <DialogDescription className='text-red-600'>
+                        Vous avez atteint le nombre maximal de promesses
+                        autorisés par votre package.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className='space-y-4'>
+                {/* Informations sur la limite */}
+                <div className='p-4 bg-gray-50 rounded-lg'>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Promesses actuels
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {currentPromiseCount}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Limite maximale
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {promiseLimit || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Barre de progression */}
+                  {promiseLimit && promiseLimit > 0 && (
+                    <div className='mt-4'>
+                      <div className='flex justify-between text-sm text-gray-600 mb-2'>
+                        <span>Utilisation</span>
+                        <span>
+                          {Math.round((currentPromiseCount / promiseLimit) * 100)}%
+                        </span>
+                      </div>
+                      <div className='w-full bg-gray-200 rounded-full h-2'>
+                        <div
+                          className='h-2 bg-red-500 rounded-full transition-all duration-300'
+                          style={{
+                            width: `${Math.min(
+                              (currentPromiseCount / promiseLimit) * 100,
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Message d'information */}
+                <div className='flex items-start gap-3 p-3 bg-blue-50 rounded-lg'>
+                  <Info className='h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0' />
+                  <div className='text-sm text-blue-800'>
+                    <p className='font-medium mb-1'>Pourquoi cette limite ?</p>
+                    <p>
+                      Votre package d'abonnement actuel limite le nombre de
+                      promesses que vous pouvez ajouter. Pour ajouter
+                      plus de membres, vous devez mettre à niveau votre package.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions suggérées */}
+                <div className='space-y-3'>
+                  <h4 className='font-medium text-gray-900'>
+                    Que pouvez-vous faire ?
+                  </h4>
+                  <div className='space-y-2'>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Gérer les promesses existants (modifier, désactiver)
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Mettre à niveau votre package pour plus d'promesses
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Contacter le support pour des options personnalisées
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className='flex gap-3'>
+                <Button
+                  variant='outline'
+                  onClick={() => setIsPromiseLimitAlertOpen(false)}
+                >
+                  Fermer
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsPromiseLimitAlertOpen(false);
+                    navigate('/pricing');
+                  }}
+                  className='bg-blue-600 hover:bg-blue-700'
+                >
+                  <Package className='h-4 w-4 mr-2' />
+                  Voir les packages
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Modal pour ajouter une promesse */}
           <Dialog open={openAddPromise} onOpenChange={setOpenAddPromise}>
@@ -589,7 +726,7 @@ export const PromisesPage = withDashboard(() => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isLoading || isRefetching ? (
                 <TableRow>
                   <TableCell colSpan={5}>
                     <Skeleton
@@ -601,7 +738,17 @@ export const PromisesPage = withDashboard(() => {
                   </TableCell>
                 </TableRow>
               ) : (
-                promesses?.data?.map((promesse: tPromesse) => (
+                promesses?.data.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5}>
+                      <div className='flex flex-col items-center justify-center'>
+                        <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                        <p className='text-gray-500'>Aucune promesse trouvée.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  promesses?.data.map((promesse: tPromesse) => (
                   <TableRow
                     key={promesse._id}
                     className='cursor-pointer hover:bg-gray-100'
@@ -694,21 +841,14 @@ export const PromisesPage = withDashboard(() => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                )))
               )}
-              {!isLoading &&
-                (promesses?.data?.length === 0 || !promesses?.data) && (
-                  <TableRow>
-                    <TableCell colSpan={4} className='text-center py-8'>
-                      Aucune promesse trouvée.
-                    </TableCell>
-                  </TableRow>
-                )}
+              
             </TableBody>
           </Table>
           {/* Pagination */}
           {/* <div className='p-4 border-t'> */}
-          {isLoading ? (
+          {isLoading || isRefetching ? (
             <Skeleton
               count={1}
               width='100%'
@@ -730,7 +870,7 @@ export const PromisesPage = withDashboard(() => {
                     size='sm'
                   />
                 </PaginationItem>
-                {isLoading
+                {isLoading || isRefetching
                   ? [...Array(2)].map((_, i) => (
                       <Skeleton className='h-4 w-4' key={i + 1} />
                     ))

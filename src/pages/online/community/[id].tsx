@@ -1,4 +1,5 @@
 import countries from '@/assets/constants/country';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 import { UpdateRepresentantForm } from '@/components/community/UpdateRepresentantForm';
 import {
   AlertDialog,
@@ -627,7 +628,17 @@ const DetailCommunity = withDashboard(() => {
                           </td>
                         </tr>
                       ) : (
-                        dons?.data?.map((don: IDon) => (
+                        dons?.data.length === 0 ? (
+                          <tr className='border-b hover:bg-muted/50 transition-colors'>
+                            <td colSpan={4}>
+                              <div className='flex flex-col items-center justify-center'>
+                                <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                                <p className='text-gray-500'>Aucun don trouvé.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          dons?.data?.map((don: IDon) => (
                           <tr
                             className='border-b hover:bg-muted/50 transition-colors'
                             key={don._id}
@@ -650,7 +661,7 @@ const DetailCommunity = withDashboard(() => {
                               </Badge>
                             </td>
                           </tr>
-                        ))
+                        )))
                       )}
                       <tr className='border-b hover:bg-muted/50 transition-colors'></tr>
                     </tbody>
@@ -691,7 +702,17 @@ const DetailCommunity = withDashboard(() => {
                           </td>
                         </tr>
                       ) : (
-                        promesses?.data?.map((promesse: tPromesse) => (
+                        promesses?.data.length === 0 ? (
+                          <tr className='border-b hover:bg-muted/50 transition-colors'>
+                            <td colSpan={4}>
+                              <div className='flex flex-col items-center justify-center'>
+                                <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                                <p className='text-gray-500'>Aucune promesse trouvée.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          promesses?.data?.map((promesse: tPromesse) => (
                           <tr
                             className='border-b hover:bg-muted/50 transition-colors'
                             key={promesse._id}
@@ -715,7 +736,7 @@ const DetailCommunity = withDashboard(() => {
                               </Badge>
                             </td>
                           </tr>
-                        ))
+                        )))
                       )}
                       <tr className='border-b hover:bg-muted/50 transition-colors'></tr>
                     </tbody>

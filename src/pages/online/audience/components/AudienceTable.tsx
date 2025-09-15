@@ -1,3 +1,4 @@
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -156,8 +157,11 @@ export const AudienceTable: React.FC<AudienceTableProps> = ({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={5} className='text-center py-8'>
-                Aucune audience trouvée.
+              <TableCell colSpan={6} className='py-8'>
+                <div className='flex flex-col items-center justify-center'>
+                  <img src={imgArrayEmpty} alt='Aucune audience' className='w-1/4 h-1/2 mb-4' />
+                  <p className='text-gray-500 text-center'>Aucune audience trouvée pour les critères sélectionnés.</p>
+                </div>
               </TableCell>
             </TableRow>
           )}

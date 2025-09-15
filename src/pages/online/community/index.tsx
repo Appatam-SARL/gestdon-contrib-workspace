@@ -6,9 +6,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
   Pagination,
@@ -37,17 +39,20 @@ import {
 import { useBeneficiaireStore } from '@/store/benefiaiciaire.store';
 import useContributorStore from '@/store/contributor.store';
 import { helperUserPermission } from '@/utils';
+import imgArrayEmpty from '@/assets/img/activityempty.png';
 // import useStaffStore from '@/store/staff.store';
 import { addDays } from 'date-fns';
 import fr from 'date-fns/locale/fr';
 import {
   AlertTriangle,
+  Info,
   Eye,
   EyeOff,
   Filter,
   RefreshCcw,
   Search,
   UserPlus,
+  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import { DateRangePicker } from 'react-date-range';
@@ -223,14 +228,15 @@ export const CommunityPage = withDashboard(() => {
             <Button
               onClick={() => {
                 if (beneficiaryLimitReached) {
+                  setIsBeneficiaryLimitAlertOpen(true);
                   return;
                 }
                 navigate('/community/create');
               }}
-              disabled={beneficiaryLimitReached}
-              className={
-                beneficiaryLimitReached ? 'opacity-50 cursor-not-allowed' : ''
-              }
+              // disabled={beneficiaryLimitReached}
+              // className={
+              //   beneficiaryLimitReached ? 'opacity-50 cursor-not-allowed' : ''
+              // }
             >
               <UserPlus className='h-4 w-4 mr-2' />
               Enregistrer une bénéficiaire
@@ -243,6 +249,136 @@ export const CommunityPage = withDashboard(() => {
           )}
         </div>
       </div>
+       {/* Modal d'alerte pour limite d'utilisateurs */}
+       <Dialog
+            open={isBeneficiaryLimitAlertOpen}
+            onOpenChange={setIsBeneficiaryLimitAlertOpen}
+          >
+            <DialogContent className='sm:max-w-[500px]'>
+              <DialogHeader>
+                <div className='flex items-center gap-3'>
+                  <div className='p-2 bg-red-100 rounded-full'>
+                    <AlertTriangle className='h-6 w-6 text-red-600' />
+                  </div>
+                  <div>
+                    <DialogTitle className='text-red-800'>
+                      Limite du nombre de bénéficiaires atteinte
+                    </DialogTitle>
+                    <DialogDescription className='text-red-600'>
+                      Vous avez atteint le nombre maximal de bénéficiaires
+                      autorisés par votre package.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className='space-y-4'>
+                {/* Informations sur la limite */}
+                <div className='p-4 bg-gray-50 rounded-lg'>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Bénéficiaires actuels
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {currentBeneficiaryCount}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className='text-sm font-medium text-gray-600'>
+                        Limite maximale
+                      </Label>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {beneficiaryLimit || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Barre de progression */}
+                  {beneficiaryLimit && beneficiaryLimit > 0 && (
+                    <div className='mt-4'>
+                      <div className='flex justify-between text-sm text-gray-600 mb-2'>
+                        <span>Utilisation</span>
+                        <span>
+                          {Math.round((currentBeneficiaryCount / beneficiaryLimit) * 100)}%
+                        </span>
+                      </div>
+                      <div className='w-full bg-gray-200 rounded-full h-2'>
+                        <div
+                          className='h-2 bg-red-500 rounded-full transition-all duration-300'
+                          style={{
+                            width: `${Math.min(
+                                (currentBeneficiaryCount / beneficiaryLimit) * 100,
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Message d'information */}
+                <div className='flex items-start gap-3 p-3 bg-blue-50 rounded-lg'>
+                  <Info className='h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0' />
+                  <div className='text-sm text-blue-800'>
+                    <p className='font-medium mb-1'>Pourquoi cette limite ?</p>
+                    <p>
+                      Votre package d'abonnement actuel limite le nombre de
+                      bénéficiaires que vous pouvez ajouter. Pour ajouter
+                      plus de membres, vous devez mettre à niveau votre package.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions suggérées */}
+                <div className='space-y-3'>
+                  <h4 className='font-medium text-gray-900'>
+                    Que pouvez-vous faire ?
+                  </h4>
+                  <div className='space-y-2'>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Gérer les bénéficiaires existants (modifier, désactiver)
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Mettre à niveau votre package pour plus de bénéficiaires
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-600'>
+                      <div className='w-2 h-2 bg-gray-400 rounded-full'></div>
+                      <span>
+                        Contacter le support pour des options personnalisées pour ajouter plus de bénéficiaires
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className='flex gap-3'>
+                <Button
+                  variant='outline'
+                  onClick={() => setIsBeneficiaryLimitAlertOpen(false)}
+                >
+                  Fermer
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsBeneficiaryLimitAlertOpen(false);
+                    navigate('/pricing');
+                  }}
+                  className='bg-blue-600 hover:bg-blue-700'
+                >
+                  <Users className='h-4 w-4 mr-2' />
+                  Voir les packages
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
       <div className='flex gap-4'>
         <div className='relative flex-1'>
@@ -353,7 +489,17 @@ export const CommunityPage = withDashboard(() => {
                   </TableCell>
                 </TableRow>
               ) : (
-                data?.data?.map((beneficiary: IBeneficiaire) => (
+                data?.data.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4}>
+                      <div className='flex flex-col items-center justify-center'>
+                        <img src={imgArrayEmpty} alt='empty' className='w-1/4 h-1/2' />
+                        <p className='text-gray-500'>Aucun bénéficiaire trouvé.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  data?.data.map((beneficiary: IBeneficiaire) => (
                   <TableRow
                     key={beneficiary._id}
                     onClick={() => handleRowClick(beneficiary._id)}
@@ -409,7 +555,7 @@ export const CommunityPage = withDashboard(() => {
                       )}
                     </TableCell>
                   </TableRow>
-                ))
+                )))
               )}
             </TableBody>
           </Table>
