@@ -88,7 +88,7 @@ const sidebarLinks: SidebarLink[] = [
   },
   {
     icon: <Banknote className='h-5 w-5' />,
-    label: 'Mouvement de caisse',
+    label: 'Finances',
     href: '/mouvement-checkout',
   },
 ];
