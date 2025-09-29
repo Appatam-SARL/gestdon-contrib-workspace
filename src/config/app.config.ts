@@ -5,7 +5,7 @@ export const workSpaceEnvironnement: 'dev' | 'preprod' | 'prod' = 'dev';
 const BASE_URL: Record<'prod' | 'dev' | 'preprod', string> = {
   preprod: 'https://2c6bbe3e8ce3.ngrok-free.app/',
   prod: 'https://api.contrib.com/',
-  dev: `https://8fcfb5eeb6c8.ngrok-free.app/`,
+  dev: `https://unfragrantly-unharsh-jameson.ngrok-free.dev/`,
 };
 
 export const env = {

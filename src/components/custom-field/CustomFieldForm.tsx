@@ -68,7 +68,12 @@ export const CustomFieldForm = ({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(async (values) => {
+          await onSubmit(values);
+          if (!isEditing) {
+            form.reset(DEFAULT_FORM_VALUES);
+          }
+        })}
         className='grid grid-cols-1 md:grid-cols-2 gap-4'
       >
         <FormField

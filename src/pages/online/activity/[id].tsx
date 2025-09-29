@@ -48,6 +48,7 @@ const ActivityDetailsPage = withDashboard(() => {
     isLoading,
     isError,
     error,
+    refetch
   } = useActivity(id as string);
   const {
     data: reports,
@@ -128,7 +129,7 @@ const ActivityDetailsPage = withDashboard(() => {
       </div>
 
       {/* Actions groupées */}
-      <ButtonGroupActionActivity id={id as string} reports={reports} />
+      <ButtonGroupActionActivity id={id as string} reports={reports} refetch={refetch} />
 
       {/* Layout en deux colonnes */}
       <div className='grid grid-cols-1 xl:grid-cols-3 gap-6'>

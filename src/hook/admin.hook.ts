@@ -22,6 +22,8 @@ import { toast, useToast } from '@/components/ui/use-toast';
 import { IContributor } from '@/interface/contributor';
 import { IPackage } from '@/interface/package.interface';
 import {
+  formChangePasswordSchema,
+  FormChangePasswordValues,
   FormInviteRegisterUserValues,
   FormInviteValues,
 } from '@/schema/admins.schema';
@@ -233,12 +235,7 @@ export function useCreateUser() {
 // use update password mutation
 export function useUpdatePassword(
   id: string,
-  setIsPasswordModalOpen: (value: boolean) => void,
-  setPasswordForm: (formPassword: {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-  }) => void
+  setIsPasswordModalOpen: (value: boolean) => void
 ) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -267,11 +264,7 @@ export function useUpdatePassword(
         description: 'Votre mot de passe a été modifié avec succès.',
       });
       queryClient.invalidateQueries({ queryKey: ['user', 'profile', id] });
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      // formChangePasswordSchema
       setIsPasswordModalOpen(false);
     },
     onError: (error: AxiosError) => {

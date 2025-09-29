@@ -71,7 +71,7 @@ export const CustomFieldTable = ({
                 </TableCell>
               )}
               <TableCell className='text-right'>
-                <Button
+                {/* <Button
                   variant='outline'
                   size='sm'
                   onClick={() => onEdit(field)}
@@ -79,7 +79,7 @@ export const CustomFieldTable = ({
                   aria-label={`Modifier le champ ${field.name}`}
                 >
                   <PencilIcon />
-                </Button>
+                </Button> */}
                 <Button
                   variant='destructive'
                   size='sm'

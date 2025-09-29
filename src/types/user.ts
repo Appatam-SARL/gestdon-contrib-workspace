@@ -25,6 +25,7 @@ export interface IUser {
   address?: IAddress;
   isActive: boolean;
   isVerified: boolean;
+  isFirstLogin: boolean;
   mfaEnabled: boolean;
   mfaSecret?: string;
   mfaTempSecret?: string;
@@ -111,6 +112,7 @@ export interface ReponseLoginByUser extends ReponseLoginByStaffWithMfa {
     firstName: string;
     lastName: string;
     phone: string;
+    isFirstLogin: boolean;
   };
   readonly userId?: string;
 }

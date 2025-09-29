@@ -1,6 +1,6 @@
 // import { ActivityApi } from '@/api/activity.api';
 import ActivityApi from '@/api/activity.api';
-import { toast, useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { IActivityFilterForm } from '@/interface/activity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
@@ -281,20 +281,26 @@ export const useGetActivityStats = (contributorId: string) => {
 
 export const useBudgetActivity = (
   id: string,
-  setIsBudgetDialogOpen: (val: boolean) => void
+  setIsBudgetDialogOpen: (val: boolean) => void,
+  refetch: () => void
 ) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-      mutationFn: (data: { budget: number }) => ActivityApi.budgetActivity(id, data),
-  onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['activities'] });
-      queryClient.invalidateQueries({ queryKey: ['activity', id] });
-      toast({
-        title: 'Vous venez de définir un budget pour cette activité.',
-        variant: 'default',
-      });
-      setIsBudgetDialogOpen(false);
+    mutationFn: (data: { budget: number }) => ActivityApi.budgetActivity(id, data),
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({
+          title: 'Vous venez de définir un budget pour cette activité.',
+          variant: 'default',
+        });
+        queryClient.invalidateQueries({ queryKey: ['activities'] });
+        queryClient.invalidateQueries({ queryKey: ['activity', id] });
+        // S'assurer que le résumé financier est rafraîchi
+        queryClient.invalidateQueries({ queryKey: ['summary-mouvement-checkouts'] });
+        refetch();
+        setIsBudgetDialogOpen(false);
+      }
     },
     onError: (error) => {
       toast({

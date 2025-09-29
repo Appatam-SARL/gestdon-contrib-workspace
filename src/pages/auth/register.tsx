@@ -1,4 +1,5 @@
 import countries from '@/assets/constants/country';
+import { TYPE_BENEFICIAIRE } from '@/assets/constants/beneficiaire';
 import animationData from '@/assets/svg/stats.json';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +40,8 @@ import {
   ChevronsUpDown,
   ChevronsUpDownIcon,
   Loader2,
+  Square,
+  CheckSquare,
 } from 'lucide-react';
 import React from 'react';
 import { useForm } from 'react-hook-form';
@@ -52,6 +55,11 @@ const contributorSchema = z.object({
   email: z.string().nonempty('Email est requis').email('Email invalide'),
   phoneNumber: z.string().nonempty('Numéro de téléphone requis'),
   fieldOfActivity: z.string().optional(),
+  typeBeneficiary: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    description: z.string()
+  })).optional(),
   logo: z
     .object({
       fileId: z.string().optional(),
@@ -90,7 +98,13 @@ const domaineActivity = [
   { value: 'education', label: 'Education' },
   { value: 'logement', label: 'Logement' },
   { value: 'politique', label: 'Politique' },
+  { value: 'communication', label: 'Communication'},
+  { value: "technologie de l'information", label: "Technologie de l'information" },
+  { value: 'batiment et btp', label: 'Bâtiment et BTP' },
+  { value: 'evenementielle', label: 'Evénementielle' },
+  { value: 'autre', label: 'Autre'}
 ];
+
 
 const Register = () => {
   const { toast } = useToast();
@@ -120,6 +134,49 @@ const Register = () => {
   const [selectedCountry, setSelectedCountry] = React.useState<string | null>(
     null
   );
+  const [selectedCountryOwner, setSelectedCountryOwner] = React.useState<string | null>(
+    null
+  );
+  const [selectedBeneficiaryTypes, setSelectedBeneficiaryTypes] = React.useState<string[]>([]);
+
+  // Fonction pour obtenir la description des types de bénéficiaires
+  const getBeneficiaryDescription = React.useCallback((type: string): string => {
+    switch (type) {
+      case 'ORGANISATION MUTUELLE':
+        return 'Organisations qui proposent des services de mutualité et d\'entraide';
+      case 'COMMUNAUTÉ RELIGIEUSE':
+        return 'Communautés et organisations basées sur des croyances religieuses';
+      case 'ASSOCIATION DE MUTUELLE':
+        return 'Associations qui organisent des activités mutualistes et solidaires';
+      case 'ASSOCIATION DE SOLIDARITE':
+        return 'Associations axées sur l\'aide et la solidarité sociale';
+      case 'ORGANISATION SPIRITUELLE':
+        return 'Organisations basées sur des valeurs spirituelles et éthiques';
+      case 'ENTREPRISE COMMERCIALE':
+        return 'Entreprises avec des activités commerciales et lucratives';
+      case 'ORGANISATION COMMERCIALE':
+        return 'Organisations ayant des objectifs commerciaux et économiques';
+      default:
+        return '';
+    }
+  }, []);
+
+  // Conversion des types de bénéficiaires en format plus convivial
+  const beneficiaryTypes = React.useMemo(() => 
+    TYPE_BENEFICIAIRE.map((type) => ({
+      id: type,
+      label: type,
+      description: getBeneficiaryDescription(type)
+    })), [getBeneficiaryDescription]);
+
+  // Fonction pour gérer le toggle des types de bénéficiaires
+  const handleBeneficiaryToggle = React.useCallback((typeId: string) => {
+    setSelectedBeneficiaryTypes(prev => 
+      prev.includes(typeId)
+        ? prev.filter(id => id !== typeId)
+        : [...prev, typeId]
+    );
+  }, []);
 
   const form = useForm<ContributorFormValues>({
     resolver: zodResolver(contributorSchema),
@@ -128,6 +185,7 @@ const Register = () => {
       description: '',
       email: '',
       phoneNumber: '',
+      typeBeneficiary: [],
       logo: {
         fileId: '',
         fileUrl: '',
@@ -221,7 +279,27 @@ const Register = () => {
       return;
     }
 
+    if (selectedBeneficiaryTypes.length === 0) {
+      toast({
+        title: 'Attention',
+        description: 'Veuillez sélectionner au moins un type de bénéficiaire.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // delete selectedBeneficiaryTypes.id;
+
     values.fieldOfActivity = value;
+    // Convertir les IDs sélectionnés en objets complets
+    values.typeBeneficiary = selectedBeneficiaryTypes.map(typeId => {
+      const type = beneficiaryTypes.find(t => t.id === typeId);
+      return {
+        id: typeId,
+        label: type?.label || typeId,
+        description: type?.description || ''
+      };
+    });
     mutation.mutate({ data: values, files });
     mutation.reset();
   };
@@ -248,11 +326,11 @@ const Register = () => {
               >
                 <div className='flex justify-between items-center mb-8'>
                   <div className='flex items-center gap-2'>
-                    {[1, 2].map((step) => (
+                    {[1, 2, 3].map((step) => (
                       <div
                         key={step}
                         className={`flex items-center ${
-                          step !== 2 ? 'flex-1' : ''
+                          step !== 3 ? 'flex-1' : ''
                         }`}
                       >
                         <div
@@ -268,7 +346,7 @@ const Register = () => {
                             step
                           )}
                         </div>
-                        {step !== 2 && (
+                        {step !== 3 && (
                           <div
                             className={`h-0.5 w-16 mx-2 ${
                               step < currentStep
@@ -281,7 +359,7 @@ const Register = () => {
                     ))}
                   </div>
                   <p className='text-sm text-muted-foreground'>
-                    Étape {currentStep} sur 2
+                    Étape {currentStep} sur 3
                   </p>
                 </div>
                 {currentStep === 1 && (
@@ -326,7 +404,7 @@ const Register = () => {
                           <PopoverContent className='w-[100%] p-0'>
                             <Command>
                               <CommandInput placeholder='Rechercher une activité...' />
-                              <CommandList>
+                              <CommandList className="max-h-[200px] overflow-y-auto">
                                 <CommandEmpty>
                                   Aucun résultat trouvé.
                                 </CommandEmpty>
@@ -566,7 +644,7 @@ const Register = () => {
                                       <CommandEmpty>
                                         Aucun pays trouvé.
                                       </CommandEmpty>
-                                      <CommandGroup>
+                                      <CommandGroup className="max-h-[200px] overflow-y-auto">
                                         {countries.map((country) => (
                                           <CommandItem
                                             key={country.value}
@@ -641,7 +719,75 @@ const Register = () => {
                     </CardContent>
                   </Card>
                 )}
+
                 {currentStep === 2 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Types de bénéficiaires</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Sélectionnez les types de bénéficiaires que vous souhaitez gérer dans votre espace.
+                        Vous pourrez modifier ces paramètres plus tard dans les réglages.
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid gap-4">
+                        {beneficiaryTypes.map((beneficiaryType) => {
+                          const isSelected = selectedBeneficiaryTypes.includes(beneficiaryType.id);
+
+                          return (
+                            <div
+                              key={beneficiaryType.id}
+                              className={cn(
+                                "flex items-start space-x-3 p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer hover:shadow-md",
+                                isSelected
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/50"
+                              )}
+                              onClick={() => handleBeneficiaryToggle(beneficiaryType.id)}
+                            >
+                              <div className="mt-1 flex items-center justify-center w-5 h-5">
+                                {isSelected ? (
+                                  <CheckSquare className="w-5 h-5 text-primary" />
+                                ) : (
+                                  <Square className="w-5 h-5 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <h3 className="font-medium text-sm leading-none">
+                                  {beneficiaryType.label}
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {beneficiaryType.description}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {selectedBeneficiaryTypes.length > 0 && (
+                        <div className="mt-6 p-4 bg-primary/10 rounded-lg">
+                          <h4 className="font-medium text-sm mb-2">Types sélectionnés :</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedBeneficiaryTypes.map((typeId) => {
+                              const type = beneficiaryTypes.find(t => t.id === typeId);
+                              return (
+                                <span
+                                  key={typeId}
+                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-primary-foreground"
+                                >
+                                  {type?.label}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {currentStep === 3 && (
                   <Card>
                     <CardHeader>
                       <CardTitle>Information sur le manageur</CardTitle>
@@ -852,10 +998,10 @@ const Register = () => {
                                       aria-expanded={open}
                                       className='w-[100%] justify-between'
                                     >
-                                      {selectedCountry
+                                      {selectedCountryOwner
                                         ? countries.find(
                                             (country) =>
-                                              country.value === selectedCountry
+                                              country.value === selectedCountryOwner
                                           )?.label
                                         : 'Choisir un pays'}
                                       <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
@@ -867,21 +1013,21 @@ const Register = () => {
                                       <CommandEmpty>
                                         Aucun pays trouvé.
                                       </CommandEmpty>
-                                      <CommandGroup>
+                                      <CommandGroup className="max-h-[200px] overflow-y-auto">
                                         {countries.map((country) => (
                                           <CommandItem
                                             key={country.value}
                                             value={country.value}
                                             onSelect={() => {
                                               field.onChange(country.value);
-                                              setSelectedCountry(country.value);
+                                              setSelectedCountryOwner(country.value);
                                               setOpen(false);
                                             }}
                                           >
                                             <Check
                                               className={cn(
                                                 'mr-2 h-4 w-4',
-                                                selectedCountry ===
+                                                selectedCountryOwner ===
                                                   country.value
                                                   ? 'opacity-100'
                                                   : 'opacity-0'
@@ -927,7 +1073,7 @@ const Register = () => {
                       Précédent
                     </Button>
                   )}
-                  {currentStep === 2 ? (
+                  {currentStep === 3 ? (
                     <Button
                       type='submit'
                       className='ml-auto'
@@ -947,31 +1093,32 @@ const Register = () => {
                       type='button'
                       className='ml-auto'
                       onClick={async () => {
-                        const step1Fields = [
-                          'name',
-                          'description',
-                          'email',
-                          'phoneNumber',
-                          'address.country',
-                          'address.street',
-                          'address.postalCode',
-                          'address.city',
-                        ] as const;
-                        const step2Fields = [
-                          'owner.firstName',
-                          'owner.lastName',
-                          'owner.email',
-                          'owner.phone',
-                          'owner.address.country',
-                          'owner.address.street',
-                          'owner.address.postalCode',
-                          'owner.address.city',
-                        ] as const;
-
-                        const fieldsToValidate =
-                          currentStep === 1 ? step1Fields : step2Fields;
-                        const isValid = await form.trigger(fieldsToValidate);
-                        if (isValid) {
+                        if (currentStep === 1) {
+                          // Validation de l'étape 1 (Informations du contributeur)
+                          const step1Fields = [
+                            'name',
+                            'description',
+                            'email',
+                            'phoneNumber',
+                            'address.country',
+                            'address.street',
+                            'address.postalCode',
+                            'address.city',
+                          ] as const;
+                          const isValid = await form.trigger(step1Fields);
+                          if (isValid) {
+                            setCurrentStep((prev) => prev + 1);
+                          }
+                        } else if (currentStep === 2) {
+                          // Validation de l'étape 2 (Types de bénéficiaires)
+                          if (selectedBeneficiaryTypes.length === 0) {
+                            toast({
+                              title: 'Attention',
+                              description: 'Veuillez sélectionner au moins un type de bénéficiaire.',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
                           setCurrentStep((prev) => prev + 1);
                         }
                       }}

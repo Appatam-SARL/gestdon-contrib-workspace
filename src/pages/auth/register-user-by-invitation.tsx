@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -14,20 +15,29 @@ import {
   formInviteRegisterUserSchema,
   FormInviteRegisterUserValues,
 } from '@/schema/admins.schema';
+import { validatePhoneNumber } from '@/utils';
+import { validateEmailComplete } from '@/utils/emailValidator';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Eye, EyeOff, Loader2, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+
+import PhoneInput from 'react-phone-number-input';
 
 const RegisterInvited = () => {
   const token = new URLSearchParams(window.location.search).get('token');
   // state local
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [formattedNumber, setFormattedNumber] = useState<string>('');
+  const [isValidNumber, setIsValidNumber] = useState<null | boolean>(null);
+  const [validationEmail, setValidationEmail] = useState<null | any>(null);
 
   const mutation = useRegisterUserByInvite(token as string);
   const formAddStaff = useForm<FormInviteRegisterUserValues>({
     resolver: zodResolver(formInviteRegisterUserSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -148,12 +158,62 @@ const RegisterInvited = () => {
                       </FormLabel>
                       <FormControl>
                         <Input
-                          id='email'
                           type='email'
-                          placeholder='Email'
-                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            const result = validateEmailComplete(
+                              e.target.value
+                            );
+                            setValidationEmail(result);
+                          }}
                         />
                       </FormControl>
+                      <FormDescription>
+                        {validationEmail ? (
+                          <div
+                            className={`p-3 rounded-md ${
+                              validationEmail.isValid
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {validationEmail.isValid ? (
+                              <div>
+                                <span className='font-medium'>
+                                  ✓ Email valide
+                                </span>
+                                {validationEmail.info.provider && (
+                                  <div className='mt-1 text-sm'>
+                                    Fournisseur:{' '}
+                                    {validationEmail.info.provider}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div>
+                                <span className='font-medium'>
+                                  ✗ Email invalide
+                                </span>
+                                <div className='mt-1 text-sm'>
+                                  {validationEmail.suggestion}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className='mt-1 text-sm text-gray-600'>
+                            <h3 className='font-medium mb-2'>
+                              Exemples valides :
+                            </h3>
+                            <ul className='space-y-1'>
+                              <li>• utilisateur@exemple.com</li>
+                              <li>• jean.dupont@gmail.com</li>
+                              <li>• contact+info@entreprise.fr</li>
+                              <li>• test_123@domaine.co.uk</li>
+                            </ul>
+                          </div>
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -167,13 +227,63 @@ const RegisterInvited = () => {
                         Téléphone
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          id='phone'
-                          type='text'
-                          placeholder='+2250000000000'
-                          {...field}
-                        />
+                      <PhoneInput
+                        international={false}
+                        defaultCountry='CI'
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          const { isValidNumber, formattedNumber } =
+                            validatePhoneNumber(e ? e : '');
+                          setIsValidNumber(isValidNumber);
+                          setFormattedNumber(
+                            formattedNumber
+                          );
+                        }}
+                        className={
+                          'flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+                        }
+                      />
                       </FormControl>
+                      <FormDescription>
+                        {/* Exemples de formats acceptés */}
+                        {formAddStaff.watch('phone') &&
+                        isValidNumber ? (
+                          <div
+                            className={`p-3 rounded-md ${
+                              isValidNumber
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            <div>
+                              <span className='font-medium'>
+                                ✓ Numéro valide
+                              </span>
+                              {formattedNumber && (
+                                <div className='mt-1 text-sm'>
+                                  Format: {formattedNumber}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className='mt-6 text-sm text-gray-600'>
+                            <h3 className='font-medium mb-2'>
+                              Formats acceptés :
+                            </h3>
+                            <ul className='space-y-1'>
+                              <li className='text-red'>
+                                • +2250123456789
+                              </li>
+                              <li className='text-red'>
+                                • Préfixes: 01, 05, 07 (mobile), 27 (fixe
+                                Abidjan)
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

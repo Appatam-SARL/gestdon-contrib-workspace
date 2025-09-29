@@ -1,25 +1,27 @@
 import PricingItemCard from '@/components/Abonnements/PlanCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 import WHeader from '@/components/welcome/WHeader';
 import { usePackages } from '@/hook/package.hook';
 import { IPackage } from '@/interface/package.interface';
 import usePackageStore from '@/store/package.store';
 import { Banknote, Gift, Phone, Star, Undo2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 const ChoixPlan = () => {
   const navigate = useNavigate();
+  const {toast} = useToast()
   const [selectedPlan, setSelectedPlan] = useState<IPackage | null>(null);
   const { setPackageStore, packages } = usePackageStore((state) => state);
   const { isLoading, error } = usePackages();
 
-  useEffect(() => {
-    if (packages && packages.length > 0) {
-      setSelectedPlan(packages[0]);
-    }
-  }, [packages]);
+  // useEffect(() => {
+  //   if (packages && packages.length > 0) {
+  //     setSelectedPlan(packages[0]);
+  //   }
+  // }, [packages]);
 
   const getPackageType = (packageName: string) => {
     if (!packageName) return 'UNKNOWN';
@@ -167,6 +169,11 @@ const ChoixPlan = () => {
                   <PricingItemCard
                     selected={isSelected}
                     onClick={() => {
+                      toast({
+                        title: 'Plan sélectionné',
+                        description: plan.name,
+                        duration: 5000,
+                      });
                       setSelectedPlan(plan);
                       setPackageStore('package', plan);
                     }}

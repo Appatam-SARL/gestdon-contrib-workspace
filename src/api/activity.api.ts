@@ -188,7 +188,7 @@ class ActivityApi {
     }
   }
 
-  static async budgetActivity(id: string, data: any): Promise<any> {
+  static async budgetActivity(id: string, data: any): APIResponse<IActivity> {
     try {
       const response = await Axios.patch(`${this.BASE_URL}/${id}/define-budget`, data);
       return response.data;
