@@ -1,5 +1,6 @@
 export interface IContributor {
   _id: string;
+  id?: string;
   name: string;
   description: string;
   email: string;

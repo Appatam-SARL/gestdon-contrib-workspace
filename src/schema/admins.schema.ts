@@ -27,8 +27,8 @@ export const formInviteRegisterUserSchema = z.object({
   password: z
     .string()
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-      'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule et une lettre minuscule.'
+      /^(?=\S+$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+      'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule, une lettre minuscule et un caractère spécial.'
     )
     .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   address: z.object({
@@ -68,8 +68,8 @@ export const formLoginSchema = z.union([
     password: z
       .string()
       .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-        'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule et une lettre minuscule.'
+        /^(?=\S+$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+        'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule, une lettre minuscule et un caractère spécial.'
       )
       .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   }),
@@ -88,6 +88,32 @@ export const formResetPasswordSchema = z.object({
     .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
 });
 
+// change password schema
+export const formChangePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+    .regex(
+      /^(?=\S+$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+      'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule, une lettre minuscule et un caractère spécial.'
+    )
+      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+    newPassword: z
+      .string()
+    .regex(
+      /^(?=\S+$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
+      'Le mot de passe doit contenir au moins 8 caractères et contenir au moins un chiffre, une lettre majuscule, une lettre minuscule et un caractère spécial.'
+    )
+      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+    confirmPassword: z
+      .string()
+      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Les mots de passe ne correspondent pas',
+    path: ['confirmPassword'],
+  });
+
 export type FormInviteValues = z.infer<typeof formInviteSchema>;
 export type FormAdminValues = z.infer<typeof formAdminSchema>;
 export type FormLoginValues = z.infer<typeof formLoginSchema>;
@@ -95,4 +121,7 @@ export type FormForgetPasswordValues = z.infer<typeof formForgetPasswordSchema>;
 export type FormResetPasswordValues = z.infer<typeof formResetPasswordSchema>;
 export type FormInviteRegisterUserValues = z.infer<
   typeof formInviteRegisterUserSchema
+>;
+export type FormChangePasswordValues = z.infer<
+  typeof formChangePasswordSchema
 >;

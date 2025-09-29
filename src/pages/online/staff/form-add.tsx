@@ -424,7 +424,7 @@ const AddStaffForm = withDashboard(() => {
                             <Command>
                               <CommandInput placeholder='Rechercher un pays...' />
                               <CommandEmpty>Aucun pays trouvé.</CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup className="max-h-[200px] overflow-y-auto">
                                 {countries.map((country) => (
                                   <CommandItem
                                     key={country.value}

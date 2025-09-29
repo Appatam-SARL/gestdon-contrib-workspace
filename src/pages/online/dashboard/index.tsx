@@ -49,6 +49,8 @@ import { useGetMouvementCheckouts } from '@/hook/mouvement-checkout.hook';
 import { IMouvementCheckout } from '@/interface/activity';
 import imgArrayEmpty from '@/assets/img/activityempty.png';
 import { IReport } from '@/interface/report';
+import useUserStore from '@/store/user.store';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 const chartConfig = {
   deliveries: {
@@ -72,10 +74,12 @@ const CustomizedLabelLineChart = (props: any) => {
 const Dashboard = withDashboard(() => {
   const navigate = useNavigate();
   const contributorId = useContributorStore((state) => state.contributor?._id);
+  const user = useUserStore((state) => state.user);
   const [selectedFilter, setSelectedFilter] = useState<{
     period: string;
     contributorId: string;
   }>({ period: 'month', contributorId: '' }); // Default to month
+  const [isFirstLogin, setIsFirstLogin] = useState<boolean>(false);
   const { data: stats, isLoading, refetch } = useDashboard(selectedFilter);
   const {
     data: activitiesByType,
@@ -189,6 +193,12 @@ const Dashboard = withDashboard(() => {
       contributorId: contributorId as string,
     });
   }, [contributorId]);
+
+  React.useEffect(() => {
+    if (user?.isFirstLogin) {
+      setIsFirstLogin(true);
+    }
+  }, [user]);
 
   const handleFilterSelect = (filter: string) => {
     setSelectedFilter({ ...selectedFilter, period: filter });
@@ -690,6 +700,110 @@ const Dashboard = withDashboard(() => {
         <div className='text-muted-foreground'>
           Vous n'avez pas les permissions pour accéder à la liste des rapports.
         </div>
+      )}
+
+      {/* Modal de bienvenue pour la première connexion */}
+      {isFirstLogin && (
+        <Dialog
+          open={isFirstLogin}
+          onOpenChange={setIsFirstLogin}
+        >
+          <DialogContent className="sm:max-w-md">
+            <div className="flex flex-col items-center text-center space-y-6">
+              {/* Icône de bienvenue */}
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
+                <svg
+                  className="w-8 h-8 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+              </div>
+
+              {/* Titre principal */}
+              <div className="space-y-2">
+                <DialogTitle className="text-2xl font-bold text-foreground">
+                  Bienvenue sur GestDon ! 🎉
+                </DialogTitle>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  Votre espace de gestion de dons est maintenant prêt à l'emploi.
+                </p>
+              </div>
+
+              {/* Contenu informatif */}
+              <div className="space-y-4 w-full">
+                <div className="flex items-start space-x-3 p-4 rounded-lg bg-muted/50">
+                  <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-2"></div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground">
+                      Explorez votre tableau de bord
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Gérez vos dons, bénéficiaires et rapports en toute simplicité
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3 p-4 rounded-lg bg-muted/50">
+                  <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-2"></div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-foreground">
+                      Collaborez avec votre équipe
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Invitez des membres de votre staff pour une gestion collaborative
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsFirstLogin(false)}
+                  className="flex-1"
+                >
+                  Commencer maintenant
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsFirstLogin(false);
+                    navigate('/staff/create');
+                  }}
+                  className="flex-1"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                    />
+                  </svg>
+                  Inviter du staff
+                </Button>
+              </div>
+
+              {/* Note informative */}
+              <p className="text-xs text-muted-foreground">
+                Vous pourrez toujours accéder à ces fonctionnalités depuis votre tableau de bord
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

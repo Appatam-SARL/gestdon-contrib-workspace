@@ -22,10 +22,10 @@ const PricingPage = () => {
             {plans.map((plan) => (
               <PricingItemCard
                 key={plan.name}
-                title={plan.name}
+                name={plan.name}
                 description={plan.description}
                 price={plan.price}
-                avantages={plan.features}
+                features={plan.features}
                 selected={selectedPlan === plan.name}
                 isPopular={plan.isPopular}
                 maxUsers={plan.maxUsers}

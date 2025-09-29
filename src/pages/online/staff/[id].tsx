@@ -78,11 +78,22 @@ import {
   SaveIcon,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import PhoneInput from 'react-phone-number-input';
 import QrCode from 'react-qr-code';
 import { Link, useParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { formChangePasswordSchema, FormChangePasswordValues } from '@/schema/admins.schema';
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
 
 const getActionBadgeVariant = (type: string) => {
   switch (type) {
@@ -115,22 +126,18 @@ export const StaffDetailsPage = withDashboard(() => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isMFAModalOpen, setIsMFAModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
+
   const [infoForm, setInfoForm] = useState<{
     firstName: string;
     lastName: string;
     email: string;
-    phone: string;
+    phone: string | undefined;
     role: string;
   }>({
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',
+    phone: undefined, // phone number is not required
     role: '',
   });
   const [codeMfa, setCodeMfa] = useState<string>('');
@@ -141,6 +148,16 @@ export const StaffDetailsPage = withDashboard(() => {
     endDate: '',
     page: 1,
     limit: 10,
+  });
+
+  // zod
+  const formChangePassword = useForm<FormChangePasswordValues>({
+    resolver: zodResolver(formChangePasswordSchema),
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
   });
 
   // store zustand
@@ -163,8 +180,7 @@ export const StaffDetailsPage = withDashboard(() => {
   const mutation = useUpdateStaffMember(id as string, setIsInfoModalOpen);
   const mutationPassword = useUpdatePassword(
     id as string,
-    setIsPasswordModalOpen,
-    setPasswordForm
+    setIsPasswordModalOpen
   );
   const mutationSetupMFA = useSetupMfa(id as string, setIsMFAModalOpen);
   const mutationActivateMFA = useActivateMfa(id as string, setIsMFAModalOpen);
@@ -245,11 +261,11 @@ export const StaffDetailsPage = withDashboard(() => {
   }, [updateUserStore]);
 
   // Gestionnaire de changement de mot de passe
-  const handlePasswordChange = async () => {
+  const onSubmitChangePassword = async (data: FormChangePasswordValues) => {
     if (
-      !passwordForm.currentPassword ||
-      !passwordForm.newPassword ||
-      !passwordForm.confirmPassword
+      !data.currentPassword ||
+      !data.newPassword ||
+      !data.confirmPassword
     ) {
       toast({
         title: 'Erreur',
@@ -262,8 +278,8 @@ export const StaffDetailsPage = withDashboard(() => {
     // vérifier que le nouveau mot de passe est plus long que 8 caractères
     // ajoute un regex qui vérifie que le mot de passe est composé de lettres, chiffres et caractères spéciaux
     if (
-      !passwordForm.newPassword.match(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+      !data.newPassword.match(
+        /^(?=\S+$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/
       )
     ) {
       toast({
@@ -276,7 +292,7 @@ export const StaffDetailsPage = withDashboard(() => {
     }
 
     // vérifier que les nouveaux mots de passe sont identiques
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    if (data.newPassword !== data.confirmPassword) {
       toast({
         title: 'Erreur',
         description: 'Les nouveaux mots de passe ne correspondent pas.',
@@ -284,7 +300,7 @@ export const StaffDetailsPage = withDashboard(() => {
       });
       return;
     }
-    mutationPassword.mutate(passwordForm);
+    mutationPassword.mutate(data);
   };
 
   // Gestionnaire d'activation/désactivation MFA
@@ -840,125 +856,147 @@ export const StaffDetailsPage = withDashboard(() => {
               passe.
             </DialogDescription>
           </DialogHeader>
-          <div className='space-y-4'>
-            <div className='space-y-2'>
-              <Label htmlFor='current-password'>Mot de passe actuel</Label>
-              <div className='relative mt-2'>
-                <Lock className='absolute left-3 top-2.5 h-5 w-5 text-muted-foreground' />
-                <Input
-                  id='current-password'
-                  type={showPassword ? 'text' : 'password'}
-                  className='pl-10'
-                  value={passwordForm.currentPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      currentPassword: e.target.value,
-                    }))
-                  }
-                />
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon'
-                  className='absolute right-2 top-2 h-5 w-5 text-muted-foreground hover:text-foreground'
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className='h-4 w-4' />
-                  ) : (
-                    <Eye className='h-4 w-4' />
-                  )}
-                </Button>
-              </div>
-            </div>
-            <div className='space-y-2'>
-              <Label htmlFor='new-password'>Nouveau mot de passe</Label>
-              <div className='relative mt-2'>
-                <Lock className='absolute left-3 top-2.5 h-5 w-5 text-muted-foreground' />
-                <Input
-                  id='new-password'
-                  type={showNewPassword ? 'text' : 'password'}
-                  className='pl-10'
-                  value={passwordForm.newPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      newPassword: e.target.value,
-                    }))
-                  }
-                />
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon'
-                  className='absolute right-2 top-2 h-5 w-5 text-muted-foreground hover:text-foreground'
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                >
-                  {showNewPassword ? (
-                    <EyeOff className='h-4 w-4' />
-                  ) : (
-                    <Eye className='h-4 w-4' />
-                  )}
-                </Button>
-              </div>
-            </div>
-            <div className='space-y-2'>
-              <Label htmlFor='confirm-password'>
-                Confirmer le nouveau mot de passe
-              </Label>
-              <div className='relative mt-2'>
-                <Lock className='absolute left-3 top-2.5 h-5 w-5 text-muted-foreground' />
-                <Input
-                  id='confirm-password'
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  className='pl-10'
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      confirmPassword: e.target.value,
-                    }))
-                  }
-                />
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='icon'
-                  className='absolute right-2 top-2 h-5 w-5 text-muted-foreground hover:text-foreground'
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className='h-4 w-4' />
-                  ) : (
-                    <Eye className='h-4 w-4' />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant='outline'
-              onClick={() => setIsPasswordModalOpen(false)}
-              disabled={mutationPassword.isPending}
+          <Form {...formChangePassword}>
+            <form
+              onSubmit={formChangePassword.handleSubmit(onSubmitChangePassword)}
+              className='space-y-4'
             >
-              Annuler
-            </Button>
-            <Button
-              disabled={mutationPassword.isPending}
-              onClick={handlePasswordChange}
-            >
-              {mutationPassword.isPending ? (
-                <>
-                  <Loader2 className='animate-spin' />
-                  <span>Modification en cours...</span>
-                </>
-              ) : (
-                'Confirmer'
-              )}
-            </Button>
-          </DialogFooter>
+              <FormField
+                control={formChangePassword.control}
+                name='currentPassword'
+                render={({ field }) => (
+                  <FormItem className='space-y-2'>
+                    <FormLabel htmlFor='current-password'>Mot de passe actuel</FormLabel>
+                    <FormControl>
+                    <div className='relative mt-2'>
+                      <Lock className='absolute left-3 top-2.5 h-5 w-5 text-muted-foreground' />
+                      <Input
+                        id='current-password'
+                        type={showPassword ? 'text' : 'password'}
+                        className='pl-10'
+                        {...field}
+                      />
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon'
+                        className='absolute right-2 top-2 h-5 w-5 text-muted-foreground hover:text-foreground'
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className='h-4 w-4' />
+                        ) : (
+                          <Eye className='h-4 w-4' />
+                        )}
+                      </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={formChangePassword.control}
+                name='newPassword'
+                render={({ field }) => (
+                  <FormItem className='space-y-2'>
+                    <FormLabel htmlFor='new-password'>Nouveau mot de passe</FormLabel>
+                    <FormControl>
+                      <div className='relative mt-2'>
+                        <Lock className='absolute left-3 top-2.5 h-5 w-5 text-muted-foreground' />
+                        <Input
+                          id='new-password'
+                          type={showNewPassword ? 'text' : 'password'}
+                          className='pl-10'
+                          value={field.value}
+                          onChange={(e) =>
+                            field.onChange(e)
+                          }
+                        />
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          className='absolute right-2 top-2 h-5 w-5 text-muted-foreground hover:text-foreground'
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          {showNewPassword ? (
+                            <EyeOff className='h-4 w-4' />
+                          ) : (
+                            <Eye className='h-4 w-4' />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={formChangePassword.control}
+                name='confirmPassword'
+                render={({ field }) => (
+                  <FormItem className='space-y-2'>
+                    <FormLabel htmlFor='confirm-password'>
+                      Confirmer le nouveau mot de passe
+                    </FormLabel>
+                    <FormControl>
+                      <div className='relative mt-2'>
+                        <Lock className='absolute left-3 top-2.5 h-5 w-5 text-muted-foreground' />
+                        <Input
+                          id='confirm-password'
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          className='pl-10'
+                          value={field.value}
+                          onChange={(e) =>
+                            field.onChange(e)
+                          }
+                        />
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          className='absolute right-2 top-2 h-5 w-5 text-muted-foreground hover:text-foreground'
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >  
+                          {showConfirmPassword ? (  
+                            <EyeOff className='h-4 w-4' />  
+                          ) : (  
+                            <Eye className='h-4 w-4' />  
+                          )}  
+                        </Button>  
+                      </div>  
+                    </FormControl>
+                  <FormMessage />
+                </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button
+                  variant='outline'
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  disabled={mutationPassword.isPending}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type='submit'
+                  disabled={mutationPassword.isPending}
+                >
+                  {mutationPassword.isPending ? (
+                    <>
+                      <Loader2 className='animate-spin' />
+                      <span>Modification en cours...</span>
+                    </>
+                  ) : (
+                    'Confirmer'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -1082,14 +1120,14 @@ export const StaffDetailsPage = withDashboard(() => {
                 international={false}
                 defaultCountry='CI'
                 value={infoForm.phone}
-                onChange={(e) => {
+                onChange={(value) => {
                   setInfoForm((prev) => ({
                     ...prev,
-                    phone: e,
+                    phone: value,
                   }));
 
                   const { isValidNumber, formattedNumber } =
-                    validatePhoneNumber(e ? e : '');
+                    validatePhoneNumber(value ?? '');
                   setIsValid(isValidNumber);
                   setFormattedNumber(formattedNumber);
                 }}

@@ -107,8 +107,10 @@ import { useGetTypesMouvementCheckouts } from '@/hook/mouvement-checkout-type.ho
 function ButtonGroupActionActivity({
   id,
   reports,
+  refetch
 }: {
   id: string;
+  refetch: () => void;
   reports?: {
     success?: boolean;
     data: IReport[];
@@ -181,7 +183,7 @@ function ButtonGroupActionActivity({
     id as string,
     setIsRepresentantDialogOpen
   );
-  const budgetMutation = useBudgetActivity(id as string, setIsBudgetDialogOpen);
+  const budgetMutation = useBudgetActivity(id as string, setIsBudgetDialogOpen, refetch);
   const mouvementCheckoutMutation = useCreateMouvementCheckout(setIsMouvementCheckoutDialogOpen);
 
   useLayoutEffect(() => {
@@ -364,9 +366,9 @@ function ButtonGroupActionActivity({
     }
   };
 
-  const handleBudget = (data: FormBudgetSchema) => {
+  const handleBudget = async (data: FormBudgetSchema) => {
     if (id) {
-      budgetMutation.mutate(data);
+      await budgetMutation.mutateAsync(data);
     }
   };
 
@@ -1336,7 +1338,7 @@ function ButtonGroupActionActivity({
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <DialogFooter>
+                  <DialogFooter className='mt-4'>
                     <Button type='submit' disabled={budgetMutation.isPending} size='sm'>
                       {budgetMutation.isPending ? 'En cours de définition...' : 'Définir un budget'}
                     </Button>
