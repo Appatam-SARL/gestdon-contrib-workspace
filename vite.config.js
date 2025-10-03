@@ -13,45 +13,67 @@ export default defineConfig({
     flowbiteReact(),
     VitePWA({
       registerType: 'autoUpdate',
-
-      // 🧠 Infos du manifeste PWA
+      injectRegister: 'auto', // injecte automatiquement le service worker
+    
+      pwaAssets: {
+        preset: 'minimal', // utilise un preset standard
+        image: 'public/favicon-96x96.png', // ton image source
+      },
+    
+      devOptions: {
+        enabled: true,
+        navigateFallback: 'index.html',
+        suppressWarnings: true,
+      },
+    
       manifest: {
         name: 'Contrib',
         short_name: 'Contrib',
         description: 'Plateforme SaaS de gestion des activités contributeurs',
-        theme_color: '#ffffff',
+        theme_color: '#6c2bd9',
         background_color: '#ffffff',
-        display: 'standalone',
-        start_url: '/',
+        display: 'standalone',       // ✅ Important pour installation
+        orientation: 'portrait',     // ✅ Pour mobile
+        scope: '/',                  // ✅ Nécessaire pour l’installation
+        start_url: '/',              // ✅ Point d’entrée après installation
+        id: '/',                     // ✅ Unique ID de l’app
+        display_override: ["window-controls-overlay"],
+        lang: 'fr',
         icons: [
           {
-            src: '/android-icon-192x192.png',
+            src: '/pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: '/android-icon-144x144.png',
-            sizes: '144x144',
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
             type: 'image/png',
           },
           {
-            src: '/android-icon-144x144.png',
-            sizes: '144x144',
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',
           },
         ],
       },
-
-      // 📦 Options de mise en cache Workbox
+    
       workbox: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 Mo
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'], // fichiers à précacher
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
-
-      // 📱 (Optionnel) Inclure les fichiers statiques à copier dans dist/
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'android-icon-192x192.png', 'android-icon-144x144.png', 'android-icon-120x120.png'],
-    }),
+    
+      includeAssets: [
+        'favicon.ico',
+        'robots.txt',
+        'apple-touch-icon.png',
+        'android-icon-192x192.png',
+        'android-icon-144x144.png',
+        'android-icon-120x120.png'
+      ],
+    })
+    
   ],
 
   server: {
