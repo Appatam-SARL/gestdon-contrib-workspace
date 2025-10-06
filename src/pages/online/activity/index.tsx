@@ -49,6 +49,7 @@ import FilterActivityModal from './FilterActivityModal';
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Info } from 'lucide-react';
+import imgEmptyActivity from '@/assets/img/activityempty.png';
 
 const ActivityPage = withDashboard(() => {
   const navigate = useNavigate();
@@ -530,9 +531,12 @@ const ActivityPage = withDashboard(() => {
                 </TableRow>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={5} className='text-center'>
-                  No activities found.
+              <TableRow className=''>
+                <TableCell colSpan={6} className='py-8'>
+                  <div className='flex flex-col items-center justify-center'>
+                    <img src={imgEmptyActivity} alt='Aucune audience' className='w-1/4 h-1/2 mb-4' />
+                    <p className='text-gray-500 text-center'>Aucune audience trouvée pour les critères sélectionnés.</p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
