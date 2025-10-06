@@ -532,9 +532,39 @@ export const DonPage = withDashboard(() => {
                           </label>
                           <FormControl>
                             <Input
-                              type='number'
                               placeholder='Montant'
                               {...field}
+                              value={field.value
+                                // On affiche la valeur formatée avec des espaces tous les 3 chiffres avant la virgule
+                                ? (() => {
+                                    const [entier, decimal] = field.value.split(',');
+                                    // On enlève les espaces existants pour éviter les doublons
+                                    const entierNettoye = entier.replace(/\s/g, '');
+                                    // On ajoute un espace tous les 3 chiffres en partant de la droite
+                                    const entierFormate = entierNettoye.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                                    return decimal !== undefined
+                                      ? `${entierFormate},${decimal}`
+                                      : entierFormate;
+                                  })()
+                                : ''}
+                              onBlur={e => {
+                                let value = e.target.value.replace(/\s/g, '');
+                                // Si la valeur ne contient pas déjà une virgule, on ajoute ",00" à la fin
+                                if (value && !value.includes(',')) {
+                                  field.onChange(value + ',00');
+                                } else {
+                                  field.onChange(value);
+                                }
+                              }}
+                              onChange={e => {
+                                // On enlève les espaces pour garder la valeur brute dans le state
+                                const value = e.target.value.replace(/\s/g, '');
+                                // On autorise uniquement les chiffres et la virgule
+                                if (/^\d*(,\d{0,2})?$/.test(value)) {
+                                  field.onChange(value);
+                                }
+                              }}
+                              inputMode="numeric"
                             />
                           </FormControl>
                           <FormMessage />
@@ -722,7 +752,7 @@ export const DonPage = withDashboard(() => {
                 <TableHead>Bénéficiaire</TableHead>
                 <TableHead>Type de don</TableHead>
                 <TableHead>Montant</TableHead>
-                <TableHead>Devise</TableHead>
+                {/* <TableHead>Devise</TableHead> */}
                 <TableHead>Statut</TableHead>
                 <TableHead>Date du don</TableHead>
                 <TableHead>Actions</TableHead>
@@ -762,8 +792,7 @@ export const DonPage = withDashboard(() => {
                     <TableCell>
                       {donation.type === 'Par nature' ? 'Nature' : 'En espèces'}
                     </TableCell>
-                    <TableCell>{donation.montant}</TableCell>
-                    <TableCell>{donation.devise}</TableCell>
+                    <TableCell>{`${donation.montant} ${donation.devise}`}</TableCell>
                     <TableCell>
                       <Badge
                         variant={

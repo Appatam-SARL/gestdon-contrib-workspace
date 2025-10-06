@@ -73,7 +73,8 @@ const CustomizedLabelLineChart = (props: any) => {
 
 const Dashboard = withDashboard(() => {
   const navigate = useNavigate();
-  const contributorId = useContributorStore((state) => state.contributor?._id);
+  const contributor = useContributorStore((state) => state.contributor);
+  const contributorId = contributor?._id;
   const user = useUserStore((state) => state.user);
   const [selectedFilter, setSelectedFilter] = useState<{
     period: string;
@@ -213,10 +214,34 @@ const Dashboard = withDashboard(() => {
   return (
     <div className='space-y-6'>
       {/* En-tête */}
-      <div className='flex justify-between items-center'>
+      <div className='flex justify-between items-center mt-4'>
         <div>
-          <h4 className='text-3xl font-bold'>Tableau de bord</h4>
-          <p className='text-muted-foreground'>
+          {(() => {
+            const heure = new Date().getHours();
+            let message = "";
+            if (heure >= 5 && heure < 12) {
+              message = "Bonjour";
+            } else if (heure >= 12 && heure < 18) {
+              message = "Bon après-midi";
+            } else if (heure >= 18 && heure < 22) {
+              message = "Bonsoir";
+            } else {
+              message = "Bonne nuit";
+            }
+            return (
+              <h4 className='text-3xl font-bold'>
+                {message} {user?.firstName} {user?.lastName}, 
+                <hr /> 
+                Nous sommes ravis de vous revoir !
+              </h4>
+            );
+          })()}
+          <p className='text-xl text-muted-foreground mt-2.5'>
+            Bienvenu sur votre espace de gestion {contributor?.fieldOfActivity.toLocaleLowerCase()}
+          </p>
+          {/* <h4 className='text-3xl font-bold'>
+            Tableau de bord</h4> */}
+          <p className='text-muted-foreground mt-1.5'>
             Vue d'ensemble des activités et statistiques
           </p>
         </div>
