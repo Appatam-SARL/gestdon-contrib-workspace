@@ -78,7 +78,7 @@ export default defineConfig({
 
   server: {
     host: '0.0.0.0', // pour l'accès depuis le réseau local
-    port: 5173,
+    port: 5173
   },
 
   resolve: {
