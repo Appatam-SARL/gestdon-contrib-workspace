@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/table';
 import { withDashboard } from '@/hoc/withDashboard';
 import { useBeneficiaries } from '@/hook/beneficiaire.hook';
-import { useCreateDon, useDons, useStatsDon } from '@/hook/don.hook';
+import { useCreateDon, useDons, useDownloadPDF, useStatsDon } from '@/hook/don.hook';
 import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { IDon, IDonFilterForm } from '@/interface/don';
 import { createDonSchema, FormCreateDonSchema } from '@/schema/don.schema';
@@ -67,6 +67,11 @@ import {
   RefreshCcw,
   Search,
   UserPlus,
+  Phone,
+  User,
+  Calendar,
+  FileText,
+  Hash,
 } from 'lucide-react';
 import React, { Suspense, useState } from 'react';
 import { DateRangePicker } from 'react-date-range';
@@ -74,6 +79,8 @@ import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { UseMutationResult } from '@tanstack/react-query';
 const StatsDons = React.lazy(() => import('@/components/Dons/Stats'));
 
 const FilterModal = ({
@@ -128,12 +135,19 @@ const FilterModal = ({
 );
 
 export const DonPage = withDashboard(() => {
-  const contributorId = useContributorStore((s) => s.contributor?._id);
   const navigate = useNavigate();
   const { toast } = useToast();
+  // STORE ZUSTAND
+  const contributorId = useContributorStore((s) => s.contributor?._id);
   const { donFilterForm, setDonStore } = useDonStore((s) => s);
+  // STATE LOCAL
   const [isCreateDonOpen, setIsCreateDonOpen] = useState<boolean>(false);
   const [isDonLimitAlertOpen, setIsDonLimitAlertOpen] = useState<boolean>(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDon, setSelectedDon] = useState<IDon | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  // HOOK QUERY
   const { isLoading: isLoadingBeneficiaries, data: beneficiaries } =
     useBeneficiaries({
       limit: 100000,
@@ -144,20 +158,21 @@ export const DonPage = withDashboard(() => {
     ...donFilterForm,
     contributorId: contributorId as string,
   } as IDonFilterForm);
-
   const { data: statsDon, isLoading: isLoadingStatsDon } = useStatsDon({
     contributorId: contributorId as string,
   });
 
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
+  // HOOK MUTATION
   const mutation = useCreateDon(setIsCreateDonOpen);
+  const mutationDownloadPDF = useDownloadPDF(selectedDon?._id as string);
 
   const formAddDon = useForm<FormCreateDonSchema>({
     resolver: zodResolver(createDonSchema),
     defaultValues: {
       beneficiaire: '',
+      donorFullname: '',
+      donorPhone: '',
+      description: '',
       montant: '0',
       title: '',
       devise: 'FCFA',
@@ -200,14 +215,17 @@ export const DonPage = withDashboard(() => {
     }
   };
 
-  const [selectedDon, setSelectedDon] = useState<IDon | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
 
   const handleFilterChange = (key: keyof IDonFilterForm, value: any) => {
     setDonStore('donFilterForm', {
       ...donFilterForm,
       [key]: value,
     });
+  };
+
+  const handleDownloadPDF = () => {
+    mutationDownloadPDF.mutateAsync();
   };
 
   return (
@@ -476,6 +494,26 @@ export const DonPage = withDashboard(() => {
                         )}
                       />
                     )}
+                    <FormField control={formAddDon.control} name='donorFullname' render={({ field }) => (
+                      <FormItem>
+                        <label className='block text-sm font-medium'>Nom complet du donateur</label>
+                        <FormControl>
+                          <Input placeholder='Nom complet du donateur' {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                    />
+                    <FormField control={formAddDon.control} name='donorPhone' render={({ field }) => (
+                      <FormItem>
+                        <label className='block text-sm font-medium'>Téléphone du donateur</label>
+                        <FormControl>
+                          <Input placeholder='Téléphone du donateur' {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                    />
                     <FormField
                       control={formAddDon.control}
                       name='title'
@@ -637,6 +675,16 @@ export const DonPage = withDashboard(() => {
                           <FormMessage />
                         </FormItem>
                       )}
+                    />
+                    <FormField control={formAddDon.control} name='description' render={({ field }) => (
+                      <FormItem>
+                        <label className='block text-sm font-medium'>Description</label>
+                        <FormControl>
+                          <Textarea placeholder='Description' {...field} rows={10} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                     />
                     <DialogFooter>
                       <Button
@@ -913,6 +961,8 @@ export const DonPage = withDashboard(() => {
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         don={selectedDon}
+        handleDownloadPDF={handleDownloadPDF}
+        mutationDownloadPDF={mutationDownloadPDF as unknown as UseMutationResult<any, unknown, string, unknown>}
       />
     </div>
   );
@@ -922,59 +972,36 @@ const DonDetailModal = ({
   isOpen,
   onClose,
   don,
+  mutationDownloadPDF,
+  handleDownloadPDF
 }: {
   isOpen: boolean;
   onClose: () => void;
   don: IDon | null;
+  mutationDownloadPDF: UseMutationResult<any, unknown, string, unknown>;
+  handleDownloadPDF: () => void;
 }) => (
   <Dialog open={isOpen} onOpenChange={onClose}>
-    <DialogContent>
+    <DialogContent className='sm:max-w-[720px] sm:max-h-[90vh] overflow-auto'>
       <DialogHeader>
         <DialogTitle>Détail du don</DialogTitle>
         <DialogDescription>Détail du don sélectionné</DialogDescription>
       </DialogHeader>
       {don ? (
-        <div className='bg-white rounded-xl shadow-md border p-6 grid grid-cols-1 sm:grid-cols-2 gap-4'>
-          <div className='flex flex-col'>
-            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
-              Bénéficiaire
-            </span>
-            <span className='text-base font-semibold text-gray-800'>
-              {don.beneficiaire?.fullName}
-            </span>
-          </div>
-          <div className='flex flex-col'>
-            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
-              Montant
-            </span>
-            <span className='text-lg font-bold text-green-600'>
-              {don.montant} {don.devise}
-            </span>
-          </div>
-          <div className='flex flex-col'>
-            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
-              Titre
-            </span>
-            <span className='text-base text-gray-700'>{don.title}</span>
-          </div>
-          <div className='flex flex-col'>
-            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
-              Date du don
-            </span>
-            <span className='text-base text-gray-700'>
-              {new Date(don.createdAt).toLocaleString('fr-FR')}
-            </span>
-          </div>
-          <div className='flex flex-col'>
-            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
-              Devise
-            </span>
-            <span className='text-base text-gray-700'>{don.devise}</span>
-          </div>
-          <div className='flex flex-col'>
-            <span className='text-xs text-gray-500 font-medium uppercase mb-1'>
-              Statut
-            </span>
+        <div className='bg-white rounded-xl shadow-md border p-6 space-y-6'>
+          {/* En-tête résumé */}
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+            <div className='flex items-center gap-3'>
+              <div className='h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 font-semibold'>
+                {don.beneficiaire?.fullName?.[0] || 'B'}
+              </div>
+              <div>
+                <div className='text-sm text-gray-500'>Bénéficiaire</div>
+                <div className='text-base font-semibold text-gray-900'>
+                  {don.beneficiaire?.fullName}
+                </div>
+              </div>
+            </div>
             <span
               className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
                 displayStatusDon(don.status as string) === 'Reçu'
@@ -986,6 +1013,141 @@ const DonDetailModal = ({
             >
               {displayStatusDon(don.status as string)}
             </span>
+            <Button
+              variant={'ghost'}
+              className='ml-auto'
+              onClick={() => handleDownloadPDF()}
+              // color='primary'
+              size='sm'
+              disabled={mutationDownloadPDF.isPending}
+            >
+              {mutationDownloadPDF.isPending ? (
+                <Loader2 className='animate-spin' />
+              ) : (
+                <FileText className='h-4 w-4 mr-2' />
+              )}
+              Télécharger le pdf
+            </Button>
+          </div>
+
+          {/* Grille d'informations principales */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            <div className='flex items-start gap-3 p-3 rounded-lg border bg-gray-50'>
+              <User className='h-4 w-4 text-gray-500 mt-0.5' />
+              <div className='flex flex-col'>
+                <span className='text-xs text-gray-500'>Donateur</span>
+                <span className='text-sm font-medium text-gray-900'>
+                  {don.donorFullname || '—'}
+                </span>
+              </div>
+            </div>
+            <div className='flex items-start gap-3 p-3 rounded-lg border bg-gray-50'>
+              <Phone className='h-4 w-4 text-gray-500 mt-0.5' />
+              <div className='flex flex-col'>
+                <span className='text-xs text-gray-500'>Téléphone</span>
+                {don.donorPhone ? (
+                  <a href={`tel:${don.donorPhone}`} className='text-sm font-medium text-blue-700 hover:underline'>
+                    {don.donorPhone}
+                  </a>
+                ) : (
+                  <span className='text-sm text-gray-700'>—</span>
+                )}
+              </div>
+            </div>
+            <div className='flex items-start gap-3 p-3 rounded-lg border bg-gray-50'>
+              <FileText className='h-4 w-4 text-gray-500 mt-0.5' />
+              <div className='flex flex-col'>
+                <span className='text-xs text-gray-500'>Titre</span>
+                <span className='text-sm font-medium text-gray-900'>{don.title}</span>
+              </div>
+            </div>
+            <div className='flex items-start gap-3 p-3 rounded-lg border bg-gray-50'>
+              <Calendar className='h-4 w-4 text-gray-500 mt-0.5' />
+              <div className='flex flex-col'>
+                <span className='text-xs text-gray-500'>Date du don</span>
+                <span className='text-sm font-medium text-gray-900'>
+                  {new Date(don.createdAt).toLocaleString('fr-FR')}
+                </span>
+              </div>
+            </div>
+            <div className='flex items-start gap-3 p-3 rounded-lg border bg-gray-50'>
+              <div className='h-4 w-4 mt-0.5 text-gray-500'>
+                {/* simple currency glyph */}
+                <span className='text-xs'>¤</span>
+              </div>
+              <div className='flex flex-col'>
+                <span className='text-xs text-gray-500'>Valeur estimée</span>
+                <span className='text-sm font-bold text-green-700'>
+                  {new Intl.NumberFormat('fr-FR').format((don.montant as any).split(',')[0])} {don.devise}
+                </span>
+              </div>
+            </div>
+            <div className='flex items-start gap-3 p-3 rounded-lg border bg-gray-50'>
+              <div className='h-4 w-4 mt-0.5 text-gray-500'>
+                <span className='text-xs'>#</span>
+              </div>
+              <div className='flex flex-col'>
+                <span className='text-xs text-gray-500'>Type</span>
+                <span className='text-sm font-medium text-gray-900'>{don.type}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sections descriptives */}
+          {don.description ? (
+            <div className='rounded-xl border bg-white'>
+              <div className='px-4 py-2 border-b text-xs font-semibold text-gray-600 uppercase'>Description</div>
+              <div className='p-4 text-sm text-gray-800 whitespace-pre-line'>{don.description}</div>
+            </div>
+          ) : null}
+          {don.observation ? (
+            <div className='rounded-xl border bg-white'>
+              <div className='px-4 py-2 border-b text-xs font-semibold text-gray-600 uppercase'>Observations</div>
+              <div className='p-4 text-sm text-gray-800 whitespace-pre-line'>{don.observation}</div>
+            </div>
+          ) : null}
+
+          {/* Informations du bénéficiaire */}
+          <div className='rounded-xl border bg-white'>
+            <div className='px-4 py-2 border-b text-xs font-semibold text-gray-600 uppercase'>
+              Informations du bénéficiaire
+            </div>
+            <div className='p-4 grid grid-cols-1 sm:grid-cols-2 gap-4'>
+              <div className='flex items-start gap-3'>
+                <User className='h-4 w-4 text-gray-500 mt-0.5' />
+                <div className='flex flex-col'>
+                  <span className='text-xs text-gray-500'>Nom complet</span>
+                  <span className='text-sm font-medium text-gray-900'>
+                    {don.beneficiaire?.fullName || '—'}
+                  </span>
+                </div>
+              </div>
+              <div className='flex items-start gap-3'>
+                <Hash className='h-4 w-4 text-gray-500 mt-0.5' />
+                <div className='flex flex-col'>
+                  <span className='text-xs text-gray-500'>Identifiant</span>
+                  <span className='text-sm font-mono text-gray-900 break-all'>
+                    {don.beneficiaire?._id || '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Métadonnées */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-500'>
+            <div>
+              <span className='block'>Créé le</span>
+              <span className='font-medium text-gray-800'>
+                {new Date(don.createdAt).toLocaleString('fr-FR')}
+              </span>
+            </div>
+            <div>
+              <span className='block'>Mis à jour le</span>
+              <span className='font-medium text-gray-800'>
+                {don.updatedAt ? new Date(don.updatedAt).toLocaleString('fr-FR') : '—'}
+              </span>
+            </div>
           </div>
         </div>
       ) : (

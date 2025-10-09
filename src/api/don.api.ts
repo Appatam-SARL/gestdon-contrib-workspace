@@ -89,9 +89,38 @@ export class DonApi {
     }
   }
 
-  static async confirmDon(token: string) {
+  static async confirmDon(token: string, data: { observation: string }) {
+    console.log("🚀 ~ DonApi ~ confirmDon ~ data:", data)
     try {
-      const response = await Axios.put(`${this.BASE_URL}/confirm-don/${token}`);
+      const response = await Axios.put(`${this.BASE_URL}/confirm-don/${token}`, data);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async downloadPdf(id: string) {
+    try {
+      const response = await Axios.get(`${this.BASE_URL}/${id}/pdf`, {
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw error;
+      } else {
+        throw new Error(error as string);
+      }
+    }
+  }
+
+  static async verifyQRCode(token: string) {
+    try {
+      const response = await Axios.get(`${this.BASE_URL}/verify/${token}`);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {

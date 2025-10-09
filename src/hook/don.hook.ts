@@ -58,3 +58,60 @@ export const useCreateDon = (setIsCreateDonOpen: (value: boolean) => void) => {
     },
   });
 };
+
+export const useDownloadPDF = (id: string) => {
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await DonApi.downloadPdf(id);
+      // Création du blob et déclenchement du téléchargement
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      // Tenter de récupérer un nom de fichier depuis Content-Disposition
+      const disposition = response.headers['content-disposition'] as string | undefined;
+      let filename = 'don.pdf';
+      if (disposition) {
+        const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition);
+        const raw = decodeURIComponent((match?.[1] || match?.[2] || '').trim());
+        if (raw) filename = raw;
+      }
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      return true;
+    },
+    onMutate: () => {
+      // TODO: Implémenter l'affichage de l'overlay
+      toast({
+        title: 'Veuillez patienter',
+        description: 'Merci de patienter pendant que nous téléchargeons votre pdf',
+      });
+    },
+    onError: () => {
+      // TODO: Implémenter l'affichage d'une erreur
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur est survenue lors du téléchargement de votre pdf',
+        variant: 'destructive',
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Téléchargement lancé',
+        description: 'Votre fichier PDF est en cours de téléchargement.',
+      });
+    },
+  });
+};
+
+export const useVerifyQrCode = (token: string) => {
+  return useQuery({
+    queryKey: ['verifyDon', token],
+    queryFn: () => DonApi.verifyQRCode(token),
+    enabled: !!token,
+  });
+};

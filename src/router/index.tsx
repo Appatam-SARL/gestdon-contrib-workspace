@@ -4,7 +4,6 @@ import LayoutMinimal from '@/components/layout/LayoutMinimal';
 import { ErrorBoundary } from '@/pages/auth/ErrorBoundary';
 import { Welcome } from '@/pages/auth/Welcome';
 import AccountValidation from '@/pages/auth/account-validation';
-import ConfirmDon from '@/pages/auth/confirm-don';
 import ForgotPassword from '@/pages/auth/forgot-password';
 import MFA from '@/pages/auth/mfa';
 import RapportActivityOrAudience from '@/pages/auth/rapport-activity-or-audience';
@@ -55,6 +54,7 @@ import React from 'react';
 import SettingTypeMouvement from '@/pages/online/settings/setting-type-mouvement';
 import SettingCategorieMouvement from '@/pages/online/settings/setting-categorie-mouvement-checkout';
 import MouvementCheckoutsPage from '@/pages/online/mouvementCheckouts';
+import VerifyDon from '@/pages/auth/confirm-don';
 
 const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
 const Dashboard = React.lazy(() => import('@/pages/online/dashboard'));
@@ -70,7 +70,7 @@ const AppRouter = () => {
         <Route path='/forgot-password' element={<ForgotPassword />} />
         <Route path='/reset-password/:token' element={<ResetPassword />} />
         <Route path='/register-invited' element={<RegisterInvited />} />
-        <Route path='/confirm-don' element={<ConfirmDon />} />
+        <Route path='/verify-don' element={<VerifyDon />} />
         <Route path='/report-offline' element={<RapportActivityOrAudience />} />
         <Route path='/conversation/:id' element={<Conversation />} />
         <Route path='/register' element={<Register />} />
