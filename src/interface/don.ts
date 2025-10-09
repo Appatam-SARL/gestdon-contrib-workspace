@@ -4,9 +4,12 @@ export interface IDon {
   _id: string;
   title: string;
   beneficiaire: Pick<IBeneficiaire, '_id' | 'fullName'>;
+  donorFullname: string;
+  donorPhone: string;
   type: string;
   montant: number;
   description?: string;
+  observation?: string;
   devise: string;
   contributorId: string;
   status: string;
