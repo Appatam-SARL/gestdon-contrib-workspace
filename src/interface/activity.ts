@@ -46,7 +46,7 @@ export interface IMouvementCheckout {
   categoryMouvementCheckout: string | ICategorieMouvementCheckout;
   description: string;
   amount: number;
-  activityId: string;
+  activityId: string | IActivity;
   contributorId: string;
   beneficiaryId?: string;
   document: Array<{

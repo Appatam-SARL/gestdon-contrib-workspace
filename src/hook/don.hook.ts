@@ -2,6 +2,7 @@ import DonApi from '@/api/don.api';
 import { useToast } from '@/components/ui/use-toast';
 import { IDon, IDonFilterForm } from '@/interface/don';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
 
 export const useDons = (filter: IDonFilterForm) => {
   return useQuery({
@@ -26,8 +27,9 @@ export const useStatsDon = (filter: { contributorId: string }) => {
   });
 };
 
-export const useCreateDon = (setIsCreateDonOpen: (value: boolean) => void) => {
+export const useCreateDon = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (don: Partial<IDon>) => DonApi.createDon(don),
@@ -45,7 +47,6 @@ export const useCreateDon = (setIsCreateDonOpen: (value: boolean) => void) => {
         description: 'Une erreur est survenue lors de la création de votre don',
         variant: 'destructive',
       });
-      setIsCreateDonOpen(true);
     },
     onSuccess: () => {
       // TODO: Implémenter la redirection vers la page de création
@@ -54,7 +55,7 @@ export const useCreateDon = (setIsCreateDonOpen: (value: boolean) => void) => {
         description: 'Votre don a bien été créé',
       });
       queryClient.invalidateQueries({ queryKey: ['dons'] });
-      setIsCreateDonOpen(false);
+      navigate('/don');
     },
   });
 };

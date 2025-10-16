@@ -55,10 +55,11 @@ import SettingTypeMouvement from '@/pages/online/settings/setting-type-mouvement
 import SettingCategorieMouvement from '@/pages/online/settings/setting-categorie-mouvement-checkout';
 import MouvementCheckoutsPage from '@/pages/online/mouvementCheckouts';
 import VerifyDon from '@/pages/auth/confirm-don';
+import AddDonation from '@/pages/online/don/new';
 
-const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage'));
-const Dashboard = React.lazy(() => import('@/pages/online/dashboard'));
-const NotFoundPage = React.lazy(() => import('@/pages/auth/ErrorNotFound'));
+const LoginPage = React.lazy(() => import('@/pages/auth/LoginPage').then(module => ({ default: module.default })));
+const Dashboard = React.lazy(() => import('@/pages/online/dashboard').then(module => ({ default: module.default })));
+const NotFoundPage = React.lazy(() => import('@/pages/auth/ErrorNotFound').then(module => ({ default: module.default })));
 
 const AppRouter = () => {
   return (
@@ -153,7 +154,7 @@ const AppRouter = () => {
             <Route index element={<DonPage />} />
             <Route path=':id' element={<HomePage />} />
             <Route path=':id/edit' element={<HomePage />} />
-            <Route path='create' element={<HomePage />} />
+            <Route path='new' element={<AddDonation />} />
           </Route>
           <Route path='/activity'>
             <Route index element={<ActivityPage />} />
@@ -234,15 +235,11 @@ const AppRouter = () => {
           element={<SocialContributorProfile />}
         />
         <Route
-          path='*'
+          path="*"
           element={
-            <React.Suspense fallback={<Welcome />}>
-              <ErrorBoundary>
-                <LayoutMinimal>
-                  <NotFoundPage />
-                </LayoutMinimal>
-              </ErrorBoundary>
-            </React.Suspense>
+            <LayoutMinimal>
+              <NotFoundPage />
+            </LayoutMinimal>
           }
         />
       </Routes>

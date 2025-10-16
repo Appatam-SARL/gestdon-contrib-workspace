@@ -15,6 +15,7 @@ import { usePermissionStore } from '@/store/permission.store';
 import useUserStore from '@/store/user.store';
 import { IUser } from '@/types/user';
 import Aside from './aside';
+import { useInitLocalStorage } from '@/hook/localstorage.hook';
 
 export function withDashboard<P extends object>(
   WrappedComponent: React.ComponentType<P>
@@ -25,8 +26,9 @@ export function withDashboard<P extends object>(
     const setPermissionStore = usePermissionStore((s) => s.setPermissionStore);
 
     const mutation = useLogout();
-
     useFindByToken();
+    // initialisation du localStorage
+    useInitLocalStorage();
 
     const { data: permission, isSuccess } = useGetPermissionByAdminId(
       user?._id ?? ''

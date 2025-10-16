@@ -8,9 +8,12 @@ import { Badge } from "@/components/ui/badge"
 import { useGetMouvementCheckouts } from "@/hook/mouvement-checkout.hook"
 import useContributorStore from "@/store/contributor.store"
 import { IMouvementCheckout } from "@/interface/activity"
-import { Calendar1Icon, Eye, RefreshCw, TrendingDown, TrendingUp } from "lucide-react"
+import { Calendar1Icon, Eye, FileUp, FileText, RefreshCw, TrendingDown, TrendingUp, Sheet } from "lucide-react"
 import imgArrayEmpty from "@/assets/img/activityempty.png"
 import Skeleton from "react-loading-skeleton"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { exportToPDF } from "@/utils/exportToPdf"
+import { exportToExcel } from "@/utils/exportExcel"
 
 type PeriodPreset = 'day' | 'week' | 'month' | 'year' | 'custom'
 type TypeFilter = 'all' | 'expense' | 'income'
@@ -95,6 +98,14 @@ const MouvementCheckoutsPage = () => {
       totals: { totalIncomes, totalExpenses, balance }
     }
   }, [data, periodPreset, customFrom, customTo, typeFilter])
+
+  const dataToExport = filtered.map((item: IMouvementCheckout) => ({
+    type: typeof item.typeMouvementCheckout === 'object' ? item.typeMouvementCheckout.name : item.typeMouvementCheckout,
+    category: typeof item.categoryMouvementCheckout === 'object' ? item.categoryMouvementCheckout.name : item.categoryMouvementCheckout,
+    activity: typeof item.activityId === 'object' ? item.activityId.title : item.activityId,
+    amount: item.amount,
+    createdAt: item.createdAt,
+  }));
 
   return (
     <div className="space-y-6">
@@ -185,12 +196,39 @@ const MouvementCheckoutsPage = () => {
         </CardContent>
       </Card>
 
+      <div className='flex justify-end gap-4'>
+        <Button 
+          variant='outline' 
+          onClick={() => refetch()} 
+          disabled={isFetching} className='gap-2'
+        >
+          <RefreshCw className='h-4 w-4' /> Actualiser
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            disabled={isFetching || isRefetching || isLoading}
+            className='flex items-center gap-2 bg-white border rounded-sm px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50'>
+            <FileUp className='h-4 w-4 mr-2' />
+            <span className="font-semibold">Exporter</span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuLabel>Choisir un format</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => exportToPDF({ data: dataToExport, fileName: 'finances', watermark: 'Contrib finance' })}
+            >
+              <FileText className='h-4 w-4 mr-2' />
+              PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={()=>exportToExcel({ data:dataToExport, fileName:'finances' })}>
+              <Sheet className='h-4 w-4 mr-2' />
+              EXCEL
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       {/* Liste */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des mouvements</CardTitle>
-        </CardHeader>
-        <CardContent>
           <Table className="w-full">
             <TableHeader>
               <TableRow>
@@ -250,8 +288,7 @@ const MouvementCheckoutsPage = () => {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+
 
       {/* Modal détails */}
       <Dialog open={!!selected} onOpenChange={(o) => { if (!o) setSelected(null) }}>
