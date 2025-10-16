@@ -6,6 +6,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useLogout } from '@/hook/admin.hook';
+import { useSetIsNavbarCollapsed } from '@/hook/localstorage.hook';
 import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { cn } from '@/lib/utils';
 import {
@@ -32,10 +33,13 @@ export interface IProps {
 }
 
 function Aside({ menus }: IProps) {
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  // const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [expandedMenus, setExpandedMenus] = React.useState<Set<string>>(
     new Set()
   );
+
+  // const [isNavbarCollapsed, setIsNavbarCollapsed] = useSetIsNavbarCollapsed();
+  const [isNavbarCollapsed, setIsCollapsed] = useSetIsNavbarCollapsed();
 
   const location = useLocation();
   const mutation = useLogout();
@@ -87,7 +91,7 @@ function Aside({ menus }: IProps) {
                   ? 'bg-[#fff] text-[#6c2bd9] font-semibold'
                   : 'text-white',
                 'hover:bg-[#fff] hover:text-[#6c2bd9]',
-                isCollapsed && 'justify-center'
+                isNavbarCollapsed && 'justify-center'
               )}
             >
               <span
@@ -99,7 +103,7 @@ function Aside({ menus }: IProps) {
               >
                 {link.icon}
               </span>
-              {!isCollapsed && (
+              {!isNavbarCollapsed && (
                 <>
                   <span
                     className={cn(
@@ -134,7 +138,7 @@ function Aside({ menus }: IProps) {
                   ? 'bg-[#fff] text-[#6c2bd9] font-semibold'
                   : 'text-white',
                 'hover:bg-[#fff] hover:text-[#6c2bd9]',
-                isCollapsed && 'justify-center'
+                isNavbarCollapsed && 'justify-center'
               )}
             >
               <span
@@ -146,7 +150,7 @@ function Aside({ menus }: IProps) {
               >
                 {link.icon ? link.icon : <Activity className='h-5 w-5' />}
               </span>
-              {!isCollapsed && (
+              {!isNavbarCollapsed && (
                 <span
                   className={cn(
                     'transition-colors duration-200',
@@ -162,7 +166,7 @@ function Aside({ menus }: IProps) {
         </div>
 
         {/* Sous-menus */}
-        {hasSubmenu && isExpanded && !isCollapsed && (
+        {hasSubmenu && isExpanded && !isNavbarCollapsed && (
           <div className='ml-6 space-y-1'>
             {link.submenu.map((subLink: any) => {
               const isSubLinkActive = isActive(subLink.href);
@@ -228,7 +232,7 @@ function Aside({ menus }: IProps) {
     <aside
       className={cn(
         'bg-[#6c2bd9] border-r border-border h-screen sticky top-0 flex flex-col transition-all duration-300 shadow-md',
-        isCollapsed ? 'w-[80px]' : 'w-[280px]'
+        isNavbarCollapsed ? 'w-[80px]' : 'w-[280px]'
       )}
     >
       {/* Logo */}
@@ -236,10 +240,10 @@ function Aside({ menus }: IProps) {
         <h1
           className={cn(
             'font-semibold transition-all duration-300',
-            isCollapsed ? 'text-xl' : 'text-2xl'
+            isNavbarCollapsed ? 'text-xl' : 'text-2xl'
           )}
         >
-          {isCollapsed ? (
+          {isNavbarCollapsed ? (
             <img
               src={LogoImgPurple}
               alt='Logo'
@@ -270,17 +274,17 @@ function Aside({ menus }: IProps) {
           className={cn(
             'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200',
             'hover:bg-[#000] hover:text-white text-white/80',
-            isCollapsed && 'justify-center'
+            isNavbarCollapsed && 'justify-center'
           )}
         >
           <Settings className='h-5 w-5 text-white' />
-          {!isCollapsed && <span className='text-white'>Paramètres</span>}
+          {!isNavbarCollapsed && <span className='text-white'>Paramètres</span>}
         </Link>
         <button
           className={cn(
             'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-200 w-full',
             'hover:bg-[#000] hover:text-white text-white/80',
-            isCollapsed && 'justify-center'
+            isNavbarCollapsed && 'justify-center'
           )}
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending}
@@ -288,12 +292,12 @@ function Aside({ menus }: IProps) {
           {mutation.isPending ? (
             <>
               <Loader2 className='animate-spin text-white' />
-              {!isCollapsed && <span>Déconnexion en cours</span>}
+              {!isNavbarCollapsed && <span>Déconnexion en cours</span>}
             </>
           ) : (
             <>
               <LogOut className='h-5 w-5 text-white' />
-              {!isCollapsed && <span>Déconnexion</span>}
+              {!isNavbarCollapsed && <span>Déconnexion</span>}
             </>
           )}
         </button>
@@ -302,17 +306,17 @@ function Aside({ menus }: IProps) {
       {/* Collapse Button */}
       <Tooltip>
         <TooltipTrigger
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => setIsCollapsed()}
           className='absolute -right-4 top-8 bg-primary text-primary-foreground rounded-full p-1.5 shadow-md hover:bg-primary/90 transition-colors'
         >
-          {isCollapsed ? (
+          {isNavbarCollapsed ? (
             <ChevronRight className='h-4 w-4' />
           ) : (
             <ChevronLeft className='h-4 w-4' />
           )}
         </TooltipTrigger>
         <TooltipContent>
-          <p>{isCollapsed ? 'Ouvrir' : 'Fermer'} le menu</p>
+          <p>{isNavbarCollapsed ? 'Ouvrir' : 'Fermer'} le menu</p>
         </TooltipContent>
       </Tooltip>
     </aside>

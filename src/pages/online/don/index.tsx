@@ -11,13 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -30,13 +23,6 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Table,
   TableBody,
   TableCell,
@@ -45,16 +31,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { withDashboard } from '@/hoc/withDashboard';
-import { useBeneficiaries } from '@/hook/beneficiaire.hook';
-import { useCreateDon, useDons, useDownloadPDF, useStatsDon } from '@/hook/don.hook';
+import { useDons, useDownloadPDF, useStatsDon } from '@/hook/don.hook';
 import { usePackagePermissions } from '@/hook/packagePermissions.hook';
 import { IDon, IDonFilterForm } from '@/interface/don';
-import { createDonSchema, FormCreateDonSchema } from '@/schema/don.schema';
 import useContributorStore from '@/store/contributor.store';
 import { useDonStore } from '@/store/don.store';
 import { helperUserPermission } from '@/utils';
 import { displayStatusDon } from '@/utils/display-of-variable';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { addDays } from 'date-fns';
 import fr from 'date-fns/locale/fr';
 import {
@@ -72,15 +55,15 @@ import {
   Calendar,
   FileText,
   Hash,
+  FileUp,
+  Sheet,
 } from 'lucide-react';
 import React, { Suspense, useState } from 'react';
 import { DateRangePicker } from 'react-date-range';
-import { useForm } from 'react-hook-form';
 import Skeleton from 'react-loading-skeleton';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
-import { Textarea } from '@/components/ui/textarea';
 import { UseMutationResult } from '@tanstack/react-query';
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 const StatsDons = React.lazy(() => import('@/components/Dons/Stats'));
 
 const FilterModal = ({
@@ -136,24 +119,16 @@ const FilterModal = ({
 
 export const DonPage = withDashboard(() => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   // STORE ZUSTAND
   const contributorId = useContributorStore((s) => s.contributor?._id);
   const { donFilterForm, setDonStore } = useDonStore((s) => s);
   // STATE LOCAL
-  const [isCreateDonOpen, setIsCreateDonOpen] = useState<boolean>(false);
   const [isDonLimitAlertOpen, setIsDonLimitAlertOpen] = useState<boolean>(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDon, setSelectedDon] = useState<IDon | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   // HOOK QUERY
-  const { isLoading: isLoadingBeneficiaries, data: beneficiaries } =
-    useBeneficiaries({
-      limit: 100000,
-      page: 1,
-      contributorId,
-    });
   const { data, isLoading, refetch, isRefetching } = useDons({
     ...donFilterForm,
     contributorId: contributorId as string,
@@ -162,24 +137,7 @@ export const DonPage = withDashboard(() => {
     contributorId: contributorId as string,
   });
 
-  // HOOK MUTATION
-  const mutation = useCreateDon(setIsCreateDonOpen);
   const mutationDownloadPDF = useDownloadPDF(selectedDon?._id as string);
-
-  const formAddDon = useForm<FormCreateDonSchema>({
-    resolver: zodResolver(createDonSchema),
-    defaultValues: {
-      beneficiaire: '',
-      donorFullname: '',
-      donorPhone: '',
-      description: '',
-      montant: '0',
-      title: '',
-      devise: 'FCFA',
-      startDate: '',
-      endDate: '',
-    },
-  });
 
   const activeFiltersCount = Object.values(
     donFilterForm as IDonFilterForm
@@ -195,27 +153,6 @@ export const DonPage = withDashboard(() => {
   const donationLimit = getDonationLimit();
   const donationLimitReached = hasReachedDonationLimit(currentDonationCount);
   const remainingDonations = getRemainingDonationsCount(currentDonationCount);
-
-  const onSubmit = async (data: FormCreateDonSchema) => {
-    if (data.title === '' || data.beneficiaire === '' || data.montant === '0') {
-      toast({
-        title: 'Erreur',
-        description: 'Le titre et le bénéficiaire et le montant sont requis',
-        variant: 'destructive',
-      });
-      return;
-    }
-    const payload = {
-      ...data,
-      contributorId: contributorId as string,
-    };
-    mutation.mutateAsync(payload as unknown as Partial<IDon>);
-    if (mutation.isSuccess) {
-      formAddDon.reset();
-    }
-  };
-
-
 
   const handleFilterChange = (key: keyof IDonFilterForm, value: any) => {
     setDonStore('donFilterForm', {
@@ -287,11 +224,11 @@ export const DonPage = withDashboard(() => {
           {helperUserPermission('don', 'create') && (
             <Button
               onClick={() => {
-                if (donationLimitReached) {
-                  setIsDonLimitAlertOpen(true);
-                  return;
-                }
-                setIsCreateDonOpen(true);
+                // if (donationLimitReached) {
+                //   setIsDonLimitAlertOpen(true);
+                //   return;
+                // }
+                navigate('new');
               }}
               // disabled={donationLimitReached}
               // className={
@@ -435,279 +372,6 @@ export const DonPage = withDashboard(() => {
                   Voir les packages
                 </Button>
               </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          {/* Dialog create don */}
-          <Dialog open={isCreateDonOpen} onOpenChange={setIsCreateDonOpen}>
-            <DialogContent className='sm:max-w-[630px] sm:max-h-[700px] overflow-auto'>
-              <DialogHeader>
-                <DialogTitle>Créer un don</DialogTitle>
-                <DialogDescription>
-                  Saisissez les informations pour créer un don.
-                </DialogDescription>
-              </DialogHeader>
-              <div>
-                <Form {...formAddDon}>
-                  <form
-                    className='grid gap-4 py-4'
-                    onSubmit={formAddDon.handleSubmit(onSubmit)}
-                  >
-                    {isLoadingBeneficiaries ? (
-                      <Skeleton
-                        count={1}
-                        width='100%'
-                        height={300}
-                        style={{ width: '100%' }}
-                      />
-                    ) : (
-                      <FormField
-                        control={formAddDon.control}
-                        name='beneficiaire'
-                        render={({ field }) => (
-                          <FormItem>
-                            <label className='block text-sm font-medium'>
-                              Bénéficiaire
-                            </label>
-                            <FormControl>
-                              <Select
-                                value={field.value}
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder='Sélectionnez un beneficiaire' />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {beneficiaries?.data?.map((beneficiaire) => (
-                                    <SelectItem
-                                      key={beneficiaire._id}
-                                      value={beneficiaire._id}
-                                    >
-                                      {beneficiaire.fullName}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                    <FormField control={formAddDon.control} name='donorFullname' render={({ field }) => (
-                      <FormItem>
-                        <label className='block text-sm font-medium'>Nom complet du donateur</label>
-                        <FormControl>
-                          <Input placeholder='Nom complet du donateur' {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                    />
-                    <FormField control={formAddDon.control} name='donorPhone' render={({ field }) => (
-                      <FormItem>
-                        <label className='block text-sm font-medium'>Téléphone du donateur</label>
-                        <FormControl>
-                          <Input placeholder='Téléphone du donateur' {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                    />
-                    <FormField
-                      control={formAddDon.control}
-                      name='title'
-                      render={({ field }) => (
-                        <FormItem>
-                          <label className='block text-sm font-medium'>
-                            Titre
-                          </label>
-                          <FormControl>
-                            <Input placeholder='Titre' {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={formAddDon.control}
-                      name='type'
-                      render={({ field }) => (
-                        <FormItem>
-                          <label className='block text-sm font-medium'>
-                            Type de don
-                          </label>
-                          <FormControl>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder='Sélectionnez un type de don' />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value={'Nature'}>
-                                  Par nature
-                                </SelectItem>
-                                <SelectItem value={'Espèces'}>
-                                  En espèces
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={formAddDon.control}
-                      name='montant'
-                      render={({ field }) => (
-                        <FormItem>
-                          <label className='block text-sm font-medium'>
-                            Valeur estimée
-                          </label>
-                          <FormControl>
-                            <Input
-                              placeholder='Montant'
-                              {...field}
-                              value={field.value
-                                // On affiche la valeur formatée avec des espaces tous les 3 chiffres avant la virgule
-                                ? (() => {
-                                    const [entier, decimal] = field.value.split(',');
-                                    // On enlève les espaces existants pour éviter les doublons
-                                    const entierNettoye = entier.replace(/\s/g, '');
-                                    // On ajoute un espace tous les 3 chiffres en partant de la droite
-                                    const entierFormate = entierNettoye.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-                                    return decimal !== undefined
-                                      ? `${entierFormate},${decimal}`
-                                      : entierFormate;
-                                  })()
-                                : ''}
-                              onBlur={e => {
-                                let value = e.target.value.replace(/\s/g, '');
-                                // Si la valeur ne contient pas déjà une virgule, on ajoute ",00" à la fin
-                                if (value && !value.includes(',')) {
-                                  field.onChange(value + ',00');
-                                } else {
-                                  field.onChange(value);
-                                }
-                              }}
-                              onChange={e => {
-                                // On enlève les espaces pour garder la valeur brute dans le state
-                                const value = e.target.value.replace(/\s/g, '');
-                                // On autorise uniquement les chiffres et la virgule
-                                if (/^\d*(,\d{0,2})?$/.test(value)) {
-                                  field.onChange(value);
-                                }
-                              }}
-                              inputMode="numeric"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={formAddDon.control}
-                      name='devise'
-                      render={({ field }) => (
-                        <FormItem>
-                          <label className='block text-sm font-medium'>
-                            Devise
-                          </label>
-                          <FormControl>
-                            <Select
-                              {...field}
-                              value={field.value as string}
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder='Sélectionnez une devise' />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value='FCFA'>FCFA</SelectItem>
-                                <SelectItem value='EUR'>EUR</SelectItem>
-                                <SelectItem value='GBP'>GBP</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={formAddDon.control}
-                      name='startDate'
-                      render={({ field }) => (
-                        <FormItem>
-                          <label className='block text-sm font-medium'>
-                            Date de début
-                          </label>
-                          <FormControl>
-                            <Input
-                              type='datetime-local'
-                              placeholder='Date de début'
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={formAddDon.control}
-                      name='endDate'
-                      render={({ field }) => (
-                        <FormItem>
-                          <label className='block text-sm font-medium'>
-                            Date de fin
-                          </label>
-                          <FormControl>
-                            <Input
-                              type='datetime-local'
-                              placeholder='Date de fin'
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField control={formAddDon.control} name='description' render={({ field }) => (
-                      <FormItem>
-                        <label className='block text-sm font-medium'>Description</label>
-                        <FormControl>
-                          <Textarea placeholder='Description' {...field} rows={10} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                    />
-                    <DialogFooter>
-                      <Button
-                        variant='outline'
-                        onClick={() => setIsCreateDonOpen(false)}
-                      >
-                        Annuler
-                      </Button>
-                      <Button type='submit' disabled={mutation.isPending}>
-                        {mutation.isPending ? (
-                          <>
-                            <Loader2 className='animate-spin' />
-                            <span>En cours de création...</span>
-                          </>
-                        ) : (
-                          'Créer'
-                        )}
-                      </Button>
-                      {/* TODO: Implémenter la redirection vers la page de création */}
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </div>
             </DialogContent>
           </Dialog>
         </div>
