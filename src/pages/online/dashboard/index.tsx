@@ -51,6 +51,8 @@ import imgArrayEmpty from '@/assets/img/activityempty.png';
 import { IReport } from '@/interface/report';
 import useUserStore from '@/store/user.store';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import Joyride, { ACTIONS, EVENTS, STATUS, CallBackProps, Step, TooltipRenderProps } from 'react-joyride';
+import { HelpCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const chartConfig = {
   deliveries: {
@@ -71,6 +73,224 @@ const CustomizedLabelLineChart = (props: any) => {
   );
 };
 
+// Composant Tooltip personnalisé pour améliorer la visibilité
+const CustomTooltip = ({
+  continuous,
+  index,
+  isLastStep,
+  step,
+  backProps,
+  closeProps,
+  primaryProps,
+  skipProps,
+  tooltipProps,
+  size,
+}: TooltipRenderProps) => {
+  return (
+    <div
+      {...tooltipProps}
+      style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '12px',
+        padding: '0',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25), 0 0 0 2px #2563eb',
+        border: '2px solid #2563eb',
+        minWidth: '450px',
+        maxWidth: '500px',
+      }}
+    >
+      {/* En-tête avec bouton fermer */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          padding: '20px 20px 16px 20px',
+          borderBottom: '1px solid #e5e7eb',
+        }}
+      >
+        {step.title && (
+          <h4
+            style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1f2937',
+              lineHeight: '1.4',
+              margin: 0,
+              flex: 1,
+            }}
+          >
+            {step.title}
+          </h4>
+        )}
+        <button
+          {...closeProps}
+          style={{
+            background: '#f3f4f6',
+            border: 'none',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#6b7280',
+            transition: 'all 0.2s ease',
+            marginLeft: '12px',
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#e5e7eb';
+            e.currentTarget.style.color = '#374151';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#f3f4f6';
+            e.currentTarget.style.color = '#6b7280';
+          }}
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Contenu */}
+      <div
+        style={{
+          padding: '20px',
+          fontSize: '15px',
+          lineHeight: '1.7',
+          color: '#4b5563',
+          fontWeight: '400',
+        }}
+      >
+        {step.content}
+      </div>
+
+      {/* Indicateur de progression */}
+      <div
+        style={{
+          padding: '0 20px 16px 20px',
+          fontSize: '13px',
+          color: '#6b7280',
+          fontWeight: '500',
+        }}
+      >
+        Étape {index + 1} sur {size || 7}
+      </div>
+
+      {/* Pied de page avec boutons */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '16px 20px 20px 20px',
+          borderTop: '1px solid #e5e7eb',
+          gap: '12px',
+        }}
+      >
+        {/* Bouton Passer */}
+        <button
+          {...skipProps}
+          style={{
+            color: '#6b7280',
+            fontSize: '15px',
+            fontWeight: '600',
+            padding: '10px 16px',
+            borderRadius: '8px',
+            border: '2px solid #e5e7eb',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#d1d5db';
+            e.currentTarget.style.color = '#374151';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#e5e7eb';
+            e.currentTarget.style.color = '#6b7280';
+          }}
+        >
+          {skipProps.title}
+        </button>
+
+        {/* Boutons de navigation */}
+        <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto' }}>
+          {index > 0 && (
+            <button
+              {...backProps}
+              style={{
+                color: '#4b5563',
+                fontSize: '15px',
+                fontWeight: '600',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: '2px solid #e5e7eb',
+                backgroundColor: '#f9fafb',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                minWidth: '120px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.borderColor = '#d1d5db';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f9fafb';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+              }}
+            >
+              <ChevronLeft size={16} />
+              {backProps.title}
+            </button>
+          )}
+          {continuous && (
+            <button
+              {...primaryProps}
+              style={{
+                backgroundColor: '#2563eb',
+                color: '#ffffff',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                fontSize: '15px',
+                fontWeight: '600',
+                border: 'none',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                minWidth: '120px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#1d4ed8';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(37, 99, 235, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.4)';
+              }}
+            >
+              {primaryProps.title}
+              {!isLastStep && <ChevronRight size={16} />}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = withDashboard(() => {
   const navigate = useNavigate();
   const contributor = useContributorStore((state) => state.contributor);
@@ -81,6 +301,8 @@ const Dashboard = withDashboard(() => {
     contributorId: string;
   }>({ period: 'month', contributorId: '' }); // Default to month
   const [isFirstLogin, setIsFirstLogin] = useState<boolean>(false);
+  const [runTour, setRunTour] = useState<boolean>(false);
+  const [stepIndex, setStepIndex] = useState<number>(0);
   const { data: stats, isLoading, refetch } = useDashboard(selectedFilter);
   const {
     data: activitiesByType,
@@ -201,6 +423,80 @@ const Dashboard = withDashboard(() => {
     }
   }, [user]);
 
+  // Définition des étapes du guide interactif
+  const tourSteps: Step[] = [
+    {
+      target: '[data-tour="header"]',
+      content: 'Bienvenue sur votre tableau de bord ! Ici, vous pouvez voir un aperçu de toutes vos activités et statistiques importantes.',
+      title: '👋 Bienvenue',
+      placement: 'bottom',
+      disableBeacon: true,
+    },
+    {
+      target: '[data-tour="filters"]',
+      content: 'Utilisez ce menu pour filtrer vos données par période : Jour, Semaine, Mois ou Année. Les statistiques s\'adapteront automatiquement.',
+      title: '📅 Filtres de période',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="stats-cards"]',
+      content: 'Ces cartes affichent vos statistiques clés : Équipe totale, Activités du mois, Bénéficiaires et Événements à venir. Survolez-les pour plus de détails.',
+      title: '📊 Statistiques principales',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="activities-chart"]',
+      content: 'Ce graphique en barres montre la répartition de vos activités par type. Il vous aide à comprendre quels types d\'activités sont les plus fréquents.',
+      title: '📈 Graphique des activités',
+      placement: 'top',
+    },
+    {
+      target: '[data-tour="beneficiaries-list"]',
+      content: 'Voici une liste rapide de vos bénéficiaires récents. Cliquez sur l\'icône œil pour voir leur profil complet.',
+      title: '❤️ Liste des bénéficiaires',
+      placement: 'left',
+    },
+    {
+      target: '[data-tour="movements-chart"]',
+      content: 'Ce graphique linéaire affiche vos recettes et dépenses sur la période sélectionnée. Utilisez-le pour suivre votre flux de trésorerie.',
+      title: '💰 Mouvements de caisse',
+      placement: 'top',
+    },
+    {
+      target: '[data-tour="reports-table"]',
+      content: 'Consultez vos rapports récents ici. Vous pouvez voir leur statut (Validé, Archivé, Rejeté) et accéder aux détails en cliquant sur l\'icône œil.',
+      title: '📋 Rapports récents',
+      placement: 'top',
+    },
+  ];
+
+  // Gestion du callback du tour
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { action, index, status, type } = data;
+
+    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+      // Avancer ou reculer dans le tour
+      setStepIndex(index + (action === ACTIONS.PREV ? -1 : 1));
+    } else if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      // Le tour est terminé ou annulé
+      setRunTour(false);
+      setStepIndex(0);
+      // Sauvegarder dans localStorage que l'utilisateur a complété le tour
+      localStorage.setItem('dashboard-tour-completed', 'true');
+    }
+  };
+
+  // Démarrer le tour
+  const startTour = () => {
+    setRunTour(true);
+    setStepIndex(0);
+    // Réinitialiser le flag de complétion pour permettre de revoir le guide
+    localStorage.removeItem('dashboard-tour-completed');
+  };
+
+  // Note: Le guide démarre automatiquement après la fermeture du modal de bienvenue
+  // via le callback onOpenChange du Dialog
+
   const handleFilterSelect = (filter: string) => {
     setSelectedFilter({ ...selectedFilter, period: filter });
     refetch();
@@ -213,8 +509,46 @@ const Dashboard = withDashboard(() => {
 
   return (
     <div className='space-y-6'>
+      {/* Composant Joyride pour le guide interactif */}
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        stepIndex={stepIndex}
+        callback={handleJoyrideCallback}
+        continuous={true}
+        showProgress={false}
+        showSkipButton={false}
+        tooltipComponent={CustomTooltip}
+        locale={{
+          back: 'Précédent',
+          close: 'Fermer',
+          last: 'Terminer',
+          next: 'Suivant',
+          open: 'Ouvrir',
+          skip: 'Passer',
+        }}
+        styles={{
+          options: {
+            arrowColor: '#ffffff',
+            backgroundColor: '#ffffff',
+            // overlayColor: 'rgba(0, 0, 0, 0.75)',
+            primaryColor: '#2563eb',
+            textColor: '#1f2937',
+            width: 450,
+            zIndex: 10000,
+            spotlightShadow: '0 0 25px rgba(37, 99, 235, 0.6)',
+          },
+          // spotlight: {
+          //   borderRadius: '8px',
+          // },
+          // overlay: {
+          //   mixBlendMode: 'normal',
+          // },
+        }}
+      />
+
       {/* En-tête */}
-      <div className='flex justify-between items-center mt-4'>
+      <div className='flex justify-between items-center mt-4' data-tour="header">
         <div>
           {(() => {
             const heure = new Date().getHours();
@@ -246,9 +580,20 @@ const Dashboard = withDashboard(() => {
           </p>
         </div>
         <div className='flex gap-4'>
+          {/* Bouton pour démarrer le guide */}
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={startTour}
+            className='flex items-center gap-2'
+            title='Démarrer le guide interactif'
+          >
+            <HelpCircle className='h-4 w-4' />
+            Guide
+          </Button>
           {helperUserPermission('dashboard', 'filter') && (
             <DropdownMenu>
-              <DropdownMenuTrigger className='flex items-center gap-2'>
+              <DropdownMenuTrigger className='flex items-center gap-2' data-tour="filters">
                 <Filter className='h-4 w-4 mr-2' />
                 Filtres
               </DropdownMenuTrigger>
@@ -285,7 +630,7 @@ const Dashboard = withDashboard(() => {
 
       {/* Statistiques principales */}
       {helperUserPermission('dashboard', 'read_stats') && (
-        <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
+        <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4' data-tour="stats-cards">
           {isLoading ? (
             <Skeleton className='h-4 w-4' style={{ height: '147px' }} />
           ) : (
@@ -426,7 +771,7 @@ const Dashboard = withDashboard(() => {
                 <Skeleton className='h-[400px] w-full' count={1} />
               </div>
             ) : (
-              <Card className='lg:col-span-4'>
+              <Card className='lg:col-span-4' data-tour="activities-chart">
                 <CardHeader>
                   <CardTitle>Activités par Type</CardTitle>
                 </CardHeader>
@@ -482,7 +827,7 @@ const Dashboard = withDashboard(() => {
                 <Skeleton className='h-[400px] w-full' count={1} />
               </div>
             ) : (
-              <Card className='lg:col-span-3'>
+              <Card className='lg:col-span-3' data-tour="beneficiaries-list">
                 <CardHeader>
                   <CardTitle>Liste des Bénéficiaires</CardTitle>
                 </CardHeader>
@@ -551,7 +896,7 @@ const Dashboard = withDashboard(() => {
           <Skeleton className='h-[320px] w-full' count={1} />
         </div>
       ) : (
-      <Card>
+      <Card data-tour="movements-chart">
         <CardHeader className='flex items-center justify-between flex-row space-y-0'>
           <CardTitle>Statistiques des mouvements de caisse</CardTitle>
           <div className='text-sm text-muted-foreground'>
@@ -578,7 +923,7 @@ const Dashboard = withDashboard(() => {
 
       {/* Tableau des rapports récents */}
       {helperUserPermission('dashboard', 'read_reports') ? (
-        <Card>
+        <Card data-tour="reports-table">
           <CardHeader className='flex flex-row items-center justify-between'>
             <CardTitle>Rapports Récents</CardTitle>
             <div className='flex items-center space-x-2'>
@@ -731,7 +1076,15 @@ const Dashboard = withDashboard(() => {
       {isFirstLogin && (
         <Dialog
           open={isFirstLogin}
-          onOpenChange={setIsFirstLogin}
+          onOpenChange={(open) => {
+            setIsFirstLogin(open);
+            // Démarrer le guide après la fermeture du modal si c'est la première connexion
+            if (!open && user?.isFirstLogin) {
+              setTimeout(() => {
+                startTour();
+              }, 500);
+            }
+          }}
         >
           <DialogContent className="sm:max-w-md">
             <div className="flex flex-col items-center text-center space-y-6">
