@@ -1,0 +1,162 @@
+{
+  "users": {
+    "admin": {
+      "email": "admin@test.com",
+      "password": "Test1234!",
+      "firstName": "Admin",
+      "lastName": "Test",
+      "phone": "+33612345678",
+      "role": "ADMIN"
+    },
+    "editor": {
+      "email": "editor@test.com",
+      "password": "Test1234!",
+      "firstName": "Éditeur",
+      "lastName": "Test",
+      "phone": "+33612345679",
+      "role": "EDITOR"
+    },
+    "manager": {
+      "email": "manager@test.com",
+      "password": "Test1234!",
+      "firstName": "Manager",
+      "lastName": "Test",
+      "phone": "+33612345680",
+      "role": "MANAGER"
+    },
+    "coordinator": {
+      "email": "coordinator@test.com",
+      "password": "Test1234!",
+      "firstName": "Coordinateur",
+      "lastName": "Test",
+      "phone": "+33612345681",
+      "role": "COORDINATOR"
+    }
+  },
+  "don": {
+    "valid": {
+      "title": "Don de matériel médical",
+      "description": "Matériel médical pour le centre de santé communautaire. Inclut des équipements de base pour les soins primaires.",
+      "montant": "100000",
+      "devise": "XOF",
+      "type": "Par nature",
+      "donorFullname": "Pierre Martin",
+      "donorPhone": "+33612345678",
+      "observation": "Livraison urgente prévue le 15/12/2024. Contacter le responsable avant livraison."
+    },
+    "invalid": {
+      "title": "",
+      "description": "Test sans titre",
+      "montant": "abc",
+      "devise": "XOF",
+      "type": "Par nature",
+      "donorFullname": "Test",
+      "donorPhone": "123",
+      "observation": ""
+    }
+  },
+  "audience": {
+    "valid": {
+      "title": "Réunion de coordination communautaire",
+      "description": "Réunion avec les membres de la communauté pour discuter des projets futurs, du budget et du calendrier des activités. Points à l'ordre du jour : présentation des nouveaux projets, discussion sur le budget, planification des activités du trimestre.",
+      "locationOfActivity": "Salle communautaire principale, Abidjan, Côte d'Ivoire",
+      "startDate": "2024-12-20T10:00:00",
+      "endDate": "2024-12-20T12:00:00"
+    },
+    "invalid": {
+      "title": "",
+      "description": "Test sans titre",
+      "locationOfActivity": "",
+      "startDate": "2024-12-20T12:00:00",
+      "endDate": "2024-12-20T10:00:00"
+    }
+  },
+  "report": {
+    "step1": {
+      "name": "Rapport mensuel - Décembre 2024",
+      "description": "Rapport détaillé des activités du mois de décembre 2024. Ce rapport couvre toutes les audiences réalisées, les dons reçus, et les projets en cours. Points principaux : organisation de 5 audiences communautaires, réception de 12 dons en nature et en espèces, lancement de 2 nouveaux projets communautaires."
+    },
+    "step2": {
+      "action": "Organiser une formation sur la gestion communautaire",
+      "responsible": {
+        "firstName": "Sophie",
+        "lastName": "Bernard"
+      },
+      "dueDate": "2025-01-15"
+    },
+    "step3": {
+      "files": [
+        {
+          "name": "image1.jpg",
+          "type": "image/jpeg",
+          "size": 1024000
+        },
+        {
+          "name": "image2.png",
+          "type": "image/png",
+          "size": 2048000
+        }
+      ]
+    }
+  },
+  "validation": {
+    "audience": {
+      "startDate": "2024-12-20T10:00:00",
+      "endDate": "2024-12-20T12:00:00"
+    }
+  },
+  "rejection": {
+    "audience": {
+      "motif": "Informations incomplètes. Veuillez fournir plus de détails sur le bénéficiaire et les objectifs de l'audience. Le lieu de l'activité doit être plus précis."
+    }
+  },
+  "representative": {
+    "valid": {
+      "firstName": "Jean",
+      "lastName": "Dupont",
+      "email": "jean.dupont@test.com",
+      "phone": "+33612345678"
+    },
+    "invalid": {
+      "firstName": "",
+      "lastName": "",
+      "email": "email-invalide",
+      "phone": "123"
+    }
+  },
+  "beneficiary": {
+    "valid": {
+      "fullName": "Association Test Solidarité",
+      "email": "contact@test-solidarite.org",
+      "phone": "+22501234567",
+      "address": "123 Rue Test, Abidjan, Côte d'Ivoire",
+      "type": "ORGANISATION"
+    }
+  },
+  "search": {
+    "don": {
+      "queries": [
+        "50000",
+        "XOF",
+        "matériel",
+        "médical"
+      ]
+    },
+    "audience": {
+      "queries": [
+        "réunion",
+        "communautaire",
+        "coordination"
+      ]
+    }
+  },
+  "filters": {
+    "don": {
+      "period": {
+        "from": "2024-01-01T00:00:00",
+        "to": "2024-12-31T23:59:59"
+      }
+    }
+  }
+}
+

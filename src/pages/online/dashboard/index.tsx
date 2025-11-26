@@ -538,9 +538,9 @@ const Dashboard = withDashboard(() => {
             zIndex: 10000,
             spotlightShadow: '0 0 25px rgba(37, 99, 235, 0.6)',
           },
-          // spotlight: {
-          //   borderRadius: '8px',
-          // },
+                    // spotlight: {
+                    //   borderRadius: '8px',
+                    // },
           // overlay: {
           //   mixBlendMode: 'normal',
           // },
