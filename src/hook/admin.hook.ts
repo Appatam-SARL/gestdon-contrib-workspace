@@ -344,7 +344,8 @@ export function useActivateMfa(
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['staff', 'member', id] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'profile', id] });
+      queryClient.invalidateQueries({ queryKey: ['logs', 'admin', id] });
       toast({
         title: 'Succès',
         description: 'Votre MFA a été activé avec succès.',
@@ -384,7 +385,8 @@ export function useDeactivateMfa(
     },
     onSuccess: () => {
       // onSuccess
-      queryClient.invalidateQueries({ queryKey: ['staff', 'member', id] });
+      queryClient.invalidateQueries({ queryKey: ['user', 'profile', id] });
+      queryClient.invalidateQueries({ queryKey: ['logs', 'admin', id] });
       toast({
         title: 'Succès',
         description: 'Votre MFA a été désactivé avec succès.',

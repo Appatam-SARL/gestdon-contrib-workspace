@@ -1,3 +1,5 @@
+import { tLogType } from "@/types/log.type";
+
 export const getRoleLayout = (role: string) => {
   switch (role) {
     case 'MANAGER':
@@ -105,6 +107,25 @@ export const displayStatusReport = (status: string) => {
       return 'Refusé';
     case 'ARCHIVED':
       return 'Archivé';
+    default:
+      return '';
+  }
+};
+
+export const displayLogType = (type: tLogType) => {
+  switch (type) {
+    case 'LOGIN':
+      return 'Connexion';
+    case 'LOGOUT':
+      return 'Déconnexion';
+    case 'MFA_SETUP':
+      return 'MFA Setup';
+    case 'MFA_VERIFICATION':
+      return 'MFA Verification';
+    case 'MFA_VERIFICATION_FAILED':
+      return 'MFA Verification Failed';
+    case 'MFA_VERIFICATION_SUCCESS':
+      return 'MFA Verification Success';
     default:
       return '';
   }

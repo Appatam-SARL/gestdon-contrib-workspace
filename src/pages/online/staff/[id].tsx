@@ -62,15 +62,17 @@ import { IPermission } from '@/interface/permission';
 import { cn } from '@/lib/utils';
 import { useMfaStore } from '@/store/mfa.store';
 import useUserStore from '@/store/user.store';
-import { ILog, IlogFilter } from '@/types/log.type';
+import { ILog, IlogFilter, tLogType } from '@/types/log.type';
 import { StaffMemberForm } from '@/types/staff';
 import { helperUserPermission, validatePhoneNumber } from '@/utils';
-import { getRoleLayout } from '@/utils/display-of-variable';
+import { displayLogType, getRoleLayout } from '@/utils/display-of-variable';
 import { DialogTrigger } from '@radix-ui/react-dialog';
 import {
   ArrowLeft,
+  Calendar,
   Eye,
   EyeOff,
+  Filter,
   Loader2,
   Lock,
   LockIcon,
@@ -78,7 +80,7 @@ import {
   SaveIcon,
   X,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Skeleton from 'react-loading-skeleton';
 import PhoneInput from 'react-phone-number-input';
 import QrCode from 'react-qr-code';
@@ -94,6 +96,17 @@ import {
   FormLabel, 
   FormMessage 
 } from '@/components/ui/form';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { DateRangePicker } from 'react-date-range';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
+import { addDays, format } from 'date-fns';
+import fr from 'date-fns/locale/fr';
+import { formatDate } from '@/utils/helperDate';
 
 const getActionBadgeVariant = (type: string) => {
   switch (type) {
@@ -108,6 +121,45 @@ const getActionBadgeVariant = (type: string) => {
   }
 };
 
+/**
+ * Calcule les numéros de pages à afficher dans la pagination
+ * @param currentPage - Page actuelle
+ * @param totalPages - Nombre total de pages
+ * @param maxVisible - Nombre maximum de pages visibles (défaut: 5)
+ * @returns Tableau des numéros de pages à afficher
+ */
+const getVisiblePages = (
+  currentPage: number,
+  totalPages: number,
+  maxVisible: number = 5
+): number[] => {
+  if (totalPages <= maxVisible) {
+    // Si le nombre total de pages est inférieur ou égal au max, afficher toutes les pages
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages: number[] = [];
+  const halfVisible = Math.floor(maxVisible / 2);
+
+  let startPage = Math.max(1, currentPage - halfVisible);
+  let endPage = Math.min(totalPages, currentPage + halfVisible);
+
+  // Ajuster si on est proche du début ou de la fin
+  if (endPage - startPage < maxVisible - 1) {
+    if (startPage === 1) {
+      endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    } else {
+      startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+
+  return pages;
+};
+
 export const StaffDetailsPage = withDashboard(() => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
@@ -120,7 +172,7 @@ export const StaffDetailsPage = withDashboard(() => {
   const [showConfirmPassword, setShowConfirmPassword] =
     useState<boolean>(false);
   const [open, setOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isFilterPopoverOpen, setIsFilterPopoverOpen] = useState(false);
 
   // États pour les modals et formulaires
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -212,6 +264,29 @@ export const StaffDetailsPage = withDashboard(() => {
       setLocalPermissions(JSON.parse(JSON.stringify(permission.data)));
     }
   }, [permission]);
+
+  // Synchronise la page actuelle avec les métadonnées de pagination
+  useEffect(() => {
+    if (logs?.metadata && !isLoadingLogs) {
+      const currentPage = Number(filterLogs.page || 1);
+      const totalPages = Number(logs.metadata.totalPages || 1);
+      
+      // Si la page actuelle dépasse le nombre total de pages, revenir à la dernière page valide
+      if (currentPage > totalPages && totalPages > 0) {
+        setFilterLogs((prev) => ({
+          ...prev,
+          page: totalPages,
+        }));
+      }
+      // Si la page est inférieure à 1, revenir à la première page
+      else if (currentPage < 1) {
+        setFilterLogs((prev) => ({
+          ...prev,
+          page: 1,
+        }));
+      }
+    }
+  }, [logs?.metadata?.totalPages, isLoadingLogs]);
 
   // Gestion du toggle d'une action
   const handleToggleAction = (permIndex: number, actionIndex: number) => {
@@ -698,7 +773,124 @@ export const StaffDetailsPage = withDashboard(() => {
             helperUserPermission('log', 'read') && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Historique des actions</CardTitle>
+                  <div className='flex items-center justify-between'>
+                    <CardTitle>Historique des actions</CardTitle>
+                    <Popover open={isFilterPopoverOpen} onOpenChange={setIsFilterPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          className={cn(
+                            'gap-2',
+                            (filterLogs.startDate || filterLogs.endDate) &&
+                              'bg-primary/10 border-primary'
+                          )}
+                        >
+                          <Filter className='h-4 w-4' />
+                          <span>Filtrer</span>
+                          {(filterLogs.startDate || filterLogs.endDate) && (
+                            <Badge
+                              variant='secondary'
+                              className='ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center'
+                            >
+                              1
+                            </Badge>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className='w-auto p-0' align='end'>
+                        <div className='p-4 space-y-4'>
+                          <div className='space-y-2'>
+                            <Label className='text-sm font-medium'>
+                              Période
+                            </Label>
+                            <DateRangePicker
+                              locale={fr}
+                              ranges={[
+                                {
+                                  startDate: filterLogs.startDate
+                                    ? new Date(filterLogs.startDate)
+                                    : new Date(),
+                                  endDate: filterLogs.endDate
+                                    ? new Date(filterLogs.endDate)
+                                    : addDays(new Date(), 7),
+                                  key: 'selection',
+                                },
+                              ]}
+                              onChange={(item) => {
+                                const startDate = item.selection.startDate
+                                  ? item.selection.startDate.toISOString()
+                                  : '';
+                                const endDate = item.selection.endDate
+                                  ? item.selection.endDate.toISOString()
+                                  : '';
+                                setFilterLogs((prev) => ({
+                                  ...prev,
+                                  startDate,
+                                  endDate,
+                                  page: 1, // Réinitialiser à la première page lors du filtrage
+                                }));
+                              }}
+                            />
+                          </div>
+                          <div className='flex items-center justify-between gap-2 pt-2 border-t'>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => {
+                                setFilterLogs((prev) => ({
+                                  ...prev,
+                                  startDate: '',
+                                  endDate: '',
+                                  page: 1,
+                                }));
+                                setIsFilterPopoverOpen(false);
+                              }}
+                              className='flex-1'
+                            >
+                              <X className='h-4 w-4 mr-2' />
+                              Réinitialiser
+                            </Button>
+                            <Button
+                              size='sm'
+                              onClick={() => setIsFilterPopoverOpen(false)}
+                              className='flex-1'
+                            >
+                              Appliquer
+                            </Button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {(filterLogs.startDate || filterLogs.endDate) && (
+                    <div className='mt-2 flex items-center gap-2 flex-wrap'>
+                      <Badge
+                        variant='secondary'
+                        className='gap-1.5 text-xs'
+                      >
+                        <Calendar className='h-3 w-3' />
+                        {filterLogs.startDate && filterLogs.endDate
+                          ? `${format(new Date(filterLogs.startDate), 'dd MMM yyyy', { locale: fr })} - ${format(new Date(filterLogs.endDate), 'dd MMM yyyy', { locale: fr })}`
+                          : filterLogs.startDate
+                          ? `À partir du ${format(new Date(filterLogs.startDate), 'dd MMM yyyy', { locale: fr })}`
+                          : `Jusqu'au ${format(new Date(filterLogs.endDate), 'dd MMM yyyy', { locale: fr })}`}
+                        <button
+                          onClick={() => {
+                            setFilterLogs((prev) => ({
+                              ...prev,
+                              startDate: '',
+                              endDate: '',
+                              page: 1,
+                            }));
+                          }}
+                          className='ml-1 hover:bg-destructive/20 rounded-full p-0.5'
+                        >
+                          <X className='h-3 w-3' />
+                        </button>
+                      </Badge>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className='p-0'>
                   <div className='rounded-md'>
@@ -734,10 +926,8 @@ export const StaffDetailsPage = withDashboard(() => {
                               key={action._id}
                               className='border-b hover:bg-muted/50 transition-colors'
                             >
-                              <td className='py-3 px-4 text-sm'>
-                                {new Date(action.createdAt).toLocaleString(
-                                  'fr-FR'
-                                )}
+                              <td className='py-3 px-4 text-sm text-muted-foreground'>
+                                {formatDate(String(action.createdAt), 'DD MMM YY à HH:mm')}
                               </td>
                               <td className='py-3 px-4 text-sm font-medium'>
                                 {action.details}
@@ -747,7 +937,7 @@ export const StaffDetailsPage = withDashboard(() => {
                                   variant={getActionBadgeVariant(action.action)}
                                   className='capitalize'
                                 >
-                                  {action.action}
+                                  {displayLogType(action.action as tLogType)}
                                 </Badge>
                               </td>
                             </tr>
@@ -767,78 +957,170 @@ export const StaffDetailsPage = withDashboard(() => {
                         )}
                       </tbody>
                     </table>
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            href='#'
-                            onClick={() =>
-                              setFilterLogs((prev) => ({
-                                ...prev,
-                                page: Number(prev?.page) - 1,
-                              }))
-                            }
-                            className={
-                              currentPage === 1
-                                ? 'pointer-events-none opacity-50'
-                                : ''
-                            }
-                            size='default'
-                          />
-                        </PaginationItem>
-                        {isLoadingLogs ? (
-                          <Skeleton className='h-4 w-4' />
-                        ) : Number(logs?.metadata?.totalPages) > 3 ? (
-                          <>
-                            {[...Array(3)].map((_, i) => (
-                              <PaginationItem key={i + 1}>
-                                <PaginationLink
-                                  href='#'
-                                  isActive={currentPage === i + 1}
-                                  onClick={() => setCurrentPage(i + 1)}
-                                  size='default'
-                                >
-                                  {i + 1}
-                                </PaginationLink>
-                              </PaginationItem>
-                            ))}
+                    {!isLoadingLogs &&
+                      logs?.metadata &&
+                      Number(logs.metadata.totalPages) > 1 &&
+                      Number(logs.metadata.total) > 0 && (
+                        <div className='p-4 border-t'>
+                        <Pagination>
+                          <PaginationContent>
                             <PaginationItem>
-                              <PaginationEllipsis />
-                            </PaginationItem>
-                          </>
-                        ) : (
-                          [...Array(2)].map((_, i) => (
-                            <PaginationItem key={i + 1}>
-                              <PaginationLink
+                              <PaginationPrevious
                                 href='#'
-                                isActive={currentPage === i + 1}
-                                onClick={() => setCurrentPage(i + 1)}
-                                size='default'
-                              >
-                                {i + 1}
-                              </PaginationLink>
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (filterLogs.page && filterLogs.page > 1) {
+                                    setFilterLogs((prev) => ({
+                                      ...prev,
+                                      page: Number(prev?.page || 1) - 1,
+                                    }));
+                                  }
+                                }}
+                                className={
+                                  !logs?.metadata?.hasPrevPage ||
+                                  filterLogs.page === 1
+                                    ? 'pointer-events-none opacity-50'
+                                    : 'cursor-pointer'
+                                }
+                                size='sm'
+                              />
                             </PaginationItem>
-                          ))
-                        )}
-                        <PaginationItem>
-                          <PaginationNext
-                            href='#'
-                            onClick={() =>
-                              setFilterLogs((prev) => ({
-                                ...prev,
-                                page: Number(prev?.page) + 1,
-                              }))
-                            }
-                            className={
-                              currentPage === logs?.metadata?.totalPages
-                                ? 'pointer-events-none opacity-50'
-                                : ''
-                            }
-                            size='default'
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
+                            {isLoadingLogs ? (
+                              <PaginationItem>
+                                <Skeleton className='h-8 w-8' />
+                              </PaginationItem>
+                            ) : (
+                              <>
+                                {(() => {
+                                  const currentPage = Number(
+                                    filterLogs.page || 1
+                                  );
+                                  const totalPages = Number(
+                                    logs?.metadata?.totalPages || 1
+                                  );
+                                  const visiblePages = getVisiblePages(
+                                    currentPage,
+                                    totalPages
+                                  );
+
+                                  return (
+                                    <>
+                                      {/* Afficher la première page si elle n'est pas dans les pages visibles */}
+                                      {visiblePages[0] > 1 && (
+                                        <>
+                                          <PaginationItem>
+                                            <PaginationLink
+                                              href='#'
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                setFilterLogs((prev) => ({
+                                                  ...prev,
+                                                  page: 1,
+                                                }));
+                                              }}
+                                              isActive={currentPage === 1}
+                                              size='sm'
+                                            >
+                                              1
+                                            </PaginationLink>
+                                          </PaginationItem>
+                                          {visiblePages[0] > 2 && (
+                                            <PaginationItem>
+                                              <PaginationEllipsis />
+                                            </PaginationItem>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {/* Afficher les pages visibles */}
+                                      {visiblePages.map((page) => (
+                                        <PaginationItem key={page}>
+                                          <PaginationLink
+                                            href='#'
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              setFilterLogs((prev) => ({
+                                                ...prev,
+                                                page: page,
+                                              }));
+                                            }}
+                                            isActive={currentPage === page}
+                                            size='sm'
+                                          >
+                                            {page}
+                                          </PaginationLink>
+                                        </PaginationItem>
+                                      ))}
+
+                                      {/* Afficher la dernière page si elle n'est pas dans les pages visibles */}
+                                      {visiblePages[visiblePages.length - 1] <
+                                        totalPages && (
+                                        <>
+                                          {visiblePages[
+                                            visiblePages.length - 1
+                                          ] <
+                                            totalPages - 1 && (
+                                            <PaginationItem>
+                                              <PaginationEllipsis />
+                                            </PaginationItem>
+                                          )}
+                                          <PaginationItem>
+                                            <PaginationLink
+                                              href='#'
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                setFilterLogs((prev) => ({
+                                                  ...prev,
+                                                  page: totalPages,
+                                                }));
+                                              }}
+                                              isActive={currentPage === totalPages}
+                                              size='sm'
+                                            >
+                                              {totalPages}
+                                            </PaginationLink>
+                                          </PaginationItem>
+                                        </>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </>
+                            )}
+                            <PaginationItem>
+                              <PaginationNext
+                                href='#'
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  const currentPage = Number(
+                                    filterLogs.page || 1
+                                  );
+                                  const totalPages = Number(
+                                    logs?.metadata?.totalPages || 1
+                                  );
+                                  if (
+                                    logs?.metadata?.hasNextPage &&
+                                    currentPage < totalPages
+                                  ) {
+                                    setFilterLogs((prev) => ({
+                                      ...prev,
+                                      page: Number(prev?.page || 1) + 1,
+                                    }));
+                                  }
+                                }}
+                                className={
+                                  !logs?.metadata?.hasNextPage ||
+                                  filterLogs.page === logs?.metadata?.totalPages
+                                    ? 'pointer-events-none opacity-50'
+                                    : 'cursor-pointer'
+                                }
+                                size='sm'
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

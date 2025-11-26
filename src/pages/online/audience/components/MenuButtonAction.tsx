@@ -114,7 +114,7 @@ function MenuButtonAction({
   const { toast } = useToast();
   const contributorId = useContributorStore((s) => s.contributor?._id);
   const user = useUserStore((s) => s.user);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileList>();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [isValidateDialogOpen, setIsValidateDialogOpen] =
     useState<boolean>(false);
@@ -165,9 +165,12 @@ function MenuButtonAction({
     setIsBrouillonDialogOpen
   );
   const reportMutation = useReportAudience(id, setIsReporterDialogOpen);
-  const createReportMutation = useCreateReport(() =>
-    setIsAddReportDialogOpen(false)
-  ); // hook de création d'un rapport pour l'audience
+  const createReportMutation = useCreateReport(() => {
+    setIsAddReportDialogOpen(false);
+    setCurrentStep(1);
+    setFiles(undefined);
+    formAddReport.reset();
+  }); // hook de création d'un rapport pour l'audience
 
   const formValidate = useForm<FormValidateAudienceSchema>({
     resolver: zodResolver(formValidateAudienceSchema),
@@ -239,8 +242,20 @@ function MenuButtonAction({
   };
 
   const onSubmitAddReport = async (data: FormCreateReportSchema) => {
+    if (!files || files.length === 0) {
+      toast({
+        title: 'Erreur',
+        description: 'Veuillez sélectionner au moins un fichier',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Exclure documents du payload car il sera géré séparément par le hook
+    const { documents, ...reportData } = data;
+    
     const payload = {
-      ...data,
+      ...reportData,
       entityType: 'AUDIENCE',
       entityId: id as string,
       commitments: [data.commitments],
@@ -258,7 +273,7 @@ function MenuButtonAction({
         email: user?.email,
       },
     };
-    createReportMutation.mutate(payload);
+    createReportMutation.mutate({ report: payload, files });
   };
 
   const audience = audienceResponse?.data;
@@ -853,7 +868,14 @@ function MenuButtonAction({
         {/* Dialog reporter */}
         <Dialog
           open={isAddReportDialogOpen}
-          onOpenChange={setIsAddReportDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddReportDialogOpen(open);
+            if (!open) {
+              setCurrentStep(1);
+              setFiles(undefined);
+              formAddReport.reset();
+            }
+          }}
         >
           <DialogContent className='sm:max-w-[500px]'>
             <DialogHeader>
@@ -1039,14 +1061,12 @@ function MenuButtonAction({
                                 <Input
                                   type='file'
                                   accept='image/*'
+                                  multiple
                                   onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      // TODO: Upload file and set URL
-                                      setFiles((prev) => [...prev, file]);
+                                    if (e.target.files) {
+                                      setFiles(e.target.files);
                                     }
                                   }}
-                                  // value={document.file ? document.file : ''}
                                 />
                                 <Button
                                   type='button'
